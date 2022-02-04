@@ -6,7 +6,6 @@ from jericho import FrotzEnv
 from agent import Agent
 from agent import RandomAgent
 from agent import HumanAgent
-from actions import get_valid_actions
 
 import config
 

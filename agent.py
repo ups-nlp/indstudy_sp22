@@ -4,7 +4,6 @@ Agents for playing text-based games
 
 import random
 from jericho import FrotzEnv
-from actions import get_valid_actions
 
 
 class Agent:
