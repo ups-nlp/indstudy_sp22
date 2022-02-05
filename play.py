@@ -8,6 +8,8 @@ from agent import RandomAgent
 from agent import HumanAgent
 
 import config
+import time
+
 
 def play_game(agent: Agent, game_file: str, num_steps: int):
     """ The main method that instantiates an agent and plays the specified game"""
@@ -20,29 +22,40 @@ def play_game(agent: Agent, game_file: str, num_steps: int):
 
     curr_obs, info = env.reset()
     done = False
-    
-    prev_location = env.get_player_location()
-    num_location_changes = 0
+
+    if config.VERBOSITY > 0:
+        print('=========================================')
+        print("Initial Observation\n" + curr_obs)
+
+    prev_location = env.get_player_location() 
+    num_location_changes = 0  # total number of times an action led to a change in location
+    num_times_called = 0 # total number of iterations performed
+    seconds = 0 # total time spent in take_action() over all iterations
+
     while num_steps > 0 and not done:
 
+        # timing the call to take_action()
+        start_time = time.time()
         action_to_take = agent.take_action(env, history)
+        end_time = time.time()
 
-        # info is a dictionary (i.e. hashmap) of {'moves':int, 'score':int}
+        # updating statistics
+        num_times_called += 1
+        seconds += (end_time - start_time)
+
+        # updating environment with selected action
         next_obs, _, done, info = env.step(action_to_take)
 
-        curr_location = env.get_player_location()
+        history.append((curr_obs, action_to_take))
 
+        # checking if the action taken caused a change in location
+        curr_location = env.get_player_location()
         if prev_location != curr_location:
             num_location_changes += 1
-
         prev_location = curr_location
-        
 
-        history.append((curr_obs, action_to_take))
-        
-        curr_obs = next_obs.split("\n", 1)[1]
-        
-        
+        curr_obs = next_obs
+
         if config.VERBOSITY > 0:
             print('\n\n=========================================')
             print('Taking action: ', action_to_take)
@@ -56,7 +69,8 @@ def play_game(agent: Agent, game_file: str, num_steps: int):
         for _, action in history:
             print(action)
 
-    return (info['score'],info['moves'], num_location_changes)
+    return (info['score'], info['moves'], num_location_changes, num_times_called, seconds)
+
 
 if __name__ == "__main__":
     # Read in command line arguments and play the game with the specified parameters
@@ -72,14 +86,15 @@ if __name__ == "__main__":
         'num_moves', type=int, help='Number of moves for the agent to make')
     parser.add_argument('agent', help='[random|human]')
     parser.add_argument('game_file', help='Full pathname for game')
-    parser.add_argument('-v', '--verbosity', type=int, help='[0|1] verbosity level')
+    parser.add_argument('-v', '--verbosity', type=int,
+                        help='[0|1] verbosity level')
     args = parser.parse_args()
 
     # Right now all you can create is a RandomAgent. This will expand in the future
     if args.agent == 'random':
         ai_agent = RandomAgent()
     elif args.agent == 'human':
-        ai_agent = HumanAgent()
+        ai_agent = HumanAgent()    
     else:
         ai_agent = RandomAgent()
 
