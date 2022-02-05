@@ -20,7 +20,7 @@ class RandomAgent(Agent):
     def take_action(self, env: FrotzEnv, history: list) -> str:
         """Takes in the history and returns the next action to take"""
 
-        valid_actions = get_valid_actions(env, history)
+        valid_actions = env.get_valid_actions()
         return random.choice(valid_actions)
 
 
