@@ -7,6 +7,45 @@ import random
 import sys
 import numpy as np
 from jericho import FrotzEnv
+SIM_SCALE = .25
+ACTION_BOUND = .001
+
+def take_action(self, root, env: FrotzEnv, explore_exploit_const, reward_policy):
+    #hi
+    #curr_state = env.get_state()
+    while(True):
+        # Create a new node on the tree
+            action = (self.best_child(root,explore_exploit_const,env,reward_policy)[0]).get_prev_action
+            new_node = self.tree_policy(self.root, env, self.explore_const, self.reward)
+            # Determine the simulated value of the new node
+            delta = self.default_policy(new_node, env, self.simulation_length, self.reward)
+            if calc_score_dif(new_node.parent) <= ACTION_BOUND:
+                new_node.parent.changeLength(1)
+
+            # Propogate the simulated value back up the tree
+            self.backup(new_node, delta)
+            # reset the state of the game when done with one simulation
+            env.reset()
+            env.set_state(root)
+
+            #update the shared table FILL IN
+
+def calc_score_dif(self, node):
+    diff = inf
+    max = 0
+    for  n in node.getChildren:
+        if n.sim_value < max:
+            if (max - n.sim_value) < diff:
+                diff = max - n.sim_value
+        if n.sim_value > max:
+            if (n.sim_value - max) < diff:
+               diff = n.sim_value - max
+            max = n.sim_value
+        if max == n.sim_value:
+            diff = 0
+    return diff
+
+
 
 def tree_policy(root, env: FrotzEnv, explore_exploit_const, reward_policy):
     """ Travel down the tree to the ideal node to expand on
@@ -195,9 +234,11 @@ def backup(node, delta):
         node.sim_value += delta
         # Traverse up the tree
         node = node.get_parent()
+"""
 
 def dynamic_sim_len(max_nodes, sim_limit, diff) -> int:
-        """Given the current simulation depth limit and the difference between 
+        #
+        Given the current simulation depth limit and the difference between 
         the picked and almost picked 'next action' return what the new sim depth and max nodes are.
         
         Keyword arguments:
@@ -208,7 +249,7 @@ def dynamic_sim_len(max_nodes, sim_limit, diff) -> int:
         Returns: 
             int: The new max number of nodes to generate before the agent makes a move
             int: The new max number of moves to make during a simulation before stopping
-        """        
+        #       
        # if(diff == 0):
             #sim_limit = 100
             #if(max_nodes < 300):
@@ -230,6 +271,8 @@ def dynamic_sim_len(max_nodes, sim_limit, diff) -> int:
             
         
         return max_nodes, sim_limit
+"""
+        
 
 class Node:
     """
@@ -241,6 +284,7 @@ class Node:
     visited -- the number of times this node has been visited
     max_children -- the total number of children this node could have
     new_actions -- a list of the unexplored actions at this node
+    sim_length_scale -- scale the length of the simulation run from this node
 
     Keyword arguments:
     parent -- it's parent node
@@ -248,12 +292,13 @@ class Node:
     new_actions -- a list of all the unexplored actions at this node
     """
 
-    def __init__(self, parent, prev_act, new_actions):
+    def __init__(self, parent, prev_act,  new_actions):
         self.parent = parent
         self.prev_act = prev_act
         self.children = []
         self.sim_value = 0
         self.visited = 0
+        self.sim_length_scale = 1
         self.max_children = len(new_actions)
         self.new_actions = new_actions
 
@@ -275,6 +320,13 @@ class Node:
 
         for child in self.children:
             child.print(level+1)
+
+    def changeLength(self, scalar):
+        if scalar < 0:
+            self.sim_length_scale = self.sim_length_scale*(1-SIM_SCALE)
+        
+        if scalar >0:
+            self.sim_length_scale = self.sim_length_scale*(1+SIM_SCALE)
 
     def add_child(self, child):
         self.children.append(child)
@@ -363,190 +415,7 @@ class Reward:
         """
         raise NotImplementedError
 
-class Softmax_Reward(Reward):
-    """Softmax reward returns values from 0 to .5 for the state. 
-    This implementation assumes that every score between the loss state and the max score
-    are possible.
-    """
 
-    def terminal_node(self, env):
-        """ The case when we start the simulation at a terminal state
-        Keyword arguments:
-            env (FrotzEnv): FrotzEnv interface between the learning agent and the game
-        Returns:
-            int: The score for the new node
-        """
-        return 0
-
-    def simulation_limit(self, env):
-        """ The case when we reach the simulation depth limit 
-        Keyword arguments:
-            env (FrotzEnv): FrotzEnv interface between the learning agent and the game
-        Returns:
-            int: The score for the new node
-        """
-        return env.get_score()
-
-    def simulation_terminal(self, env):
-        """ The case when we reach a terminal state in the simulation 
-        Keyword arguments:
-            env (FrotzEnv): FrotzEnv interface between the learning agent and the game
-        Returns:
-            int: The score for the new node
-        """
-        raise (env.get_score()+10)
-
-    def softmax_calc(self,minScore,maxScore):
-        total = 0
-        for i in range (minScore,maxScore+1):
-            total = total+(e**i)
-        return total
-
-        
-    def upper_confidence_bounds(self, env: FrotzEnv, exploration, child_sim_value, child_visited, parent_visited):
-        """ This method calculates and returns the upper confidence bounds for a given child node on the tree.
-
-        Args:
-            env (FrotzEnv): FrotzEnv interface between the learning agent and the game
-            exploration (float): Exploration-Exploitation constant
-            child_sim_value (float): Simulated value for the child node
-            child_visited (int): Number of times the child node has been explored
-            parent_visited (int): Number of times the parent node has been explored
-
-        Raises:
-            NotImplementedError: throw an error if this method is not implemented.
-
-        Returns:
-            int: The upper confidence bounds for the child node
-        """
-        if env.get_score() >= np.log(sys.maxsize):
-            denom = np.log(sys.maxsize)
-        else:
-            denom = self.softmax_calc(-10,env.get_max_score())
-        if child_sim_value >= np.log(sys.maxsize):
-            num = np.log(sys.maxsize)
-        else:
-            num = child_sim_value
-        
-        return (e**(num))/(child_visited*denom)+ exploration*sqrt((2*log2(parent_visited))/child_visited)
-
-    def select_action(self, env: FrotzEnv, child_sim_value, child_visited, parent_visited):
-        """ This method calculates and returns the average score for a given child node on the tree.
-
-        Args:
-            env (FrotzEnv): FrotzEnv interface between the learning agent and the game
-            child_sim_value (float): Simulated value for the child node
-            child_visited (int): Number of times the child node has been explored
-            parent_visited (int): Number of times the parent node has been explored
-
-        Raises:
-            NotImplementedError: throw an error if this method is not implemented.
-
-        Returns:
-            int: The average score for the child node
-        """
-        if env.get_max_score() >= np.log(sys.maxsize):
-            denom = np.log(sys.maxsize)
-        else:
-            denom = self.softmax_calc(-10,env.get_max_score())
-        if child_sim_value >= np.log(sys.maxsize):
-            num = np.log(sys.maxsize)
-        else:
-            num = child_sim_value
-        return (e**(num))/(child_visited*denom)
-
-class Generalized_Softmax_Reward(Reward):
-    """Generalized Softmax reward returns values from 0 to 1 for the state. 
-    This implementation assumes that every score between the loss state and the max score
-    are possible.
-    """
-
-    def terminal_node(self, env):
-        """ The case when we start the simulation at a terminal state 
-
-        Keyword arguments:
-            env (FrotzEnv): FrotzEnv interface between the learning agent and the game
-        Returns:
-            int: The score for the new node
-        """
-        return 0
-
-    def simulation_limit(self, env):
-        """ The case when we reach the simulation depth limit 
-        
-        Keyword arguments:
-            env (FrotzEnv): FrotzEnv interface between the learning agent and the game
-        Returns:
-            int: The score for the new node
-        """
-        return env.get_score()
-
-    def simulation_terminal(self, env):
-        """ The case when we reach a terminal state in the simulation 
-        
-        Keyword arguments:
-            env (FrotzEnv): FrotzEnv interface between the learning agent and the game
-        Returns:
-            int: The score for the new node
-        """
-        raise (env.get_score()+10)
-   
-    def upper_confidence_bounds(self, env: FrotzEnv, exploration, child_sim_value, child_visited, parent_visited):
-        """ This method calculates and returns the upper confidence bounds for a given child node on the tree.
-
-        Args:
-            env (FrotzEnv): FrotzEnv interface between the learning agent and the game
-            exploration (float): Exploration-Exploitation constant
-            child_sim_value (float): Simulated value for the child node
-            child_visited (int): Number of times the child node has been explored
-            parent_visited (int): Number of times the parent node has been explored
-
-        Raises:
-            NotImplementedError: throw an error if this method is not implemented.
-
-        Returns:
-            int: The upper confidence bounds for the child node
-        """
-        if env.get_score() >= np.log(sys.maxsize):
-            denom = np.log(sys.maxsize)
-        else:
-            denom = e**(env.get_score())
-        if child_sim_value >= np.log(sys.maxsize):
-            num = np.log(sys.maxsize)
-        else:
-            num = child_sim_value
-        try:
-            return (1/child_visited)*(e**(num-denom)) + exploration*sqrt((2*log2(parent_visited))/child_visited)
-        except OverflowError:
-            print("max size = ",sys.maxsize," num = ",num," denom = ",denom)
-
-    def select_action(self, env: FrotzEnv, child_sim_value, child_visited, parent_visited):
-        """ This method calculates and returns the average score for a given child node on the tree.
-
-        Args:
-            env (FrotzEnv): FrotzEnv interface between the learning agent and the game
-            child_sim_value (float): Simulated value for the child node
-            child_visited (int): Number of times the child node has been explored
-            parent_visited (int): Number of times the parent node has been explored
-
-        Raises:
-            NotImplementedError: throw an error if this method is not implemented.
-
-        Returns:
-            int: The average score for the child node
-        """
-        if env.get_score() >= np.log(sys.maxsize):
-            denom = np.log(sys.maxsize)
-        else:
-            denom = e**(env.get_score())
-        if child_sim_value >= np.log(sys.maxsize):
-            num = np.log(sys.maxsize)
-        else:
-            num = child_sim_value
-        try:
-            return (1/child_visited)*(e**(num-denom))
-        except OverflowError:
-            print("max size = ",sys.maxsize," num = ",num," denom = ",denom)
 
 class Additive_Reward(Reward):
     """ This Reward Policy returns values between 0 and 1 
@@ -554,73 +423,24 @@ class Additive_Reward(Reward):
     """
 
     def terminal_node(self, env):
-        """The case when we start the simulation at a terminal state, return 0.
-        
-        Keyword arguments:
-            env (FrotzEnv): FrotzEnv interface between the learning agent and the game
-        Returns:
-            int: The score for the new node
-        """
         return 0
+ 
 
     def simulation_limit(self, env):
-        """The case when we reach the simulation depth limit
-        
-        Keyword arguments:
-            env (FrotzEnv): FrotzEnv interface between the learning agent and the game
-        Returns:
-            int: The score for the new node
-        """
         return env.get_score()
 
     def simulation_terminal(self, env):
-        """The case when we reach a terminal stae in the simulation. 
-        Add 10 to the score so it is non-negative.
-        
-        Keyword arguments:
-            env (FrotzEnv): FrotzEnv interface between the learning agent and the game
-        Returns:
-            int: The score for the new node
-        """
         return (env.get_score()+10)
 
     def upper_confidence_bounds(self, env: FrotzEnv, exploration, child_sim_value, child_visited, parent_visited):
-        """ This method calculates and returns the upper confidence bounds for a given child node on the tree.
 
-        Args:
-            env (FrotzEnv): FrotzEnv interface between the learning agent and the game
-            exploration (float): Exploration-Exploitation constant
-            child_sim_value (float): Simulated value for the child node
-            child_visited (int): Number of times the child node has been explored
-            parent_visited (int): Number of times the parent node has been explored
-
-        Raises:
-            NotImplementedError: throw an error if this method is not implemented.
-
-        Returns:
-            int: The upper confidence bounds for the child node
-        """
         score = env.get_score()
         if(score == 0):
             score = 1
-        #print(child_sim_value/(child_visited*score),  exploration*sqrt((2*log2(parent_visited))/child_visited))
         return child_sim_value/(child_visited*score) + 1.75*exploration*sqrt((2*log2(parent_visited))/child_visited)
 
     def select_action(self, env: FrotzEnv, child_sim_value, child_visited, parent_visited):
-        """ This method calculates and returns the average score for a given child node on the tree.
 
-        Args:
-            env (FrotzEnv): FrotzEnv interface between the learning agent and the game
-            child_sim_value (float): Simulated value for the child node
-            child_visited (int): Number of times the child node has been explored
-            parent_visited (int): Number of times the parent node has been explored
-
-        Raises:
-            NotImplementedError: throw an error if this method is not implemented.
-
-        Returns:
-            int: The average score for the child node
-        """
         score = env.get_score()
         if(score == 0):
             score = 1
@@ -632,68 +452,23 @@ class Dynamic_Reward(Reward):
          reached later."""
 
     def terminal_node(self, env) -> int:
-        """ The case when we start the simulation at a terminal state 
 
-        Keyword arguments:
-            env (FrotzEnv): FrotzEnv interface between the learning agent and the game
-        Returns:
-            int: The score for the new node
-        """
         return 0
 
     def simulation_limit(self, env) -> int:
-        """ The case when we reach the simulation depth limit 
-        
-        Keyword arguments:
-            env (FrotzEnv): FrotzEnv interface between the learning agent and the game
-        Returns:
-            int: The score for the new node
-        """
+ 
         return (env.get_score()/(env.get_moves()+1))
 
     def simulation_terminal(self, env) -> int:
-        """ The case when we reach a terminal stae in the simulation
 
-        Keyword arguments:
-            env (FrotzEnv): FrotzEnv interface between the learning agent and the game
-        Returns:
-            int: The score for the new node
-        """
         return ((env.get_score()+10)/(env.get_moves()+1))
         
     def upper_confidence_bounds(self, env: FrotzEnv, exploration, child_sim_value, child_visited, parent_visited) -> int:
-        """ This method calculates and returns the upper confidence bounds for a given child node on the tree.
 
-        Args:
-            env (FrotzEnv): FrotzEnv interface between the learning agent and the game
-            exploration (float): Exploration-Exploitation constant
-            child_sim_value (float): Simulated value for the child node
-            child_visited (int): Number of times the child node has been explored
-            parent_visited (int): Number of times the parent node has been explored
-
-        Raises:
-            NotImplementedError: throw an error if this method is not implemented.
-
-        Returns:
-            int: The upper confidence bounds for the child node
-        """
         return child_sim_value/(child_visited*env.get_max_score()) + exploration*sqrt((2*log2(parent_visited))/child_visited)
 
     def select_action(self, env: FrotzEnv, child_sim_value, child_visited, parent_visited) -> int:
-        """ This method calculates and returns the average score for a given child node on the tree.
-
-        Args:
-            env (FrotzEnv): FrotzEnv interface between the learning agent and the game
-            child_sim_value (float): Simulated value for the child node
-            child_visited (int): Number of times the child node has been explored
-            parent_visited (int): Number of times the parent node has been explored
-
-        Raises:
-            NotImplementedError: throw an error if this method is not implemented.
-
-        Returns:
-            int: The average score for the child node
-        """
+ 
         return (child_sim_value/(child_visited*env.get_max_score()))
 
 def node_explore(agent):
