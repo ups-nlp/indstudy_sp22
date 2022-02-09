@@ -3,12 +3,12 @@ An implementation of the UCT algorithm for text-based games
 """
 from math import floor, inf
 import random
-from jericho import FrotzEnv
+from environment import JerichoEnvironment
 from mcts_node import Node
 from mcts_reward import *
 
 
-def tree_policy(root, env: FrotzEnv, explore_exploit_const, reward_policy):
+def tree_policy(root, env: JerichoEnvironment, explore_exploit_const, reward_policy):
     """ Travel down the tree to the ideal node to expand on
 
     This function loops down the tree until it finds a
@@ -17,7 +17,7 @@ def tree_policy(root, env: FrotzEnv, explore_exploit_const, reward_policy):
 
     Keyword arguments:
     root -- the root node of the tree
-    env -- FrotzEnv interface between the learning agent and the game
+    env -- JerichoEnvironment interface between the learning agent and the game
     Return: the ideal node to expand on
     """
     node = root
@@ -40,7 +40,7 @@ def tree_policy(root, env: FrotzEnv, explore_exploit_const, reward_policy):
     # The node is terminal, so return it
     return node
 
-def best_child(parent, exploration, env: FrotzEnv, reward_policy, use_bound = True):
+def best_child(parent, exploration, env: JerichoEnvironment, reward_policy, use_bound = True):
     """ Select and return the best child of the parent node to explore or the action to take
 
     From the current parent node, we will select the best child node to
@@ -105,7 +105,7 @@ def expand_node(parent, env):
 
     Keyword arguments:
     parent -- the node being expanded
-    env -- FrotzEnv interface between the learning agent and the game
+    env -- JerichoEnvironment interface between the learning agent and the game
     Return: a child node to explore
     """
     # Get possible unexplored actions

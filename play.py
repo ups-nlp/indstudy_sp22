@@ -2,13 +2,13 @@
 
 import argparse
 import time
-from jericho import FrotzEnv
 from agent import Agent
 from agent import RandomAgent
 from agent import HumanAgent
 from agent import MonteAgent
-
 import config
+from environment import JerichoEnvironment
+
 
 
 
@@ -16,7 +16,7 @@ def play_game(agent: Agent, game_file: str, num_steps: int):
     """ The main method that instantiates an agent and plays the specified game"""
 
     # Create the environment
-    env = FrotzEnv(game_file)
+    env = JerichoEnvironment(game_file)
 
     # The history is a list of (observation, action) tuples
     history = []
@@ -97,7 +97,7 @@ if __name__ == "__main__":
     elif args.agent == 'human':
         ai_agent = HumanAgent()    
     elif args.agent == 'mcts':
-        ai_agent = MonteAgent(FrotzEnv(args.game_file), args.num_moves)
+        ai_agent = MonteAgent(JerichoEnvironment(args.game_file), args.num_moves)
     else:
         ai_agent = RandomAgent()
 
