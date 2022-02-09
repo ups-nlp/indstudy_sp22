@@ -37,11 +37,10 @@ class Environment:
     
 
 
-class JerichoEnvironment(Environment):
-    self.env = None
+class JerichoEnvironment(Environment):    
 
     def __init__(self, path: str):
-        env = FrotzEnv(path)
+        self.env = FrotzEnv(path)
     
     def step(self, action: str):
         """Takes an action and returns the next state, reward, and termination"""
