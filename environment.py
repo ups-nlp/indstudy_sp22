@@ -34,6 +34,10 @@ class Environment:
     def get_max_score(self):
         """Returns the integer maximum possible score for the game"""
         raise NotImplementedError
+
+    def reset(self):
+        """Reset the environment"""
+        raise NotImplementedError
     
 
 
@@ -69,4 +73,8 @@ class JerichoEnvironment(Environment):
     def get_max_score(self):
         """Returns the integer maximum possible score for the game"""
         return self.env.get_max_score()
+
+    def reset(self):
+        """Reset the environment"""
+        return self.env.reset()
 
