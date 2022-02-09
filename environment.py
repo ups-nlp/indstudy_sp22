@@ -42,6 +42,10 @@ class Environment:
     def get_player_location(self):
         """Returns the player's location"""
         raise NotImplementedError
+
+    def get_state(self):
+        """Returns the internal game state"""
+        raise NotImplementedError    
     
 
 
@@ -85,4 +89,8 @@ class JerichoEnvironment(Environment):
     def get_player_location(self):
         """Returns the player's location"""
         return self.env.get_player_location()
+
+    def get_state(self):
+        """Returns the internal game state"""
+        return self.env.get_state()
     
