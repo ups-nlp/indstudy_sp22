@@ -38,6 +38,10 @@ class Environment:
     def reset(self):
         """Reset the environment"""
         raise NotImplementedError
+
+    def get_player_location(self):
+        """Returns the player's location"""
+        raise NotImplementedError
     
 
 
@@ -78,3 +82,7 @@ class JerichoEnvironment(Environment):
         """Reset the environment"""
         return self.env.reset()
 
+    def get_player_location(self):
+        """Returns the player's location"""
+        return self.env.get_player_location()
+    
