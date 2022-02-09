@@ -1,14 +1,15 @@
 """Instantiates an AI agent to play the specified game"""
 
 import argparse
-
+import time
 from jericho import FrotzEnv
 from agent import Agent
 from agent import RandomAgent
 from agent import HumanAgent
+from agent import MonteAgent
 
 import config
-import time
+
 
 
 def play_game(agent: Agent, game_file: str, num_steps: int):
@@ -84,7 +85,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         'num_moves', type=int, help='Number of moves for the agent to make')
-    parser.add_argument('agent', help='[random|human]')
+    parser.add_argument('agent', help='[random|human|mcts]')
     parser.add_argument('game_file', help='Full pathname for game')
     parser.add_argument('-v', '--verbosity', type=int,
                         help='[0|1] verbosity level')
@@ -95,6 +96,8 @@ if __name__ == "__main__":
         ai_agent = RandomAgent()
     elif args.agent == 'human':
         ai_agent = HumanAgent()    
+    elif args.agent == 'mcts':
+        ai_agent = MonteAgent(FrotzEnv(args.game_file), args.num_moves)
     else:
         ai_agent = RandomAgent()
 

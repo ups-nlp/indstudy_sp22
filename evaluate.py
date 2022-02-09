@@ -1,12 +1,12 @@
 """ Subroutines for evaluating agents """
 
-import config
-from play import play_game
 import argparse
-
+import config
+from jericho import FrotzEnv
 from agent import RandomAgent
 from agent import HumanAgent
-
+from agent import MonteAgent
+from play import play_game
 
 if __name__ == "__main__":
 
@@ -16,7 +16,7 @@ if __name__ == "__main__":
                         help='Number of times to run the agent on the specified game')
     parser.add_argument('num_moves', type=int,
                         help='Number of moves for agent to take per trial')
-    parser.add_argument('agent', help='[random|human]')
+    parser.add_argument('agent', help='[random|human|mcts]')
     parser.add_argument('game_file', help='Full pathname to the game file')
     parser.add_argument('-v', '--verbosity', type=int,
                         help='[0|1] verbosity level')
@@ -26,6 +26,8 @@ if __name__ == "__main__":
         ai_agent = RandomAgent()
     elif args.agent == 'human':
         ai_agent = HumanAgent()
+    elif args.agent == 'mcts':
+        ai_agent = MonteAgent(FrotzEnv(args.game_file), args.num_moves)
     else:
         ai_agent = RandomAgent()
 
