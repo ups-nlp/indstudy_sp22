@@ -38,7 +38,7 @@ class Environment:
 
 
 class JerichoEnvironment(Environment):
-    env = None
+    self.env = None
 
     def __init__(self, path: str):
         env = FrotzEnv(path)
