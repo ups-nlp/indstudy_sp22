@@ -2,7 +2,6 @@
 An interface for a game environment
 """
 
-from asyncio.windows_events import NULL
 from jericho import FrotzEnv
 
 class Environment:
