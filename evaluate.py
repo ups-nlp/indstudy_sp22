@@ -2,10 +2,10 @@
 
 import argparse
 import config
-from jericho import FrotzEnv
 from agent import RandomAgent
 from agent import HumanAgent
 from agent import MonteAgent
+from environment import JerichoEnvironment
 from play import play_game
 
 if __name__ == "__main__":
@@ -27,7 +27,7 @@ if __name__ == "__main__":
     elif args.agent == 'human':
         ai_agent = HumanAgent()
     elif args.agent == 'mcts':
-        ai_agent = MonteAgent(FrotzEnv(args.game_file), args.num_moves)
+        ai_agent = MonteAgent(JerichoEnvironment(args.game_file), args.num_moves)
     else:
         ai_agent = RandomAgent()
 
