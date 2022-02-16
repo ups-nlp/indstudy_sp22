@@ -1,47 +1,47 @@
 
 from math import sqrt, log2,e
 import sys
-from environment import JerichoEnvironment
+from environment import *
 import numpy as np
 
 class Reward:
     """Interface for a Reward"""
 
-    def terminal_node(self, env: JerichoEnvironment) -> int:
+    def terminal_node(self, env: Environment) -> int:
         """The case when we start the simulation at a terminal state
         
         Keyword arguments:
-            env (JerichoEnvironment): JerichoEnvironment interface between the learning agent and the game
+            env (Environment): Environment interface between the learning agent and the game
         Returns:
             int: The score for the new node
         """
         raise NotImplementedError
 
-    def simulation_limit(self, env: JerichoEnvironment) -> int:
+    def simulation_limit(self, env: Environment) -> int:
         """The case when we reach the simulation depth limit
         
         Keyword arguments:
-            env (JerichoEnvironment): JerichoEnvironment interface between the learning agent and the game
+            env (Environment): Environment interface between the learning agent and the game
         Returns:
             int: The score for the new node
         """
         raise NotImplementedError
 
-    def simulation_terminal(self, env: JerichoEnvironment) -> int:
+    def simulation_terminal(self, env: Environment) -> int:
         """The case when we reach a terminal stae in the simulation
         
         Keyword arguments:
-            env (JerichoEnvironment): JerichoEnvironment interface between the learning agent and the game
+            env (Environment): Environment interface between the learning agent and the game
         Returns:
             int: The score for the new node
         """
         raise NotImplementedError
         
-    def upper_confidence_bounds(self, env: JerichoEnvironment, exploration, child_sim_value, child_visited, parent_visited) -> int:
+    def upper_confidence_bounds(self, env: Environment, exploration, child_sim_value, child_visited, parent_visited) -> int:
         """ This method calculates and returns the upper confidence bounds for a given child node on the tree.
 
         Args:
-            env (JerichoEnvironment): JerichoEnvironment interface between the learning agent and the game
+            env (Environment): Environment interface between the learning agent and the game
             exploration (float): Exploration-Exploitation constant
             child_sim_value (float): Simulated value for the child node
             child_visited (int): Number of times the child node has been explored
@@ -55,11 +55,11 @@ class Reward:
         """
         raise NotImplementedError
 
-    def select_action(self, env: JerichoEnvironment, child_sim_value, child_visited, parent_visited) -> int:
+    def select_action(self, env: Environment, child_sim_value, child_visited, parent_visited) -> int:
         """ This method calculates and returns the average score for a given child node on the tree.
 
         Args:
-            env (JerichoEnvironment): JerichoEnvironment interface between the learning agent and the game
+            env (Environment): Environment interface between the learning agent and the game
             child_sim_value (float): Simulated value for the child node
             child_visited (int): Number of times the child node has been explored
             parent_visited (int): Number of times the parent node has been explored
@@ -78,28 +78,28 @@ class SoftmaxReward(Reward):
     are possible.
     """
 
-    def terminal_node(self, env: JerichoEnvironment):
+    def terminal_node(self, env: Environment):
         """ The case when we start the simulation at a terminal state
         Keyword arguments:
-            env (JerichoEnvironment): JerichoEnvironment interface between the learning agent and the game
+            env (Environment): Environment interface between the learning agent and the game
         Returns:
             int: The score for the new node
         """
         return 0
 
-    def simulation_limit(self, env: JerichoEnvironment):
+    def simulation_limit(self, env: Environment):
         """ The case when we reach the simulation depth limit 
         Keyword arguments:
-            env (JerichoEnvironment): JerichoEnvironment interface between the learning agent and the game
+            env (Environment): Environment interface between the learning agent and the game
         Returns:
             int: The score for the new node
         """
         return env.get_score()
 
-    def simulation_terminal(self, env: JerichoEnvironment):
+    def simulation_terminal(self, env: Environment):
         """ The case when we reach a terminal state in the simulation 
         Keyword arguments:
-            env (JerichoEnvironment): JerichoEnvironment interface between the learning agent and the game
+            env (Environment): Environment interface between the learning agent and the game
         Returns:
             int: The score for the new node
         """
@@ -112,11 +112,11 @@ class SoftmaxReward(Reward):
         return total
 
         
-    def upper_confidence_bounds(self, env: JerichoEnvironment, exploration, child_sim_value, child_visited, parent_visited):
+    def upper_confidence_bounds(self, env: Environment, exploration, child_sim_value, child_visited, parent_visited):
         """ This method calculates and returns the upper confidence bounds for a given child node on the tree.
 
         Args:
-            env (JerichoEnvironment): JerichoEnvironment interface between the learning agent and the game
+            env (Environment): Environment interface between the learning agent and the game
             exploration (float): Exploration-Exploitation constant
             child_sim_value (float): Simulated value for the child node
             child_visited (int): Number of times the child node has been explored
@@ -139,11 +139,11 @@ class SoftmaxReward(Reward):
         
         return (e**(num))/(child_visited*denom)+ exploration*sqrt((2*log2(parent_visited))/child_visited)
 
-    def select_action(self, env: JerichoEnvironment, child_sim_value, child_visited, parent_visited):
+    def select_action(self, env: Environment, child_sim_value, child_visited, parent_visited):
         """ This method calculates and returns the average score for a given child node on the tree.
 
         Args:
-            env (JerichoEnvironment): JerichoEnvironment interface between the learning agent and the game
+            env (Environment): Environment interface between the learning agent and the game
             child_sim_value (float): Simulated value for the child node
             child_visited (int): Number of times the child node has been explored
             parent_visited (int): Number of times the parent node has been explored
@@ -170,41 +170,41 @@ class Generalized_Softmax_Reward(Reward):
     are possible.
     """
 
-    def terminal_node(self, env: JerichoEnvironment):
+    def terminal_node(self, env: Environment):
         """ The case when we start the simulation at a terminal state 
 
         Keyword arguments:
-            env (JerichoEnvironment): JerichoEnvironment interface between the learning agent and the game
+            env (Environment): Environment interface between the learning agent and the game
         Returns:
             int: The score for the new node
         """
         return 0
 
-    def simulation_limit(self, env: JerichoEnvironment):
+    def simulation_limit(self, env: Environment):
         """ The case when we reach the simulation depth limit 
         
         Keyword arguments:
-            env (JerichoEnvironment): JerichoEnvironment interface between the learning agent and the game
+            env (Environment): Environment interface between the learning agent and the game
         Returns:
             int: The score for the new node
         """
         return env.get_score()
 
-    def simulation_terminal(self, env: JerichoEnvironment):
+    def simulation_terminal(self, env: Environment):
         """ The case when we reach a terminal state in the simulation 
         
         Keyword arguments:
-            env (JerichoEnvironment): JerichoEnvironment interface between the learning agent and the game
+            env (Environment): Environment interface between the learning agent and the game
         Returns:
             int: The score for the new node
         """
         raise env.get_score()+10
    
-    def upper_confidence_bounds(self, env: JerichoEnvironment, exploration, child_sim_value, child_visited, parent_visited):
+    def upper_confidence_bounds(self, env: Environment, exploration, child_sim_value, child_visited, parent_visited):
         """ This method calculates and returns the upper confidence bounds for a given child node on the tree.
 
         Args:
-            env (JerichoEnvironment): JerichoEnvironment interface between the learning agent and the game
+            env (Environment): Environment interface between the learning agent and the game
             exploration (float): Exploration-Exploitation constant
             child_sim_value (float): Simulated value for the child node
             child_visited (int): Number of times the child node has been explored
@@ -229,11 +229,11 @@ class Generalized_Softmax_Reward(Reward):
         except OverflowError:
             print("max size = ",sys.maxsize," num = ",num," denom = ",denom)
 
-    def select_action(self, env: JerichoEnvironment, child_sim_value, child_visited, parent_visited):
+    def select_action(self, env: Environment, child_sim_value, child_visited, parent_visited):
         """ This method calculates and returns the average score for a given child node on the tree.
 
         Args:
-            env (JerichoEnvironment): JerichoEnvironment interface between the learning agent and the game
+            env (Environment): Environment interface between the learning agent and the game
             child_sim_value (float): Simulated value for the child node
             child_visited (int): Number of times the child node has been explored
             parent_visited (int): Number of times the parent node has been explored
@@ -262,42 +262,42 @@ class AdditiveReward(Reward):
     for the state inputted state.
     """
 
-    def terminal_node(self, env: JerichoEnvironment):
+    def terminal_node(self, env: Environment):
         """The case when we start the simulation at a terminal state, return 0.
         
         Keyword arguments:
-            env (JerichoEnvironment): JerichoEnvironment interface between the learning agent and the game
+            env (Environment): Environment interface between the learning agent and the game
         Returns:
             int: The score for the new node
         """
         return 0
 
-    def simulation_limit(self, env: JerichoEnvironment):
+    def simulation_limit(self, env: Environment):
         """The case when we reach the simulation depth limit
         
         Keyword arguments:
-            env (JerichoEnvironment): JerichoEnvironment interface between the learning agent and the game
+            env (Environment): Environment interface between the learning agent and the game
         Returns:
             int: The score for the new node
         """
         return env.get_score()
 
-    def simulation_terminal(self, env: JerichoEnvironment):
+    def simulation_terminal(self, env: Environment):
         """The case when we reach a terminal stae in the simulation. 
         Add 10 to the score so it is non-negative.
         
         Keyword arguments:
-            env (JerichoEnvironment): JerichoEnvironment interface between the learning agent and the game
+            env (Environment): Environment interface between the learning agent and the game
         Returns:
             int: The score for the new node
         """
         return env.get_score()+10
 
-    def upper_confidence_bounds(self, env: JerichoEnvironment, exploration, child_sim_value, child_visited, parent_visited):
+    def upper_confidence_bounds(self, env: Environment, exploration, child_sim_value, child_visited, parent_visited):
         """ This method calculates and returns the upper confidence bounds for a given child node on the tree.
 
         Args:
-            env (JerichoEnvironment): JerichoEnvironment interface between the learning agent and the game
+            env (Environment): Environment interface between the learning agent and the game
             exploration (float): Exploration-Exploitation constant
             child_sim_value (float): Simulated value for the child node
             child_visited (int): Number of times the child node has been explored
@@ -315,11 +315,11 @@ class AdditiveReward(Reward):
         #print(child_sim_value/(child_visited*score),  exploration*sqrt((2*log2(parent_visited))/child_visited))
         return child_sim_value/(child_visited*score) + 1.75*exploration*sqrt((2*log2(parent_visited))/child_visited)
 
-    def select_action(self, env: JerichoEnvironment, child_sim_value, child_visited, parent_visited):
+    def select_action(self, env: Environment, child_sim_value, child_visited, parent_visited):
         """ This method calculates and returns the average score for a given child node on the tree.
 
         Args:
-            env (JerichoEnvironment): JerichoEnvironment interface between the learning agent and the game
+            env (Environment): Environment interface between the learning agent and the game
             child_sim_value (float): Simulated value for the child node
             child_visited (int): Number of times the child node has been explored
             parent_visited (int): Number of times the parent node has been explored
@@ -340,41 +340,41 @@ class DynamicReward(Reward):
         so a reward reached earlier in the game will have a higher score than the same state
          reached later."""
 
-    def terminal_node(self, env: JerichoEnvironment) -> int:
+    def terminal_node(self, env: Environment) -> int:
         """ The case when we start the simulation at a terminal state 
 
         Keyword arguments:
-            env (JerichoEnvironment): JerichoEnvironment interface between the learning agent and the game
+            env (Environment): Environment interface between the learning agent and the game
         Returns:
             int: The score for the new node
         """
         return 0
 
-    def simulation_limit(self, env: JerichoEnvironment) -> int:
+    def simulation_limit(self, env: Environment) -> int:
         """ The case when we reach the simulation depth limit 
         
         Keyword arguments:
-            env (JerichoEnvironment): JerichoEnvironment interface between the learning agent and the game
+            env (Environment): Environment interface between the learning agent and the game
         Returns:
             int: The score for the new node
         """
         return (env.get_score()/(env.get_moves()+1))
 
-    def simulation_terminal(self, env: JerichoEnvironment) -> int:
+    def simulation_terminal(self, env: Environment) -> int:
         """ The case when we reach a terminal stae in the simulation
 
         Keyword arguments:
-            env (JerichoEnvironment): JerichoEnvironment interface between the learning agent and the game
+            env (Environment): Environment interface between the learning agent and the game
         Returns:
             int: The score for the new node
         """
         return ((env.get_score()+10)/(env.get_moves()+1))
         
-    def upper_confidence_bounds(self, env: JerichoEnvironment, exploration, child_sim_value, child_visited, parent_visited) -> int:
+    def upper_confidence_bounds(self, env: Environment, exploration, child_sim_value, child_visited, parent_visited) -> int:
         """ This method calculates and returns the upper confidence bounds for a given child node on the tree.
 
         Args:
-           env (JerichoEnvironment): JerichoEnvironment interface between the learning agent and the game
+           env (Environment): Environment interface between the learning agent and the game
             exploration (float): Exploration-Exploitation constant
             child_sim_value (float): Simulated value for the child node
             child_visited (int): Number of times the child node has been explored
@@ -388,11 +388,11 @@ class DynamicReward(Reward):
         """
         return child_sim_value/(child_visited*env.get_max_score()) + exploration*sqrt((2*log2(parent_visited))/child_visited)
 
-    def select_action(self, env: JerichoEnvironment, child_sim_value, child_visited, parent_visited) -> int:
+    def select_action(self, env: Environment, child_sim_value, child_visited, parent_visited) -> int:
         """ This method calculates and returns the average score for a given child node on the tree.
 
         Args:
-            env (JerichoEnvironment): JerichoEnvironment interface between the learning agent and the game
+            env (Environment): Environment interface between the learning agent and the game
             child_sim_value (float): Simulated value for the child node
             child_visited (int): Number of times the child node has been explored
             parent_visited (int): Number of times the parent node has been explored

@@ -7,8 +7,7 @@ from agent import RandomAgent
 from agent import HumanAgent
 from agent import MonteAgent
 import config
-from environment import JerichoEnvironment
-
+from environment import *
 
 
 
@@ -21,7 +20,7 @@ def play_game(agent: Agent, game_file: str, num_steps: int):
     # The history is a list of (observation, action) tuples
     history = []
 
-    curr_obs, info = env.reset()
+    curr_obs, info = env.reset()    
     done = False
 
     if config.VERBOSITY > 0:
@@ -45,7 +44,8 @@ def play_game(agent: Agent, game_file: str, num_steps: int):
         seconds += (end_time - start_time)
 
         # updating environment with selected action
-        next_obs, _, done, info = env.step(action_to_take)
+        next_obs, _, done, info = env.step(action_to_take)        
+
 
         history.append((curr_obs, action_to_take))
 
@@ -85,7 +85,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         'num_moves', type=int, help='Number of moves for the agent to make')
-    parser.add_argument('agent', help='[random|human|mcts]')
+    parser.add_argument('agent', help='[random|human|mcts]')    
     parser.add_argument('game_file', help='Full pathname for game')
     parser.add_argument('-v', '--verbosity', type=int,
                         help='[0|1] verbosity level')
