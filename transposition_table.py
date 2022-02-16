@@ -21,40 +21,40 @@ class Transposition_Node:
     """
 
     def __init__(self, state, parent, prev_act, new_actions, transposition_table):
-        self.state = state
         self.parent = parent
         self.prev_act = prev_act
 
-        if( not transposition_table.contains(state)):
+        if(transposition_table.get(state) is None):
             # Create a key-value pair for the new state
-            transposition_table.add(state, State(parent, new_actions))
+            transposition_table[state] = State(parent, new_actions)
         else:
             # Update the existing key-value pair for the state
             entry = transposition_table.get(state)
-            entry.parents.add(parent)
-            entry.children = []
-            entry.new_actions.remove(prev_act)
+            entry.parents.append(parent)
+            #entry.children = []
+            #entry.new_actions.remove(prev_act)
+        
+        self.state = transposition_table.get(state)
 
 
 
-    def is_terminal(self, transposition_table):
+    def is_terminal(self):
         """ Returns true if the node is terminal
         Returns:
             boolean: true if the max number of children is 0
         """
-        return transposition_table.get(self.state).max_children == 0
+        return self.state.max_children == 0
 
 
-    def add_child(self, child, transposition_table):
-        transposition_table.get(self.state).children.append(child)
+    def add_child(self, child):
+        self.state.children.append(child)
 
-    def is_expanded(self, transposition_table):
+    def is_expanded(self):
         """ Returns true if the number of child is equal to the max number of children.
         Returns:
             boolean: true if the number of child is equal to the max number of children
         """
-        state = transposition_table.get(self.state)
-        return (len(state.children) == state.max_children)
+        return (len(self.state.children) >= self.state.max_children)
 
     
     def get_prev_action(self):
@@ -65,34 +65,32 @@ class Transposition_Node:
 
     # The below methods fetch the fields from the Node's State
 
-    def get_sim_value(self, transposition_table):
-        return (transposition_table.get(self.state)).sim_value
+    def get_sim_value(self):
+        return self.state.sim_value
 
-    def get_visited(self, transposition_table):
-        return (transposition_table.get(self.state)).visited
+    def get_visited(self):
+        return self.state.visited
     
-    def get_state_parents(self, transposition_table):
-        return (transposition_table.get(self.state)).parents
+    def get_state_parents(self):
+        return self.state.parents
 
-    def get_max_children(self, transposition_table):
-        return transposition_table.get(self.state).max_children
+    def get_max_children(self):
+        return self.state.max_children
 
-    def get_children(self, transposition_table):
-        return transposition_table.get(self.state).children
+    def get_children(self):
+        return self.state.children
 
-    def get_new_actions(self, transposition_table):
-        return transposition_table.get(self.state).new_actions
+    def get_new_actions(self):
+        return self.state.new_actions
 
     
     # The below methods updates the fields from the Node's State
 
-    def update_sim_value(self, delta, transposition_table):
-        state = (transposition_table.get(self.state))
-        state.sim_value += delta
+    def update_sim_value(self, delta):
+        self.state.sim_value += delta
 
-    def update_visited(self, delta, transposition_table):
-        state = (transposition_table.get(self.state))
-        state.visited += delta
+    def update_visited(self, delta):
+        self.state.visited += delta
 
 
 class State:
