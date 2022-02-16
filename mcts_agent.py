@@ -5,10 +5,11 @@ from math import floor, inf
 import random
 from jericho import FrotzEnv
 from mcts_node import Node
+from transposition_table import Transposition_Node
 from mcts_reward import *
 
 
-def tree_policy(root, env: FrotzEnv, explore_exploit_const, reward_policy):
+def tree_policy(root, env: FrotzEnv, explore_exploit_const, reward_policy, transposition_table):
     """ Travel down the tree to the ideal node to expand on
 
     This function loops down the tree until it finds a
@@ -21,26 +22,33 @@ def tree_policy(root, env: FrotzEnv, explore_exploit_const, reward_policy):
     Return: the ideal node to expand on
     """
     node = root
-    # How do you go back up the tree to explore other paths
-    # when the best path has progressed past the max_depth?
-    #while env.get_moves() < max_depth:
+    history = {root.state}
     while not node.is_terminal():
         #if parent is not full expanded, expand it and return
         if not node.is_expanded():
-            return expand_node(node, env)
+            #print("Expand Node")
+            return expand_node(node, env, transposition_table)
         #Otherwise, look at the parent's best child
         else:
             # Select the best child of the current node to explore
-            child = best_child(node, explore_exploit_const, env, reward_policy)[0]
+            child = best_child(node, explore_exploit_const, env, reward_policy, history)[0]
+            #for x in node.get_children():
+                #child_sim_value = x.get_sim_value()
+                #child_visited = x.get_visited()
+                #print("\t", x.get_prev_action(), ", count:", child_visited, ", value:", child_sim_value, "normalized value:", reward_policy.select_action(env, child_sim_value, child_visited, None))
+
+
             # else, go into the best child
             node = child
+            history.add(node.state)
             # update the env variable
             env.step(node.get_prev_action())
+            # print("Entered child: ", node.get_prev_action(), ", env: ", env.get_valid_actions())
 
     # The node is terminal, so return it
     return node
 
-def best_child(parent, exploration, env: FrotzEnv, reward_policy, use_bound = True):
+def best_child(parent, exploration, env: FrotzEnv, reward_policy, history, use_bound = True):
     """ Select and return the best child of the parent node to explore or the action to take
 
     From the current parent node, we will select the best child node to
@@ -62,12 +70,24 @@ def best_child(parent, exploration, env: FrotzEnv, reward_policy, use_bound = Tr
     max_val = -inf
     bestLs = [None]
     second_best_score = -inf
+    valid_children = []
+    # first we will accrue a list of children nodes with states we have not already been to
     for child in parent.get_children():
+        # if we have already visited the state of the child, it is not a valid choice
+        if(child.state not in history):
+            valid_children.append(child)
+    # if we have been to all the children's states, they are all valid options
+    if len(valid_children) == 0:
+        #valid_children = parent.get_children()
+        return random.choice(parent.get_children()), 0
+    # calculate the scores for each child and pick the best one
+    for child in valid_children:
+        
         # Use the Upper Confidence Bounds for Trees to determine the value for the child or pick the child based on visited
         if(use_bound):
-            child_value = reward_policy.upper_confidence_bounds(env, exploration, child.sim_value, child.visited, parent.visited)
+            child_value = reward_policy.upper_confidence_bounds(env, exploration, child.get_sim_value(), child.get_visited(), parent.get_visited())
         else:
-            child_value = reward_policy.select_action(env, child.sim_value, child.visited, parent.visited)
+            child_value = reward_policy.select_action(env, child.get_sim_value(), child.get_visited(), parent.get_visited())
         
         #print("child_value", child_value)
         # if there is a tie for best child, randomly pick one
@@ -97,7 +117,7 @@ def best_child(parent, exploration, env: FrotzEnv, reward_policy, use_bound = Tr
         print("best, second", max_val, second_best_score)
     return chosen, abs(max_val - second_best_score) ## Worry about if only 1 node possible infinity?
 
-def expand_node(parent, env):
+def expand_node(parent, env, transposition_table):
     """
     Expand this node
 
@@ -109,10 +129,12 @@ def expand_node(parent, env):
     Return: a child node to explore
     """
     # Get possible unexplored actions
-    actions = parent.new_actions 
+    actions = parent.get_new_actions()
+    #print(actions)
 
     #print(len(actions), rand_index)
     action = random.choice(actions)
+    #print(action)
 
     # Remove that action from the unexplored action list and update parent
     actions.remove(action)
@@ -120,9 +142,12 @@ def expand_node(parent, env):
     # Step into the state of that child and get its possible actions
     env.step(action)
     new_actions = env.get_valid_actions()
+    
+    #print(new_actions)
 
     # Create the child
-    new_node = Node(parent, action, new_actions)
+    # new_node = Node(parent, action, new_actions)
+    new_node = Transposition_Node(env.get_world_state_hash(), parent, action, new_actions, transposition_table)
 
     # Add the child to the parent
     parent.add_child(new_node)
@@ -162,6 +187,8 @@ def default_policy(new_node, env, sim_length, reward_policy):
         if(env.get_moves() > sim_length):
             #return the reward received by reaching terminal state
             #return reward_policy.simulation_limit(env)
+            if(running_score < 0):
+                return 0
             return running_score
 
         #Get the list of valid actions from this state
@@ -178,23 +205,53 @@ def default_policy(new_node, env, sim_length, reward_policy):
 
     #return the reward received by reaching terminal state
     #return reward_policy.simulation_terminal(env)
+    if(running_score < 0):
+        return 0
     return running_score
 
-def backup(node, delta):
+def backup(unexplored, delta, explored, root):
     """
     This function backpropogates the results of the Monte Carlo Simulation back up the tree
+
+    We need to ensure this is a breadth-first traversal
+
+    Need to ensure nodes in the set are only added when they should be
 
     Keyword arguments:
     node -- the child node we simulated from
     delta -- the component of the reward vector associated with the current player at node v
     """
-    while node is not None:
-        # Increment the number of times the node has
-        # been visited and the simulated value of the node
-        node.visited += 1
-        node.sim_value += delta
-        # Traverse up the tree
-        node = node.get_parent()
+    while len(unexplored) > 0:
+        # print("unexplored: ", len(unexplored))
+        # get the next item in the list
+        tuple = unexplored.pop(0)
+        node = tuple[0]
+        layer = tuple[1]
+        if (node is not None) and (node.state not in explored):
+            #print("Incrementing")
+            # Increment the number of times the node has
+            # been visited and the simulated value of the node
+            node.update_visited(1)
+            #print("delta is: ",delta/(2**layer), " for layer ", layer)
+            node.update_sim_value(delta)
+            # add the node to the explored set
+            explored.add(node.state)
+            
+            # add the node's state to the set of updated states
+            if (node is not root):
+                #unexplored.append((node.get_parent(), layer+1))
+                parent_set = node.get_state_parents()
+                #if the root is in the parent set, only add the root
+                if(root in parent_set):
+                    unexplored.append((root, layer+1))
+                else:
+                    for parent in node.get_state_parents():
+                        unexplored.append((parent, layer+1))
+            # if we have reached the root, we are done
+            else:
+                return
+
+
 
 def dynamic_sim_len(max_nodes, sim_limit, diff) -> int:
         """Given the current simulation depth limit and the difference between 
