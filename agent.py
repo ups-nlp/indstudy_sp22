@@ -5,10 +5,14 @@ Agents for playing text-based games
 from math import sqrt
 import random
 import time
+from xmlrpc.client import Boolean
 from jericho import FrotzEnv
+import mcts_agent
 from mcts_agent import best_child, tree_policy, default_policy, backup, dynamic_sim_len
 from mcts_node import Node
 from mcts_reward import AdditiveReward
+import multiprocessing
+from multiprocessing import Process
 
 class Agent:
     """Interface for an Agent"""
@@ -49,6 +53,22 @@ class MonteAgent(Agent):
         # This constant balances tree exploration with exploitation of ideal nodes
         self.explore_const = 1.0/sqrt(2)
 
+        #number of trees
+        self.tree_count = 2
+        self.max_tree_count = multiprocessing.cpu_count()
+        if(self.tree_count > self.max_tree_count):
+            self.tree_count = self.max_tree_count
+
+
+        #make trees
+        self.tree_arr = [None]*self.tree_count
+        for i in range(self.tree_count):
+            self.tree_arr[i] = Node(None,None, env.get_valid_actions())
+
+        #create environments for each of these trees
+        self.env_arr = [None]*self.tree_count
+
+
         # The length of each monte carlo simulation
         self.simulation_length = 15
 
@@ -69,6 +89,8 @@ class MonteAgent(Agent):
         #current number of generated nodes
         count = 0
 
+
+
         # time at sim start
         start_time = time.time()
 
@@ -81,37 +103,91 @@ class MonteAgent(Agent):
         # minimum number of nodes per simulation phase
         minimum = env.get_moves()*5
 
+
+
+        #number of actions available from current spot
+        num_actions = len(env.get_valid_actions)
+
+        #create lists to hold the dictionaries that will be sent to each tree:
+        #   score_list holds a list of dictionaries (once dict / tree) where the key is 
+        #   the action and the value is the normalized score for that action
+        #
+        #   count_list holds a list of dictionaries (one dict / tree) where the key is
+        #   the action and the value is the number of times that action has been
+        #   explored from the root of the tree
+        score_list = [None]*self.tree_count
+        count_list = [None]*self.tree_count
+        for i in range(self.tree_count):
+            score_list[i] = {}
+            count_list[i] = {}
+
+        #create copies of the current environment for the trees
+        for i in range(self.tree_count):
+            self.env_arr = env.copy()
+
+        #set boolean that tells the trees to stop expanding when the time is up
+        timer = True
+
+        #send off different trees with their dicts and environments
+        #also get a stopping boolean, and their own random seed generator so they randomly pick objects
+        #FILL IN
+        if __name__=="__main__":
+            procs = []
+            #self, root, env: FrotzEnv, explore_exploit_const, reward_policy, score_dict, count_dict, timer
+            for i in range(self.tree_count):
+                proc = Process(target = mcts_agent.take_action, args = (self.tree_arr[i],self.env_arr[i],self.explore_const,self.reward,score_list[i],count_list[i],timer,))
+                procs.append(proc)
+                proc.start()
+            while((seconds_elapsed < time_limit or count <= minimum)):
+                seconds_elapsed = time.time() - start_time
+            timer = False
+            for proc in procs:
+                proc.join()
+
+
         #current state of the game. Return to this state each time generating a new node
         curr_state = env.get_state()
-        while((seconds_elapsed < time_limit or count <= minimum)):
-            seconds_elapsed = time.time() - start_time
-            if(count % 10 == 0): 
-                print(count)
-            # Create a new node on the tree
-            new_node = tree_policy(self.root, env, self.explore_const, self.reward)
-            # Determine the simulated value of the new node
-            delta = default_policy(new_node, env, self.simulation_length, self.reward)
-            # Propogate the simulated value back up the tree
-            backup(new_node, delta)
-            # reset the state of the game when done with one simulation
-            env.reset()
-            env.set_state(curr_state)
-            count += 1
-
-
-
-        print(env.get_valid_actions())
-        for child in self.root.children:
-            print(child.get_prev_action(), ", count:", child.visited, ", value:", child.sim_value, "normalized value:", self.reward.select_action(env, child.sim_value, child.visited, None))
-
+       
         ## Pick the next action
-        self.root, score_dif = best_child(self.root, self.explore_const, env, self.reward, False)
+        best_action= self.best_shared_child(env,score_list,count_list,num_actions)
+
+        #send action to all trees to take step and make the new root
+        for tr in self.tree_arr:
+            tr.root = best_action
+        #FILL IN
 
         self.node_path.append(self.root)
 
         ## Dynamically adjust simulation length based on how sure we are 
-        self.max_nodes, self.simulation_length = dynamic_sim_len(self.max_nodes, self.simulation_length, score_dif)
+        #self.max_nodes, self.simulation_length = dynamic_sim_len(self.max_nodes, self.simulation_length, score_dif)
 
-        print("\n\n------------------ ", score_dif, self.max_nodes, self.simulation_length)
+        #print("\n\n------------------ ", score_dif, self.max_nodes, self.simulation_length)
 
         return self.root.get_prev_action()
+
+    def best_shared_child(self,env: FrotzEnv, score_list:list, count_list:list, num_actions:int):
+        #take in list of the values received from each action and calculate the score
+        action_values = {}*num_actions
+        action_counts = {}*num_actions
+        max = 0
+        max_act = ""
+        for act in env.get_valid_actions:
+            action_values[act], action_counts[act] = self.calculate_action_values(score_list, count_list, act)
+            if action_values[act]/action_counts[act] > max:
+                max = action_values[act]/action_counts[act]
+                max_act = act
+        return max_act
+
+    def calculate_action_values(self, score_list:list, count_list:list, act):
+        score = 0
+        count = 0
+        for i in range(len(score_list)):
+            score_dict = score_list[i]
+            count_dict = count_list[i]
+            score = score + (score_dict.get(act)*count_dict.get(act))
+            count = count + count_dict.get(act)
+        return score, count
+    
+
+
+

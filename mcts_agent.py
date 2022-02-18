@@ -6,6 +6,61 @@ import random
 from jericho import FrotzEnv
 from mcts_node import Node
 from mcts_reward import *
+ACTION_BOUND = .001
+
+def take_action(self, root, env: FrotzEnv, explore_exploit_const, reward_policy, score_dict, count_dict, timer):
+    #hi
+    #curr_state = env.get_state()
+    while(timer):
+            #store action taken from root node
+            action = (self.best_child(root,explore_exploit_const,env,reward_policy)[0]).get_prev_action
+            action_num = (self.best_child(root,explore_exploit_const,env,reward_policy)[0]).visited +1
+
+            # Create a new node on the tree
+            new_node = self.tree_policy(self.root, env, self.explore_const, self.reward)
+            # Determine the simulated value of the new node
+            delta = self.default_policy(new_node, env, self.simulation_length, self.reward)
+
+            #adjust simulation length from parent of leaf node
+            if calc_score_dif(new_node.parent) <= ACTION_BOUND:
+                new_node.parent.changeLength(1)
+
+            # Propogate the simulated value back up the tree
+            self.backup(new_node, delta)
+
+            # reset the state of the game when done with one simulation
+            #env.reset()
+            env.set_state(root)
+
+            #update the shared table 
+            if action in score_dict.keys():
+                temp1 = {action: delta}
+                score_dict.update(temp1)
+
+                temp2 = {action: action_num}
+                count_dict.update(temp2)
+            else:
+                score_dict[action] = delta
+                count_dict[action] = action_num
+
+
+
+
+def calc_score_dif(self, node):
+    diff = inf
+    max = 0
+    for  n in node.getChildren:
+        if n.sim_value < max:
+            if (max - n.sim_value) < diff:
+                diff = max - n.sim_value
+        if n.sim_value > max:
+            if (n.sim_value - max) < diff:
+               diff = n.sim_value - max
+            max = n.sim_value
+        if max == n.sim_value:
+            diff = 0
+    return diff
+
 
 
 def tree_policy(root, env: FrotzEnv, explore_exploit_const, reward_policy):
