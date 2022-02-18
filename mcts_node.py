@@ -1,8 +1,9 @@
 """
 Node class for building the game tree
-"""
+"""\
 
 class Node:
+    
     """
     This Node class represents a state of the game. Each node holds the following:
     parent -- it's parent node
@@ -20,11 +21,13 @@ class Node:
     """
 
     def __init__(self, parent, prev_act, new_actions):
+        SIM_SCALE = .25
         self.parent = parent
         self.prev_act = prev_act
         self.children = []
         self.sim_value = 0
         self.visited = 0
+        self.sim_length_scale = 1
         self.max_children = len(new_actions)
         self.new_actions = new_actions
 
@@ -34,6 +37,13 @@ class Node:
             boolean: true if the max number of children is 0
         """
         return self.max_children == 0
+
+    def changeLength(self, scalar):
+        if scalar < 0:
+            self.sim_length_scale = self.sim_length_scale*(1-self.SIM_SCALE)
+        
+        if scalar >0:
+            self.sim_length_scale = self.sim_length_scale*(1+self.SIM_SCALE)
 
     def print(self, level):
         """ Print a text representation of the tree
