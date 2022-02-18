@@ -25,7 +25,7 @@ from matplotlib import pyplot as plt
 trainingInputs = []
 trainingOutputs = []
 
-dm_training_data = open("../data/dm_train_data.txt")
+dm_training_data = open("../data/walkthrough_training_data.txt")
 
 def embed_vocab() -> (list,dict):
     """
@@ -127,7 +127,7 @@ train_obs, test_obs, train_labels, test_labels = train_test_split(np_input, np_o
 epochs = 20
 batch_size = 32
 hidden_lyr1_nodes = 32
-#hidden_lyr2_nodes = 64
+hidden_lyr2_nodes = 16
 learning_rate = 0.005
 input_size = 50
 output_size = 2
@@ -135,8 +135,10 @@ output_size = 2
 # Build the model
 model = Sequential([
   Dense(hidden_lyr1_nodes, activation='relu', input_shape=(input_size,)),
+  Dense(hidden_lyr2_nodes, activation='relu', input_shape=(hidden_lyr1_nodes,)),
   Dense(output_size, activation='softmax'),
 ])
+
 
 # Compile the model.
 model.compile(
@@ -164,4 +166,4 @@ plt.ylabel('accuracy')
 # output: accuracy is 0.425 on test set
 model.evaluate(test_obs, to_categorical(test_labels))
 
-model.save('./dm_nn')
+model.save('./dm_nn_v2')
