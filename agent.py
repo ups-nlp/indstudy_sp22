@@ -5,9 +5,7 @@ Agents for playing text-based games
 from math import sqrt
 import random
 import time
-from xmlrpc.client import Boolean
-from jericho import FrotzEnv
-import mcts_agent
+from environment import *
 from mcts_agent import best_child, tree_policy, default_policy, backup, dynamic_sim_len
 from mcts_node import Node
 from mcts_reward import AdditiveReward
@@ -17,7 +15,7 @@ from multiprocessing import Process
 class Agent:
     """Interface for an Agent"""
 
-    def take_action(self, env: FrotzEnv, history: list) -> str:
+    def take_action(self, env: Environment, history: list) -> str:
         """Takes in the history and returns the next action to take"""
         raise NotImplementedError
 
@@ -25,7 +23,7 @@ class Agent:
 class RandomAgent(Agent):
     """Agent randomly selects an action from list of valid actions"""
 
-    def take_action(self, env: FrotzEnv, history: list) -> str:
+    def take_action(self, env: Environment, history: list) -> str:
         """Takes in the history and returns the next action to take"""
 
         valid_actions = env.get_valid_actions()
@@ -34,17 +32,18 @@ class RandomAgent(Agent):
 class HumanAgent(Agent):
     """Allows a human player"""
 
-    def take_action(self, env: FrotzEnv, history: list) -> str:
+    def take_action(self, env: Environment, history: list) -> str:
         """Takes in the history and returns the next action to take"""
         print("Action: ")
         return input()
+
 
 class MonteAgent(Agent):
     """"Monte Carlo Search Tree Player"""
 
     node_path = []
 
-    def __init__(self, env: FrotzEnv, num_steps: int):
+    def __init__(self, env: Environment, num_steps: int):
         # create root node with the initial state
         self.root = Node(None, None, env.get_valid_actions())
 
@@ -79,7 +78,7 @@ class MonteAgent(Agent):
 
 
 
-    def take_action(self, env: FrotzEnv, history: list) -> str:
+    def take_action(self, env: Environment, history: list) -> str:
         """Takes in the history and returns the next action to take"""
         print("Action: ")
         #
