@@ -8,7 +8,7 @@ import time
 from environment import *
 from mcts_agent import best_child, tree_policy, default_policy, backup, dynamic_sim_len
 from mcts_node import Node
-from transposition_table import Transposition_Node
+from transposition_table import Transposition_Node, get_world_state_hash
 from mcts_reward import AdditiveReward
 
 class Agent:
@@ -50,7 +50,9 @@ class MonteAgent(Agent):
 
         # create root node with the initial state
         #self.root = Transposition_Node(None, None, env.get_valid_actions())
-        self.root = Transposition_Node(env.get_world_state_hash(), None, None, env.get_valid_actions(), self.transposition_table)
+        
+        state = get_world_state_hash(env.get_player_location(), env.get_valid_actions())
+        self.root = Transposition_Node(state, None, None, env.get_valid_actions(), self.transposition_table)
 
         self.node_path.append(self.root)
 
@@ -58,7 +60,7 @@ class MonteAgent(Agent):
         self.explore_const = 1.0/sqrt(2)
 
         # The length of each monte carlo simulation
-        self.simulation_length = 0
+        self.simulation_length = 15
 
         # Maximum number of nodes to generate in the tree each time a move is made
         self.max_nodes = 200
@@ -95,18 +97,23 @@ class MonteAgent(Agent):
         curr_state = env.get_state()
         while(seconds_elapsed < time_limit or count <= minimum):
             seconds_elapsed = time.time() - start_time
-            if(count % 100 == 0): 
+            if(count % 10 == 0): 
                 print(count)
             # Create a new node on the tree
+            # print("Make new node")
             new_node = tree_policy(self.root, env, self.explore_const, self.reward, self.transposition_table)
             # Determine the simulated value of the new node
+            # print("Run simulation")
             delta = default_policy(new_node, env, self.simulation_length, self.reward)
             # Propogate the simulated value back up the tree
             # create a hashSet of nodes already updated, so we don't update the same state twice
             #updated_set = set()
-            if(delta < 0):
-                print("delta value is ", delta)
-            backup([(new_node, 0)], delta, set(), self.root)
+            
+            # print("Backpropogate")
+            # if(delta > 0):
+                # print("delta value is ", delta)
+            #print(str(new_node.state))
+            backup(new_node,delta, self.root)
             # reset the state of the game when done with one simulation
             env.reset()
             env.set_state(curr_state)

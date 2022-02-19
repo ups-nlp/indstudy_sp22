@@ -5,7 +5,7 @@ from math import floor, inf
 import random
 from environment import *
 from mcts_node import Node
-from transposition_table import Transposition_Node
+from transposition_table import Transposition_Node, get_world_state_hash
 from mcts_reward import *
 
 
@@ -26,17 +26,19 @@ def tree_policy(root, env: Environment, explore_exploit_const, reward_policy, tr
     while not node.is_terminal():
         #if parent is not full expanded, expand it and return
         if not node.is_expanded():
-            #print("Expand Node")
+            # print("Expand Node")
             return expand_node(node, env, transposition_table)
         #Otherwise, look at the parent's best child
         else:
             # Select the best child of the current node to explore
             child = best_child(node, explore_exploit_const, env, reward_policy, history)[0]
-            #for x in node.get_children():
-                #child_sim_value = x.get_sim_value()
-                #child_visited = x.get_visited()
-                #print("\t", x.get_prev_action(), ", count:", child_visited, ", value:", child_sim_value, "normalized value:", reward_policy.select_action(env, child_sim_value, child_visited, None))
-
+            # print("--------")
+            # print("node: ", node.new_actions)
+            # for x in node.get_children():
+            #     child_sim_value = x.get_sim_value()
+            #     child_visited = x.get_visited()
+            #     print("\t", x.get_prev_action(), ", count:", child_visited, ", value:", child_sim_value, "normalized value:", reward_policy.select_action(env, child_sim_value, child_visited, None))
+            # print("selected: ", child.get_prev_action())
 
             # else, go into the best child
             node = child
@@ -78,8 +80,8 @@ def best_child(parent, exploration, env: Environment, reward_policy, history, us
             valid_children.append(child)
     # if we have been to all the children's states, they are all valid options
     if len(valid_children) == 0:
-        #valid_children = parent.get_children()
-        return random.choice(parent.get_children()), 0
+        valid_children = parent.get_children()
+        #return random.choice(parent.get_children()), 0
     # calculate the scores for each child and pick the best one
     for child in valid_children:
         
@@ -147,8 +149,11 @@ def expand_node(parent, env, transposition_table):
 
     # Create the child
     # new_node = Node(parent, action, new_actions)
-    new_node = Transposition_Node(env.get_world_state_hash(), parent, action, new_actions, transposition_table)
+    # print("Make new node")
+    state = get_world_state_hash(env.get_player_location(), env.get_valid_actions())
+    new_node = Transposition_Node(state, parent, action, new_actions, transposition_table)
 
+    # print("Made new node")
     # Add the child to the parent
     parent.add_child(new_node)
 
@@ -209,7 +214,7 @@ def default_policy(new_node, env, sim_length, reward_policy):
         return 0
     return running_score
 
-def backup(unexplored, delta, explored, root):
+def backup_recursive(unexplored, delta, explored, root):
     """
     This function backpropogates the results of the Monte Carlo Simulation back up the tree
 
@@ -221,19 +226,22 @@ def backup(unexplored, delta, explored, root):
     node -- the child node we simulated from
     delta -- the component of the reward vector associated with the current player at node v
     """
+    max_depth = inf
     while len(unexplored) > 0:
         # print("unexplored: ", len(unexplored))
         # get the next item in the list
         tuple = unexplored.pop(0)
         node = tuple[0]
         layer = tuple[1]
-        if (node is not None) and (node.state not in explored):
+        if (node is not None) and (node.state not in explored) and (not layer > max_depth):
             #print("Incrementing")
             # Increment the number of times the node has
             # been visited and the simulated value of the node
             node.update_visited(1)
             #print("delta is: ",delta/(2**layer), " for layer ", layer)
             node.update_sim_value(delta)
+            if(delta > 0):
+                print(node.get_prev_action(), " gained ", delta)
             # add the node to the explored set
             explored.add(node.state)
             
@@ -244,13 +252,29 @@ def backup(unexplored, delta, explored, root):
                 #if the root is in the parent set, only add the root
                 if(root in parent_set):
                     unexplored.append((root, layer+1))
+                    max_depth = layer+1
                 else:
                     for parent in node.get_state_parents():
                         unexplored.append((parent, layer+1))
             # if we have reached the root, we are done
-            else:
-                return
+            #else:
+                #return
 
+def backup(node, delta, root):
+    """
+    This function backpropogates the results of the Monte Carlo Simulation back up the tree
+
+    Keyword arguments:
+    node -- the child node we simulated from
+    delta -- the component of the reward vector associated with the current player at node v
+    """
+    while (node is not None):
+        # Increment the number of times the node has
+        # been visited and the simulated value of the node
+        node.update_visited(1)
+        node.update_sim_value(delta)
+        # Traverse up the tree
+        node = node.get_parent()
 
 
 def dynamic_sim_len(max_nodes, sim_limit, diff) -> int:

@@ -2,7 +2,9 @@
 This file contains the node and state classes for building the game tree with a transposition table.
 """
 
-
+def get_world_state_hash(location, valid_actions):
+    #print(location+str(valid_actions))
+    return location+str(valid_actions)
 
 class Transposition_Node:
     """
@@ -23,6 +25,7 @@ class Transposition_Node:
     def __init__(self, state, parent, prev_act, new_actions, transposition_table):
         self.parent = parent
         self.prev_act = prev_act
+        self.state = state
 
         if(transposition_table.get(state) is None):
             # Create a key-value pair for the new state
