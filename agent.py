@@ -7,7 +7,7 @@ import random
 import time
 from environment import *
 from mcts_agent import best_child, tree_policy, default_policy, backup, dynamic_sim_len
-from mcts_node import Node
+from mcts_node import Node, MCTS_node
 from mcts_reward import AdditiveReward
 
 class Agent:
@@ -43,7 +43,7 @@ class MonteAgent(Agent):
 
     def __init__(self, env: Environment, num_steps: int):
         # create root node with the initial state
-        self.root = Node(None, None, env.get_valid_actions())
+        self.root = MCTS_node(None, None, env.get_valid_actions())
 
         self.node_path.append(self.root)
 
@@ -80,7 +80,7 @@ class MonteAgent(Agent):
         time_limit = 59
 
         # minimum number of nodes per simulation phase
-        minimum = env.get_moves()*5
+        minimum = len(env.get_valid_actions())
 
         #current state of the game. Return to this state each time generating a new node
         curr_state = env.get_state()
@@ -102,8 +102,8 @@ class MonteAgent(Agent):
 
 
         print(env.get_valid_actions())
-        for child in self.root.children:
-            print(child.get_prev_action(), ", count:", child.visited, ", value:", child.sim_value, "normalized value:", self.reward.select_action(env, child.sim_value, child.visited, None))
+        for child in self.root.get_children():
+            print(child.get_prev_action(), ", count:", child.get_visited(), ", value:", child.get_sim_value(), "normalized value:", self.reward.select_action(env, child.get_sim_value(), child.get_visited(), None))
 
         ## Pick the next action
         self.root, score_dif = best_child(self.root, self.explore_const, env, self.reward, False)
