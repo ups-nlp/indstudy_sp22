@@ -6,6 +6,7 @@ from jericho import FrotzEnv
 from agent import Agent
 from agent import RandomAgent
 from agent import HumanAgent
+from dep_agent import DEPagent
 
 import config
 import time
@@ -27,7 +28,7 @@ def play_game(agent: Agent, game_file: str, num_steps: int):
         print('=========================================')
         print("Initial Observation\n" + curr_obs)
 
-    prev_location = env.get_player_location() 
+    prev_location = env.get_player_location()
     num_location_changes = 0  # total number of times an action led to a change in location
     num_times_called = 0 # total number of iterations performed
     seconds = 0 # total time spent in take_action() over all iterations
@@ -94,7 +95,9 @@ if __name__ == "__main__":
     if args.agent == 'random':
         ai_agent = RandomAgent()
     elif args.agent == 'human':
-        ai_agent = HumanAgent()    
+        ai_agent = HumanAgent()
+    elif args.agent == 'DEPagent':
+        ai_agent = DEPagent()
     else:
         ai_agent = RandomAgent()
 

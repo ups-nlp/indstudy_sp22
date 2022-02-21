@@ -38,7 +38,7 @@ class DEPagent(Agent):
                           'up':'down', 'down':'up',
                           'northwest':'southeast', 'southeast':'northwest',
                           'northeast':'southwest', 'southwest':'southeast',
-                          'go':'go'}
+                          'go':'go', 'jump':'jump'}
 
         # index of the current observation in the enviroment
         self.OBSERVATION_INDEX = 8
@@ -222,7 +222,7 @@ def sort_actions(valid_actions:list) -> list:
         if action in self.movements:
            mover_actions.append(action)
 
-       else:
+        else:
            ee_actions.append(action)
 
     sorted_actions = [mover_actions, ee_actions]

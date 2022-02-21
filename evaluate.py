@@ -6,6 +6,7 @@ import argparse
 
 from agent import RandomAgent
 from agent import HumanAgent
+from dep_agent import DEPagent
 
 
 if __name__ == "__main__":
@@ -26,6 +27,8 @@ if __name__ == "__main__":
         ai_agent = RandomAgent()
     elif args.agent == 'human':
         ai_agent = HumanAgent()
+    elif args.agent == 'DEPagent':
+        ai_agent = DEPagent()
     else:
         ai_agent = RandomAgent()
 
