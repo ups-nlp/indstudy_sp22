@@ -22,33 +22,44 @@ def tree_policy(root, env: Environment, explore_exploit_const, reward_policy, tr
     Return: the ideal node to expand on
     """
     node = root
-    history = {root.state}
+    history = {root.get_state()}
+    path = [root] #
     while not node.is_terminal():
         #if parent is not full expanded, expand it and return
         if not node.is_expanded():
-            # print("Expand Node")
-            return expand_node(node, env, transposition_table)
+            #print("Expand Node")
+            new_node = expand_node(node, env, transposition_table)
+            path.append(new_node) #
+            return new_node, path
+
         #Otherwise, look at the parent's best child
         else:
             # Select the best child of the current node to explore
-            child = best_child(node, explore_exploit_const, env, reward_policy, history)[0]
-            # print("--------")
-            # print("node: ", node.new_actions)
-            # for x in node.get_children():
-            #     child_sim_value = x.get_sim_value()
-            #     child_visited = x.get_visited()
-            #     print("\t", x.get_prev_action(), ", count:", child_visited, ", value:", child_sim_value, "normalized value:", reward_policy.select_action(env, child_sim_value, child_visited, None))
-            # print("selected: ", child.get_prev_action())
+            child, _ = best_child(node, explore_exploit_const, env, reward_policy, history, True)
+            #print("--------")
+            #print("node: ", node.get_state())
+            #for x in node.get_children():
+            #    child_sim_value = x.get_sim_value()
+            #    child_visited = x.get_visited()
+            #    print("\t", x.get_prev_action(), ", count:", child_visited, ", value:", child_sim_value, "normalized:", reward_policy.upper_confidence_bounds(env, explore_exploit_const, child_sim_value, child_visited, node.get_visited()),"best:", reward_policy.select_action(env, child_sim_value, child_visited, None))
+            
+
+            # If we have aleady been to all the child nodes, return the current node and path
+            if child is None:
+                # We are about to loop, so return the last node
+                return node, path
+            #print("selected: ", child.get_prev_action())
 
             # else, go into the best child
             node = child
-            history.add(node.state)
+            history.add(node.get_state())
+            path.append(node) #
             # update the env variable
             env.step(node.get_prev_action())
             # print("Entered child: ", node.get_prev_action(), ", env: ", env.get_valid_actions())
 
     # The node is terminal, so return it
-    return node
+    return node, path
 
 def best_child(parent, exploration, env: Environment, reward_policy, history, use_bound = True):
     """ Select and return the best child of the parent node to explore or the action to take
@@ -74,14 +85,17 @@ def best_child(parent, exploration, env: Environment, reward_policy, history, us
     second_best_score = -inf
     valid_children = []
     # first we will accrue a list of children nodes with states we have not already been to
-    for child in parent.get_children():
-        # if we have already visited the state of the child, it is not a valid choice
-        if(child.state not in history):
-            valid_children.append(child)
-    # if we have been to all the children's states, they are all valid options
-    if len(valid_children) == 0:
+    if use_bound:
+        for child in parent.get_children():
+            # if we have already visited the state of the child, it is not a valid choice
+            if(child.get_state() not in history):
+                valid_children.append(child)
+        # if we have been to all the children's states, they are all valid options
+        if len(valid_children) == 0:
+            #if we have already been to all the child states, return None
+            return None, None
+    else:
         valid_children = parent.get_children()
-        #return random.choice(parent.get_children()), 0
     # calculate the scores for each child and pick the best one
     for child in valid_children:
         
@@ -260,7 +274,7 @@ def backup_recursive(unexplored, delta, explored, root):
             #else:
                 #return
 
-def backup(node, delta, root):
+def backup(path, delta):
     """
     This function backpropogates the results of the Monte Carlo Simulation back up the tree
 
@@ -268,13 +282,11 @@ def backup(node, delta, root):
     node -- the child node we simulated from
     delta -- the component of the reward vector associated with the current player at node v
     """
-    while (node is not None):
+    for node in path:
         # Increment the number of times the node has
         # been visited and the simulated value of the node
         node.update_visited(1)
         node.update_sim_value(delta)
-        # Traverse up the tree
-        node = node.get_parent()
 
 
 def dynamic_sim_len(max_nodes, sim_limit, diff) -> int:

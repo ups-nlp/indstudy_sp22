@@ -68,6 +68,9 @@ class Transposition_Node:
 
     # The below methods fetch the fields from the Node's State
 
+    def get_state(self):
+        return self.state
+
     def get_sim_value(self):
         return self.state.sim_value
 

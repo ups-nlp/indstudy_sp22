@@ -65,7 +65,7 @@ def play_game(agent: Agent, game_file: str, num_steps: int):
 
         num_steps -= 1
 
-    if config.VERBOSITY > 1:
+    if config.VERBOSITY >= 1:
         print('\n\n============= HISTORY OF ACTIONS TAKEN =============')
         for _, action in history:
             print(action)

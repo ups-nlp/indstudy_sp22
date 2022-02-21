@@ -97,23 +97,23 @@ class MonteAgent(Agent):
         curr_state = env.get_state()
         while(seconds_elapsed < time_limit or count <= minimum):
             seconds_elapsed = time.time() - start_time
-            if(count % 10 == 0): 
-                print(count)
+            #if(count % 100 == 0): 
+            #    print(count)
             # Create a new node on the tree
-            # print("Make new node")
-            new_node = tree_policy(self.root, env, self.explore_const, self.reward, self.transposition_table)
+            #print("Make new node")
+            new_node, path = tree_policy(self.root, env, self.explore_const, self.reward, self.transposition_table)
             # Determine the simulated value of the new node
-            # print("Run simulation")
+            #print("Run simulation")
             delta = default_policy(new_node, env, self.simulation_length, self.reward)
             # Propogate the simulated value back up the tree
             # create a hashSet of nodes already updated, so we don't update the same state twice
             #updated_set = set()
             
-            # print("Backpropogate")
+            #print("Backpropogate")
             # if(delta > 0):
                 # print("delta value is ", delta)
             #print(str(new_node.state))
-            backup(new_node,delta, self.root)
+            backup(path,delta)
             # reset the state of the game when done with one simulation
             env.reset()
             env.set_state(curr_state)
@@ -130,7 +130,7 @@ class MonteAgent(Agent):
         self.root, score_dif = best_child(self.root, self.explore_const, env, self.reward, self.history, False)
 
         # update the history to include the new state
-        self.history.add(self.root.state)
+        #self.history.add(self.root.state)
 
         self.node_path.append(self.root)
 

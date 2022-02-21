@@ -313,7 +313,7 @@ class AdditiveReward(Reward):
         if score == 0:
             score = 1
         #print(child_sim_value/(child_visited*score),  exploration*sqrt((2*log2(parent_visited))/child_visited))
-        return child_sim_value/(child_visited*score) + 1.75*exploration*sqrt((2*log2(parent_visited))/child_visited)
+        return child_sim_value/(child_visited*score) + exploration*sqrt((2*log2(parent_visited))/child_visited)
 
     def select_action(self, env: Environment, child_sim_value, child_visited, parent_visited):
         """ This method calculates and returns the average score for a given child node on the tree.

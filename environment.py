@@ -97,7 +97,7 @@ class JerichoEnvironment(Environment):
 
     def get_player_location(self):
         """Returns the player's location"""
-        return self.env.get_player_location()
+        return self.env.get_player_location().name
 
     def get_state(self):
         """Returns the internal game state"""
