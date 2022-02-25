@@ -102,7 +102,6 @@ class JerichoEnvironment(Environment):
     def get_state(self):
         """Returns the internal game state"""
         return self.env.get_state()
-    
 
     def set_state(self, state):
         """Sets the internal game state to the specified state"""
