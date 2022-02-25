@@ -33,7 +33,7 @@ def play_game(agent: Agent, game_file: str, num_steps: int):
     num_times_called = 0 # total number of iterations performed
     seconds = 0 # total time spent in take_action() over all iterations
 
-    while not done: #num_steps > 0 and not done:
+    while num_steps != 0 and not done:
 
         # timing the call to take_action()
         start_time = time.time()
@@ -85,7 +85,7 @@ if __name__ == "__main__":
         description='Runs an AI agent on a specified game')
 
     parser.add_argument(
-        'num_moves', type=int, help='Number of moves for the agent to make')
+        'num_moves', type=int, help="Number of moves for the agent to make. Enter '-1' for unlimited moves.")
     parser.add_argument('agent', help='[random|human|mcts]')    
     parser.add_argument('game_file', help='Full pathname for game')
     parser.add_argument('-v', '--verbosity', type=int,
