@@ -3,34 +3,55 @@ An implementation of the UCT algorithm for text-based games
 """
 from math import floor, inf
 import random
+from xmlrpc.client import Boolean
 from environment import *
 from mcts_node import Node
 from mcts_reward import *
 ACTION_BOUND = .001
 
-def take_action(self, root, env: FrotzEnv, explore_exploit_const, reward_policy, score_dict, count_dict, timer):
+
+#class mcts:
+
+
+def take_action(root, env: Environment, explore_exploit_const, simulation_length, reward_policy, score_dict, count_dict, timer):
+#def take_action(self, thread_args:list):
+
     #hi
     #curr_state = env.get_state()
-    while(timer):
+    print("ENTERING TAKE_ACTION")
+    print("root = ",root.print(0), " const = ",explore_exploit_const,"reward = ", reward_policy)
+    curr_state = env.get_state()
+    count = 0
+    action = None
+    while(timer.value==0 and count < 10):
+            count = count+1
+            print("TAKE_ACTION COUNT:",count)
+            #print("timer value:",timer.timer)
             #store action taken from root node
-            action = (self.best_child(root,explore_exploit_const,env,reward_policy)[0]).get_prev_action
-            action_num = (self.best_child(root,explore_exploit_const,env,reward_policy)[0]).visited +1
+            if len(root.get_children()) != 0:
+                action = (best_child(root,explore_exploit_const,env,reward_policy)[0]).get_prev_action()
+                #print("testing action ",action,"\n")
+                action_num = (best_child(root,explore_exploit_const,env,reward_policy)[0]).get_visited() +1
 
             # Create a new node on the tree
-            new_node = self.tree_policy(self.root, env, self.explore_const, self.reward)
+            print("making new node")
+            new_node = tree_policy(root, env, explore_exploit_const, reward_policy)
             # Determine the simulated value of the new node
-            delta = self.default_policy(new_node, env, self.simulation_length, self.reward)
+            print("determine simulated value")
+            delta = default_policy(new_node, env, simulation_length, reward_policy)
 
             #adjust simulation length from parent of leaf node
             if calc_score_dif(new_node.parent) <= ACTION_BOUND:
                 new_node.parent.changeLength(1)
 
             # Propogate the simulated value back up the tree
-            self.backup(new_node, delta)
+            print("propogate value")
+            backup(new_node, delta)
 
             # reset the state of the game when done with one simulation
             #env.reset()
-            env.set_state(root)
+            print("reset env state")
+            env.set_state(curr_state)
 
             #update the shared table 
             if action in score_dict.keys():
@@ -39,24 +60,33 @@ def take_action(self, root, env: FrotzEnv, explore_exploit_const, reward_policy,
 
                 temp2 = {action: action_num}
                 count_dict.update(temp2)
-            else:
+            elif action is not None:
                 score_dict[action] = delta
                 count_dict[action] = action_num
+    print("EXIT WHILE LOOP. timer value = ",timer.value())
+    print("score_dict: \n")
+    for item in score_dict.items():
+        print(item)
+
+    print("count_dict: \n")
+    for item in count_dict.items():
+        print(item)
 
 
 
 
-def calc_score_dif(self, node):
+
+def calc_score_dif( node):
     diff = inf
     max = 0
-    for  n in node.getChildren:
+    for  n in node.get_children():
         if n.sim_value < max:
             if (max - n.sim_value) < diff:
                 diff = max - n.sim_value
         if n.sim_value > max:
             if (n.sim_value - max) < diff:
-               diff = n.sim_value - max
-            max = n.sim_value
+                diff = n.sim_value - max
+                max = n.sim_value
         if max == n.sim_value:
             diff = 0
     return diff
@@ -75,20 +105,24 @@ def tree_policy(root, env: Environment, explore_exploit_const, reward_policy):
     env -- Environment interface between the learning agent and the game
     Return: the ideal node to expand on
     """
+    print("tree policy")
     node = root
     # How do you go back up the tree to explore other paths
     # when the best path has progressed past the max_depth?
     #while env.get_moves() < max_depth:
     while not node.is_terminal():
+        print("going down tree")
         #if parent is not full expanded, expand it and return
         if not node.is_expanded():
             return expand_node(node, env)
         #Otherwise, look at the parent's best child
         else:
             # Select the best child of the current node to explore
+            print("\tgetting best child")
             child = best_child(node, explore_exploit_const, env, reward_policy)[0]
             # else, go into the best child
             node = child
+            print("\t taking a step")
             # update the env variable
             env.step(node.get_prev_action())
 
@@ -114,6 +148,7 @@ def best_child(parent, exploration, env: Environment, reward_policy, use_bound =
     use_bound -- whether you are picking the best child to expand (true) or selecting the best action (false)
     Return: the best child to explore in an array with the difference in score between the first and second pick
     """
+    print("best child")
     max_val = -inf
     bestLs = [None]
     second_best_score = -inf
@@ -150,9 +185,10 @@ def best_child(parent, exploration, env: Environment, reward_policy, use_bound =
     chosen = random.choice(bestLs)
     if( not use_bound):
         print("best, second", max_val, second_best_score)
+    print("returning best child")
     return chosen, abs(max_val - second_best_score) ## Worry about if only 1 node possible infinity?
 
-def expand_node(parent, env):
+def expand_node(parent, env:Environment):
     """
     Expand this node
 
@@ -163,6 +199,7 @@ def expand_node(parent, env):
     env -- Environment interface between the learning agent and the game
     Return: a child node to explore
     """
+    print("expanding node")
     # Get possible unexplored actions
     actions = parent.new_actions 
 
@@ -171,14 +208,15 @@ def expand_node(parent, env):
 
     # Remove that action from the unexplored action list and update parent
     actions.remove(action)
-
+    print("\tstepping into random child (action = ",action,")")
+    print(env.get_valid_actions())
     # Step into the state of that child and get its possible actions
     env.step(action)
     new_actions = env.get_valid_actions()
-
+    print("\t making new node")
     # Create the child
     new_node = Node(parent, action, new_actions)
-
+    print("\tadding new child")
     # Add the child to the parent
     parent.add_child(new_node)
 
@@ -266,7 +304,7 @@ def dynamic_sim_len(max_nodes, sim_limit, diff) -> int:
             int: The new max number of nodes to generate before the agent makes a move
             int: The new max number of moves to make during a simulation before stopping
         #       
-       # if(diff == 0):
+    # if(diff == 0):
             #sim_limit = 100
             #if(max_nodes < 300):
                 #max_nodes = max_nodes*2
