@@ -21,7 +21,7 @@ class Node:
     """
 
     def __init__(self, parent, prev_act, new_actions):
-        SIM_SCALE = .25
+        self.SIM_SCALE = .25
         self.parent = parent
         self.prev_act = prev_act
         self.children = []
@@ -37,6 +37,10 @@ class Node:
             boolean: true if the max number of children is 0
         """
         return self.max_children == 0
+    
+    def get_visited(self):
+        return self.visited
+
 
     def changeLength(self, scalar):
         if scalar < 0:
