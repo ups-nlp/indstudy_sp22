@@ -2,6 +2,7 @@
 An interface for a game environment
 """
 
+from copy import deepcopy
 from jericho import FrotzEnv
 
 class Environment:
@@ -55,6 +56,9 @@ class Environment:
         """Get a hash of the current state of the game"""
         raise NotImplementedError
     
+    def copy(self):
+        """Returns a copy of the environment"""
+        raise NotImplementedError
 
 
 class JerichoEnvironment(Environment):    
@@ -111,6 +115,10 @@ class JerichoEnvironment(Environment):
     def get_world_state_hash(self):
         """Get a hash of the current state of the game"""
         return self.env.get_world_state_hash()
+
+    def copy(self):
+        """Returns a copy of the environment"""
+        return self.env.copy()
 
 
 
@@ -179,7 +187,7 @@ class ChamberEnvironment(Environment):
 
     def get_valid_actions(self):
         """Attempts to generate a set of unique valid actions from the current game state"""
-        return ChamberEnvironment.actions
+        return deepcopy(ChamberEnvironment.actions)
 
     def game_over(self):
         """Returns true if the game is over and the player has lost"""
@@ -258,3 +266,7 @@ class ChamberEnvironment(Environment):
             return self.initial_obs
         else:
             return "That's not a command I recognize."
+
+    def copy(self):
+        """Returns a copy of the environment"""
+        raise NotImplementedError
