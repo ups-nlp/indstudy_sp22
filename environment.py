@@ -56,6 +56,9 @@ class Environment:
         """Get a hash of the current state of the game"""
         raise NotImplementedError
     
+    def copy(self):
+        """Returns a copy of the environment"""
+        raise NotImplementedError
 
 
 class JerichoEnvironment(Environment):    
@@ -112,6 +115,10 @@ class JerichoEnvironment(Environment):
     def get_world_state_hash(self):
         """Get a hash of the current state of the game"""
         return self.env.get_world_state_hash()
+
+    def copy(self):
+        """Returns a copy of the environment"""
+        return self.env.copy()
 
 
 
@@ -259,3 +266,7 @@ class ChamberEnvironment(Environment):
             return self.initial_obs
         else:
             return "That's not a command I recognize."
+
+    def copy(self):
+        """Returns a copy of the environment"""
+        raise NotImplementedError
