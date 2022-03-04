@@ -3,6 +3,59 @@ Node class for building the game tree
 """
 
 class Node:
+    """Interface for an Node class"""
+    def __init__(self, parent, prev_act, new_actions):
+        raise NotImplementedError
+
+    def is_terminal(self):
+        """ Returns true if the node is terminal """
+        raise NotImplementedError
+
+    def add_child(self, child):
+        """Add a child to the list of children """
+        raise NotImplementedError
+
+    def is_expanded(self):
+        """ Returns true if the number of child is equal to the max number of children """
+        raise NotImplementedError
+
+    def get_prev_action(self):
+        """ Returns the previous action """
+        raise NotImplementedError
+
+    def get_parent(self):
+        """ Returns the parent Node """
+        raise NotImplementedError
+
+    def get_sim_value(self):
+        """ Returns the simulated value of the Node """
+        raise NotImplementedError
+
+    def get_visited(self):
+        """ Returns the quanitiy of visits this node has had """
+        raise NotImplementedError
+
+    def get_max_children(self):
+        """ Returns the maximum number of children this node could have """
+        raise NotImplementedError
+
+    def get_children(self):
+        """ Returns a list of all the children """
+        raise NotImplementedError
+
+    def get_new_actions(self):
+        """ Returns the list of unexplored actions """
+        raise NotImplementedError
+
+    def update_sim_value(self, delta):
+        """ Updates the simulated value of this node by a specified amount """
+        raise NotImplementedError
+
+    def update_visited(self, delta):
+        """ Updates the visit count of this node by a specified amount """
+        raise NotImplementedError
+
+class MCTS_node(Node):
     """
     This Node class represents a state of the game. Each node holds the following:
     parent -- it's parent node
@@ -35,35 +88,9 @@ class Node:
         """
         return self.max_children == 0
 
-    def print(self, level):
-        """ Print a text representation of the tree
-        """
-        space = ">" * level
-        #for i in range(level):
-        #    space += ">"
-        if self.prev_act is None:
-            print("\t"+space+"<root>"+"\n")
-        else:
-            print("\t"+space+self.prev_act+"\n")
-
-        for child in self.children:
-            child.print(level+1)
-
     def add_child(self, child):
         """Add a child to the list of children"""
         self.children.append(child)
-
-    def get_parent(self):
-        """Return the node's parent in the tree"""
-        return self.parent
-
-    def get_prev_action(self):
-        """Get the action that led to this node"""
-        return self.prev_act
-
-    def get_children(self):
-        """Return the list of children"""
-        return self.children
 
     def is_expanded(self):
         """ Returns true if the number of child is equal to the max number of children.
@@ -71,3 +98,40 @@ class Node:
             boolean: true if the number of child is equal to the max number of children
         """
         return len(self.children) == self.max_children
+
+    
+    def get_prev_action(self):
+        """ Returns the previous action """
+        return self.prev_act
+
+    def get_parent(self):
+        """ Returns the parent Node """
+        return self.parent
+
+    def get_sim_value(self):
+        """ Returns the simulated value of the Node """
+        return self.sim_value
+
+    def get_visited(self):
+        """ Returns the quanitiy of visits this node has had """
+        return self.visited
+
+    def get_max_children(self):
+        """ Returns the maximum number of children this node could have """
+        return self.max_children
+
+    def get_children(self):
+        """ Returns a list of all the children """
+        return self.children
+
+    def get_new_actions(self):
+        """ Returns the list of unexplored actions """
+        return self.new_actions
+
+    def update_sim_value(self, delta):
+        """ Updates the simulated value of this node by a specified amount """
+        self.sim_value += delta
+
+    def update_visited(self, delta):
+        """ Updates the visit count of this node by a specified amount """
+        self.visited += delta
