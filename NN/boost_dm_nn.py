@@ -1,8 +1,7 @@
 """
-Original created 21.12.3
-Recreated 22.2.6
+Created 22.2.25
 
-@author: Eric Markewitz
+@author Eric Markewitz
 """
 
 import numpy as np
@@ -10,18 +9,29 @@ from operator import add
 from operator import truediv
 import re
 
-import tensorflow as tf
+#import pandas as pd
 
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
-import pandas as pd
-from tensorflow.keras.utils import to_categorical
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.losses import BinaryCrossentropy
+
+from keras.wrappers.scikit_learn import KerasClassifier
+from keras.wrappers.scikit_learn import KerasRegressor
+
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.ensemble import AdaBoostRegressor
+from sklearn.datasets import make_classification
+
 from sklearn.model_selection import train_test_split
+
+from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix
+
 from matplotlib import pyplot as plt
 
 
-#Decisionmaker NEURAL NET
 trainingInputs = []
 trainingOutputs = []
 
@@ -94,8 +104,8 @@ def create_vect(vocab_vectors:list, word2id:dict, observation:str, sentince_to_v
 
             avg_vect = list(map(add, avg_vect, norm_vect))
             num_words +=1
-        else:
-            print("Word not in the vocab: " + word)
+        #else:
+            #print("Word not in the vocab: " + word)
 
     words = [num_words] * vect_size
     avg_vect = list(map(truediv, avg_vect, words))
@@ -112,64 +122,76 @@ vocab_vectors, word2id = embed_vocab()
 sentince_to_vect = {}
 vect_to_sentince = {}
 
+
+i = 0
 for line in dm_training_data:
     lst = line.split(',')
     observation = lst[0]
     obs_vect = create_vect(vocab_vectors, word2id, observation, sentince_to_vect, vect_to_sentince)
     action = lst[1]
     module = lst[2]
-    module = re.sub('\n', '', module)
+    module_num = int(module)
 
     trainingInputs.append(obs_vect)
-    trainingOutputs.append(module)
+    trainingOutputs.append(module_num)
 
 
 np_input = np.array(trainingInputs)
 np_output = np.array(trainingOutputs)
 
-train_obs, test_obs, train_labels, test_labels = train_test_split(np_input, np_output, test_size = 0.2, random_state =1)
+train_obs, test_obs, train_labels, test_labels = train_test_split(np_input, np_output, test_size = 0.2)
 
 #Hyperparameters
 epochs = 20
 batch_size = 32
 hidden_lyr1_nodes = 32
 hidden_lyr2_nodes = 32
-learning_rate = 0.005
+learning_rate = 0.0005
 input_size = 50
-output_size = 2
+output_size = 1
 
-# Build the model
-model = Sequential([
-  Dense(hidden_lyr1_nodes, activation='relu', input_shape=(input_size,)),
-  Dense(hidden_lyr2_nodes, activation='relu', input_shape=(hidden_lyr1_nodes,)),
-  Dense(output_size, activation='softmax'),
-])
+"""
+print(train_labels.shape)
+t_cat = to_categorical(train_labels)
+print(t_cat.shape)
+print(t_cat[0])
+print(t_cat[1])
+print(t_cat[2])
+print(t_cat[3])
+"""
+
+def create_model():
+    model = keras.Sequential()
+    model.add(keras.Input(shape=(input_size,)))
+    model.add(layers.Dense(hidden_lyr1_nodes, activation='relu'))
+    model.add(layers.Dense(hidden_lyr2_nodes, activation='relu'))
+    model.add(layers.Dense(output_size, activation='sigmoid'))
+
+    model.compile(
+        optimizer=Adam(lr=learning_rate),
+        loss='binary_crossentropy',
+        metrics=['accuracy'],
+    )
+
+    #evaluation = model.evaluate(x=test_obs,y=test_labels, verbose=1)
+
+    return model
 
 
-# Compile the model.
-model.compile(
-  optimizer=Adam(lr=learning_rate),
-  loss='categorical_crossentropy',
-  metrics=['accuracy'],
-)
 
-# Train the model. The use of to_categorical converts the indices to the
-# actions to one-hot vectors
-history = model.fit(train_obs,
-                    to_categorical(train_labels),
-                    verbose = 1,
-                    validation_split = 0.2, # split data in 80/20 sets
-                    epochs=epochs,
-                    batch_size=batch_size)
-
-
+"""
 # Plot the accuracy of the model as it trains
 plt.plot(history.history['accuracy'])
 plt.xlabel('epochs')
 plt.ylabel('accuracy')
+"""
 
-# Evaluate the model.
-# output: accuracy is 0.425 on test set
-model.evaluate(test_obs, to_categorical(test_labels))
+keras_reg = KerasClassifier(build_fn= create_model, epochs=epochs, batch_size=batch_size, verbose=0)
 
-model.save('./dm_nn_v2')
+adaBoost = AdaBoostClassifier(base_estimator=keras_reg)
+
+adaBoost.fit(train_obs, train_labels)
+
+predictions = adaBoost.predict(test_obs)
+
+print(classification_report(test_labels,predictions))

@@ -1,23 +1,18 @@
 """
-Created 22.2.21
+Created 22.2.25
 
-@author Eric Markewitz
+@author: Eric Markewitz
 """
-
 import numpy as np
 from operator import add
 from operator import truediv
 import re
 
-#import pandas as pd
-
-from sklearn.model_selection import train_test_split
-from sklearn.svm import SVC
-
-from sklearn.metrics import classification_report
-from sklearn.metrics import confusion_matrix
+import tensorflow as tf
+from tensorflow import keras
 
 
+#Decisionmaker NEURAL NET
 trainingInputs = []
 trainingOutputs = []
 
@@ -67,7 +62,7 @@ def embed_vocab() -> (list,dict):
 
     return W_norm, word2id
 
-def create_vect(vocab_vectors:list, word2id:dict, observation:str) -> list:
+def create_vect(vocab_vectors:list, word2id:dict, observation:str, sentince_to_vect:dict, vect_to_sentince:dict) -> list:
     """
     Takes an observation and returns a 50 dimensional vector representation of it
 
@@ -96,16 +91,22 @@ def create_vect(vocab_vectors:list, word2id:dict, observation:str) -> list:
     words = [num_words] * vect_size
     avg_vect = list(map(truediv, avg_vect, words))
 
+    sentince_to_vect[observation] = avg_vect
+    vect_to_sentince[str(avg_vect)] = observation
+
     return(avg_vect)
 
 
 #Start of script
 vocab_vectors, word2id = embed_vocab()
 
+sentince_to_vect = {}
+vect_to_sentince = {}
+
 for line in dm_training_data:
     lst = line.split(',')
     observation = lst[0]
-    obs_vect = create_vect(vocab_vectors, word2id, observation)
+    obs_vect = create_vect(vocab_vectors, word2id, observation, sentince_to_vect, vect_to_sentince)
     action = lst[1]
     module = lst[2]
     module = re.sub('\n', '', module)
@@ -116,14 +117,3 @@ for line in dm_training_data:
 
 np_input = np.array(trainingInputs)
 np_output = np.array(trainingOutputs)
-
-
-train_obs, test_obs, train_labels, test_labels = train_test_split(np_input, np_output, test_size = 0.2)
-
-model = SVC()
-
-model.fit(train_obs, train_labels)
-
-predictions = model.predict(test_obs)
-
-print(classification_report(test_labels,predictions))
