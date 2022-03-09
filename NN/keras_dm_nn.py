@@ -1,18 +1,39 @@
 """
 Created 22.2.25
 
-@author: Eric Markewitz
+@author Eric Markewitz
 """
+
 import numpy as np
 from operator import add
 from operator import truediv
 import re
 
+#import pandas as pd
+
 import tensorflow as tf
 from tensorflow import keras
+from tensorflow.keras import layers
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.losses import BinaryCrossentropy
+
+from keras.wrappers.scikit_learn import KerasClassifier
+from keras.wrappers.scikit_learn import KerasRegressor
+
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.ensemble import AdaBoostRegressor
+from sklearn.datasets import make_classification
+
+from sklearn.model_selection import train_test_split
+
+from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix
+
+from sklearn.svm import SVC
+
+from matplotlib import pyplot as plt
 
 
-#Decisionmaker NEURAL NET
 trainingInputs = []
 trainingOutputs = []
 
@@ -85,8 +106,8 @@ def create_vect(vocab_vectors:list, word2id:dict, observation:str, sentince_to_v
 
             avg_vect = list(map(add, avg_vect, norm_vect))
             num_words +=1
-        else:
-            print("Word not in the vocab: " + word)
+        #else:
+            #print("Word not in the vocab: " + word)
 
     words = [num_words] * vect_size
     avg_vect = list(map(truediv, avg_vect, words))
@@ -103,17 +124,66 @@ vocab_vectors, word2id = embed_vocab()
 sentince_to_vect = {}
 vect_to_sentince = {}
 
+
+i = 0
 for line in dm_training_data:
     lst = line.split(',')
     observation = lst[0]
     obs_vect = create_vect(vocab_vectors, word2id, observation, sentince_to_vect, vect_to_sentince)
     action = lst[1]
     module = lst[2]
-    module = re.sub('\n', '', module)
+    module_num = int(module)
 
     trainingInputs.append(obs_vect)
-    trainingOutputs.append(module)
+    trainingOutputs.append(module_num)
 
 
 np_input = np.array(trainingInputs)
 np_output = np.array(trainingOutputs)
+
+train_obs, test_obs, train_labels, test_labels = train_test_split(np_input, np_output, test_size = 0.2)
+
+#Hyperparameters
+epochs = 20
+batch_size = 32
+hidden_lyr1_nodes = 32
+hidden_lyr2_nodes = 16
+learning_rate = 0.005
+input_size = 50
+output_size = 1
+
+def create_model():
+    model = keras.Sequential()
+    model.add(keras.Input(shape=(input_size,)))
+    model.add(layers.Dense(hidden_lyr1_nodes, activation='relu'))
+    model.add(layers.Dense(hidden_lyr2_nodes, activation='relu'))
+    model.add(layers.Dense(output_size, activation='sigmoid'))
+
+    model.compile(
+        optimizer=Adam(lr=learning_rate),
+        loss='binary_crossentropy',
+        metrics=['accuracy'],
+    )
+
+    #evaluation = model.evaluate(x=test_obs,y=test_labels, verbose=1)
+
+    return model
+
+
+keras_model = create_model()
+keras_model.fit(train_obs, train_labels, batch_size=batch_size, epochs=epochs)
+keras_predictions = keras_model.evaluate(test_obs, test_labels, verbose = 1)
+
+keras_model.save('./dm_nn')
+
+"""
+adaBoost_model = AdaBoostClassifier()
+adaBoost_model.fit(train_obs, train_labels)
+#adaBoost_predictions = adaBoost_model.predict(test_obs)
+#print(classification_report(test_labels,adaBoost_predictions))
+
+svm_model = SVC()
+svm_model.fit(train_obs, train_labels)
+#svm_predictions = svm_model.predict(test_obs)
+#print(classification_report(test_labels,svm_predictions))
+"""
