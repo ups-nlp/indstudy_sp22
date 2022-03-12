@@ -28,7 +28,7 @@ def tree_policy(root, env: Environment, explore_exploit_const, reward_policy):
         #Otherwise, look at the parent's best child
         else:
             # Select the best child of the current node to explore
-            child = best_child(node, explore_exploit_const, env, reward_policy)[0]
+            child = best_child(node, explore_exploit_const, env, reward_policy)
             node = child            
             env.step(node.get_prev_action())
 
@@ -99,7 +99,7 @@ def expand_node(parent, env):
     action = random.choice(actions)
 
     # Remove that action from the unexplored action list and update parent
-    actions.remove_action(action)
+    parent.remove_action(action)
 
     # Step into the state of that child and get its possible actions
     env.step(action)
