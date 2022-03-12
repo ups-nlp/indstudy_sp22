@@ -47,6 +47,10 @@ class Node:
         """ Returns the list of unexplored actions """
         raise NotImplementedError
 
+    def remove_action(self, action):
+        """ Returns an action from the list of unexplored actions """
+        raise NotImplementedError
+
     def update_sim_value(self, delta):
         """ Updates the simulated value of this node by a specified amount """
         raise NotImplementedError
@@ -127,6 +131,10 @@ class MCTS_node(Node):
     def get_new_actions(self):
         """ Returns the list of unexplored actions """
         return self.new_actions
+
+    def remove_action(self, action):
+        """ Returns an action from the list of unexplored actions """
+        self.new_actions.remove(action)
 
     def update_sim_value(self, delta):
         """ Updates the simulated value of this node by a specified amount """

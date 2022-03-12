@@ -8,7 +8,7 @@ import time
 from environment import *
 from mcts_agent import best_child, tree_policy, default_policy, backup, dynamic_sim_len
 from mcts_node import Node
-from mcts_reward import AdditiveReward
+from mcts_reward import BaselineReward
 
 class Agent:
     """Interface for an Agent"""
@@ -56,7 +56,7 @@ class MonteAgent(Agent):
         # Maximum number of nodes to generate in the tree each time a move is made
         self.max_nodes = 200
 
-        self.reward = AdditiveReward()
+        self.reward = BaselineReward()
 
 
 
@@ -80,6 +80,7 @@ class MonteAgent(Agent):
         time_limit = 59
 
         # minimum number of nodes per simulation phase
+        print('initial num_moves', env.get_moves())
         minimum = env.get_moves()*5
 
         #current state of the game. Return to this state each time generating a new node
