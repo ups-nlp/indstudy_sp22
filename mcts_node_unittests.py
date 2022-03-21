@@ -1,10 +1,62 @@
+import random
 import unittest
-from mcts_node import Node
+
+from environment import ChamberEnvironment
+from mcts_node import MCTS_node
 
 class NodeTest(unittest.TestCase):
 
-    def single_node(self):
+    def test_single_node(self):
         """A single node with no parent and no children"""
-        n = Node(None, None, None)
+        n = MCTS_node(None, None, [])
 
+        self.assertTrue(n.is_terminal())
+
+        # TODO: Question, should a leaf node return true/false
+        # for is_expanded()? It's not clear
+        self.assertTrue(n.is_expanded())
+        
+        self.assertIsNone(n.get_prev_action())
+        self.assertIsNone(n.get_parent())
+        self.assertEqual(n.get_sim_value(), 0)
+        self.assertEqual(n.get_visited(), 0)
+        self.assertEqual(n.get_max_children(), 0)
+        self.assertEqual(n.get_children(), [])
+        self.assertEqual(n.get_new_actions(), [])
+
+        numTrials = 100
+        rand_visited = [random.random() for i in range(numTrials)]
+        rand_sim_vals = [random.random() for i in range(numTrials)]
+
+        for i in range(numTrials):
+            n.update_visited(rand_visited[i])
+            n.update_sim_value(rand_sim_vals[i])
+
+        self.assertEqual(n.get_visited(), sum(rand_visited))
+        self.assertEqual(n.get_sim_value(), sum(rand_sim_vals))
+
+    def test_chamber_nodes(self):
+
+        env = ChamberEnvironment(None)
+        root = MCTS_node(None, None, env.get_valid_actions())
+
+        self.assertFalse(root.is_terminal())
+        self.assertFalse(root.is_expanded())
+        self.assertEqual(root.get_max_children(), len(env.get_valid_actions()))
+        self.assertEqual(root.get_new_actions(), env.get_valid_actions())
+
+
+    def test_chamber_play_game(self):
+        env = ChamberEnvironment(None)
+        root = MCTS_node(None, None, env.get_valid_actions())
+
+        
+        
+
+    
+
+
+
+if __name__ == '__main__':
+    unittest.main()
 

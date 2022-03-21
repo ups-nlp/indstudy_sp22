@@ -28,14 +28,14 @@ def tree_policy(root, env: Environment, explore_exploit_const, reward_policy):
         #Otherwise, look at the parent's best child
         else:
             # Select the best child of the current node to explore
-            child = best_child(node, explore_exploit_const, env, reward_policy)
+            child = best_child(node, env, reward_policy)
             node = child            
             env.step(node.get_prev_action())
 
     # The node is terminal, so return it
     return node
 
-def best_child(parent, exploration, env: Environment, reward_policy, use_bound = True):
+def best_child(parent, env: Environment, reward_policy):
     """ Select and return the best child of the parent node to explore or the action to take
 
     pre: parent has been fully expanded
@@ -69,7 +69,7 @@ def best_child(parent, exploration, env: Environment, reward_policy, use_bound =
 
     for child in parent.get_children():
 
-        child_value = reward_policy.calculate_child_Value(env, child, parent)
+        child_value = reward_policy.calculate_child_value(env, child, parent)
         
         # if there is a tie for best child, randomly pick one        
         if (abs(child_value - max_val) < tolerance):
@@ -114,7 +114,7 @@ def expand_node(parent, env):
     return new_node
   
 
-def default_policy(new_node, env, sim_length):
+def default_policy(new_node, env):
     """
     The default_policy represents a simulated exploration of the tree from
     the passed-in node to a terminal state.
@@ -131,10 +131,10 @@ def default_policy(new_node, env, sim_length):
     while (not env.game_over()) and (not env.victory()):
         count += 1
         # if we have reached the limit for exploration
-        if(env.get_moves() > sim_length):
+        #if(env.get_moves() > sim_length):
             #return the reward received by reaching terminal state
             #return reward_policy.simulation_limit(env)
-            return running_score
+        #    return running_score
 
         #Get the list of valid actions from this state
         actions = env.get_valid_actions()

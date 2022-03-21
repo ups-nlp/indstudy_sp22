@@ -35,7 +35,7 @@ class BaselineReward(Reward):
     def __init__(self, exploration_constant):
         super().__init__(exploration_constant)
 
-    def calculate_child_Value(self, env: Environment, child, parent):
+    def calculate_child_value(self, env: Environment, child, parent):
         parent_visited = parent.get_visited()
         child_visited = child.get_visited()
         child_sim_reward = child.get_sim_value()

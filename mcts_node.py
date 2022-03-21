@@ -77,6 +77,13 @@ class MCTS_node(Node):
     """
 
     def __init__(self, parent, prev_act, new_actions):
+        
+        # Although it's okay for parent and prev_act to be None
+        # it is never okay for new_actions to be None
+        # If this happens, we replace it with an empty list
+        if new_actions is None:
+            new_actions = [] 
+
         self.parent = parent
         self.prev_act = prev_act
         self.children = []

@@ -61,11 +61,13 @@ class MonteAgent(Agent):
 
 
     def take_action(self, env: Environment, history: list) -> str:
-        """Takes in the history and returns the next action to take"""
-        print("Action: ")
-        #
-        # Train the agent using the Monte Carlo Search Algorithm
-        #
+        """Runs the Upper Confidence Bounds for Tree (UCT) algorithm 
+        
+        Browne et al., A survey of monte carlo tree search algorithms. IEEE Trans. on 
+        Compt'l Intelligence and AI in Games, vol. 4, no. 10, March 2012.
+
+        Algorithm 2 > UCTSearch() function
+        """
 
         #current number of generated nodes
         count = 0
@@ -79,41 +81,38 @@ class MonteAgent(Agent):
         # loose time limit for simulation phase
         time_limit = 59
 
-        # minimum number of nodes per simulation phase
-        print('initial num_moves', env.get_moves())
-        minimum = env.get_moves()*5
 
         #current state of the game. Return to this state each time generating a new node
         curr_state = env.get_state()
-        while((seconds_elapsed < time_limit or count <= minimum)):
+
+        while seconds_elapsed < time_limit :
             seconds_elapsed = time.time() - start_time
+
             if(count % 10 == 0): 
                 print(count)
+
             # Create a new node on the tree
             new_node = tree_policy(self.root, env, self.explore_const, self.reward)
+
             # Determine the simulated value of the new node
-            delta = default_policy(new_node, env, self.simulation_length)
+            delta = default_policy(new_node, env)
+
             # Propogate the simulated value back up the tree
             backup(new_node, delta)
+
             # reset the state of the game when done with one simulation
             env.reset()
             env.set_state(curr_state)
             count += 1
 
 
-
         print(env.get_valid_actions())
         for child in self.root.children:
-            print(child.get_prev_action(), ", count:", child.visited, ", value:", child.sim_value, "normalized value:", self.reward.select_action(env, child.sim_value, child.visited, None))
+            print(child.get_prev_action(), ", count:", child.visited, ", value:", child.sim_value, "normalized value:", self.reward.calculate_child_value(env, child, self.root))
 
         ## Pick the next action
-        self.root, score_dif = best_child(self.root, self.explore_const, env, self.reward, False)
-
+        self.root = best_child(self.root, env, self.reward)
         self.node_path.append(self.root)
 
-        ## Dynamically adjust simulation length based on how sure we are 
-        self.max_nodes, self.simulation_length = dynamic_sim_len(self.max_nodes, self.simulation_length, score_dif)
-
-        print("\n\n------------------ ", score_dif, self.max_nodes, self.simulation_length)
-
+        print('Took action ', self.root.get_prev_action())
         return self.root.get_prev_action()
