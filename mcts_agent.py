@@ -4,7 +4,7 @@ An implementation of the UCT algorithm for text-based games
 from math import floor, inf
 import random
 from environment import *
-from mcts_node import Node
+from mcts_node import Node, MCTS_node
 from mcts_reward import *
 
 
@@ -109,7 +109,7 @@ def expand_node(parent, env):
     Return: a child node to explore
     """
     # Get possible unexplored actions
-    actions = parent.new_actions 
+    actions = parent.get_new_actions()
 
     #print(len(actions), rand_index)
     action = random.choice(actions)
@@ -122,7 +122,7 @@ def expand_node(parent, env):
     new_actions = env.get_valid_actions()
 
     # Create the child
-    new_node = Node(parent, action, new_actions)
+    new_node = MCTS_node(parent, action, new_actions)
 
     # Add the child to the parent
     parent.add_child(new_node)
@@ -191,8 +191,8 @@ def backup(node, delta):
     while node is not None:
         # Increment the number of times the node has
         # been visited and the simulated value of the node
-        node.visited += 1
-        node.sim_value += delta
+        node.update_visited(1)
+        node.update_sim_value(delta)
         # Traverse up the tree
         node = node.get_parent()
 
@@ -209,22 +209,12 @@ def dynamic_sim_len(max_nodes, sim_limit, diff) -> int:
             int: The new max number of nodes to generate before the agent makes a move
             int: The new max number of moves to make during a simulation before stopping
         """        
-       # if(diff == 0):
-            #sim_limit = 100
-            #if(max_nodes < 300):
-                #max_nodes = max_nodes*2
-
         if(diff < 0.001):
             if(sim_limit < 1000):
                 sim_limit = sim_limit*1.25
             max_nodes = max_nodes+10
 
-            
-            
-            
         elif(diff > .1):
-            #if(max_nodes > 100):
-                #max_nodes = floor(max_nodes/2)
             if(sim_limit > 12):
                 sim_limit =  floor(sim_limit/1.25)
             
@@ -269,36 +259,36 @@ def node_explore(agent):
         
             print("-------", cur_node.get_prev_action(), "-------")
         
-            print("Sim-value:", cur_node.sim_value)
+            print("Sim-value:", cur_node.get_sim_value())
         
-            print("Visited:", cur_node.visited)
+            print("Visited:", cur_node.get_visited())
         
-            print("Unexplored Children:", cur_node.new_actions)
+            print("Unexplored Children:", cur_node.get_new_actions())
         
             print("Children:")
         
             node_history = cur_node.get_children()
             for i in range(0, len(node_history)):
-                print(node_history[i].get_prev_action(), "with value", node_history[i].sim_value, "visited", node_history[i].visited)
+                print(node_history[i].get_prev_action(), "with value", node_history[i].get_sim_value(), "visited", node_history[i].get_visited())
         elif test_input == "-1":
             depth -= 1
             if depth == 0:
                 node_history = agent.node_path
             else:
-                cur_node = cur_node.parent
+                cur_node = cur_node.get_parent()
                 node_history = cur_node.get_children()
 
             print("-------", cur_node.get_prev_action(), "-------")
         
-            print("Sim-value:", cur_node.sim_value)
+            print("Sim-value:", cur_node.get_sim_value())
         
-            print("Visited:", cur_node.visited)
+            print("Visited:", cur_node.get_visited())
         
-            print("Unexplored Children:", cur_node.new_actions)
+            print("Unexplored Children:", cur_node.get_new_actions())
         
             print("Children:")
 
             for i in range(0, len(node_history)):
                 was_taken = bool(node_history[i] in chosen_path)                
 
-                print(node_history[i].get_prev_action(), "with value", node_history[i].sim_value, "visited", node_history[i].visited, "was_chosen?", was_taken)
+                print(node_history[i].get_prev_action(), "with value", node_history[i].get_sim_value(), "visited", node_history[i].get_visited(), "was_chosen?", was_taken)

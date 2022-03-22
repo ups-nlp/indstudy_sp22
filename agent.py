@@ -7,7 +7,7 @@ import random
 import time
 from environment import *
 from mcts_agent import best_child, tree_policy, default_policy, backup, dynamic_sim_len
-from mcts_node import Node
+from mcts_node import MCTS_node, Node
 from mcts_reward import AdditiveReward
 
 class Agent:
@@ -43,7 +43,7 @@ class MonteAgent(Agent):
 
     def __init__(self, env: Environment, num_steps: int):
         # create root node with the initial state
-        self.root = Node(None, None, env.get_valid_actions())
+        self.root = MCTS_node(None, None, env.get_valid_actions())
 
         self.node_path.append(self.root)
 
