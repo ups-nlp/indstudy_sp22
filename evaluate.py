@@ -5,8 +5,11 @@ import config
 from agent import RandomAgent
 from agent import HumanAgent
 from agent import MonteAgent
+from dep_agent import DEPagent
 from environment import JerichoEnvironment
 from play import play_game
+
+
 
 if __name__ == "__main__":
 
@@ -28,6 +31,8 @@ if __name__ == "__main__":
         ai_agent = HumanAgent()
     elif args.agent == 'mcts':
         ai_agent = MonteAgent(JerichoEnvironment(args.game_file), args.num_moves)
+    elif args.agent == 'DEPagent':
+        ai_agent = DEPagent()
     else:
         ai_agent = RandomAgent()
 
