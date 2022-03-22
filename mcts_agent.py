@@ -21,15 +21,20 @@ def tree_policy(root, env: Environment, explore_exploit_const, reward_policy):
     Return: the ideal node to expand on
     """
     node = root
+    # How do you go back up the tree to explore other paths
+    # when the best path has progressed past the max_depth?
+    #while env.get_moves() < max_depth:
     while not node.is_terminal():
-        #if parent is not fully expanded, expand it and return
+        #if parent is not full expanded, expand it and return
         if not node.is_expanded():
             return expand_node(node, env)
         #Otherwise, look at the parent's best child
         else:
             # Select the best child of the current node to explore
-            child = best_child(node, explore_exploit_const, env, reward_policy)
-            node = child            
+            child = best_child(node, explore_exploit_const, env, reward_policy)[0]
+            # else, go into the best child
+            node = child
+            # update the env variable
             env.step(node.get_prev_action())
 
     # The node is terminal, so return it
@@ -38,19 +43,15 @@ def tree_policy(root, env: Environment, explore_exploit_const, reward_policy):
 def best_child(parent, exploration, env: Environment, reward_policy, use_bound = True):
     """ Select and return the best child of the parent node to explore or the action to take
 
-    pre: parent has been fully expanded
+    From the current parent node, we will select the best child node to
+    explore and return it. The exploration constant is inputted into this function,
+    it balances exploration with exploitation. If the parent node has unexplored
+    children, they will automatically be explored first.
 
-    For each child node (v) of the parent, we compute:
-    Q(v)/N(v) + e * sqrt(2ln[N(parent)]/N(v))
+    or 
 
-    where 
-    
-    Q(v)      = The sum of the backed up rewards for the child v
-    N(v)      = The total visit count for the child v
-    e         = A user-chosen constant that trades off btw. exploration and exploitation
-    N(parent) = The total visit count for the parent 
-
-    The child node with the highest value is returned. 
+    From the availble actions from this node, we will pick the one that has the most 
+    efficient score / visited ratio. Aka the best action to take
 
     Keyword arguments:
     parent -- the parent node
@@ -58,30 +59,43 @@ def best_child(parent, exploration, env: Environment, reward_policy, use_bound =
     use_bound -- whether you are picking the best child to expand (true) or selecting the best action (false)
     Return: the best child to explore in an array with the difference in score between the first and second pick
     """
-
-    # check the pre-condition
-    if(not parent.is_expanded()):
-        raise Exception("best_child() called on parent node that has not been fully expanded")
-
     max_val = -inf
     bestLs = [None]
-    tolerance = 0.000000001
-
+    second_best_score = -inf
     for child in parent.get_children():
-
-        child_value = reward_policy.calculate_child_Value(env, child, parent)
+        # Use the Upper Confidence Bounds for Trees to determine the value for the child or pick the child based on visited
+        if(use_bound):
+            child_value = reward_policy.upper_confidence_bounds(env, exploration, child.sim_value, child.visited, parent.visited)
+        else:
+            child_value = reward_policy.select_action(env, child.sim_value, child.visited, parent.visited)
         
-        # if there is a tie for best child, randomly pick one        
-        if (abs(child_value - max_val) < tolerance):
+        #print("child_value", child_value)
+        # if there is a tie for best child, randomly pick one
+        # if(child_value == max_val) with floats
+        if (abs(child_value - max_val) < 0.000000001):
+            
+            #print("reoccuring best", child_value)
+            #print("next best", child_value)
             bestLs.append(child)
+            second_best_score = child_value
             
         #if it's value is greater than the best so far, it will be our best so far
         elif child_value > max_val:
+            #print("new best", child_value)
+            #print("next best", max_val)
+            second_best_score = max_val
             bestLs = [child]
             max_val = child_value
-
+        #if it's value is greater than the 2nd best, update our 2nd best
+        elif child_value > second_best_score:
+            #print("best", bestLs[0])
+            #print("new next best", child_value)
+            #print("old next best", second_best_score)
+            second_best_score = child_value
     chosen = random.choice(bestLs)
-    return chosen
+    if( not use_bound):
+        print("best, second", max_val, second_best_score)
+    return chosen, abs(max_val - second_best_score) ## Worry about if only 1 node possible infinity?
 
 def expand_node(parent, env):
     """
@@ -96,10 +110,12 @@ def expand_node(parent, env):
     """
     # Get possible unexplored actions
     actions = parent.get_new_actions()
+
+    #print(len(actions), rand_index)
     action = random.choice(actions)
 
     # Remove that action from the unexplored action list and update parent
-    parent.remove_action(action)
+    actions.remove(action)
 
     # Step into the state of that child and get its possible actions
     env.step(action)
@@ -112,9 +128,21 @@ def expand_node(parent, env):
     parent.add_child(new_node)
 
     return new_node
-  
 
-def default_policy(new_node, env, sim_length):
+
+    # # if no new nodes were created, we are at a terminal state
+    # if new_node is None:
+    #     # set the parent to terminal and return the parent
+    #     parent.terminal = True
+    #     return parent
+
+    # else:
+    #     # update the env variable to the new node we are exploring
+    #     env.step(new_node.get_prev_action())
+    #     # Return a newly created node to-be-explored
+    #     return new_node
+
+def default_policy(new_node, env, sim_length, reward_policy):
     """
     The default_policy represents a simulated exploration of the tree from
     the passed-in node to a terminal state.
