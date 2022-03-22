@@ -9,6 +9,8 @@ from agent import MonteAgent
 import config
 from environment import *
 
+from transposition_table import get_world_state_hash
+
 
 
 def play_game(agent: Agent, game_file: str, num_steps: int):

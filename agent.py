@@ -5,6 +5,7 @@ Agents for playing text-based games
 from math import sqrt
 import random
 import time
+from xml.etree.ElementTree import tostring
 from environment import *
 from mcts_agent import best_child, tree_policy, default_policy, backup, dynamic_sim_len
 from mcts_node import Node
@@ -96,9 +97,10 @@ class MonteAgent(Agent):
         #current state of the game. Return to this state each time generating a new node
         curr_state = env.get_state()
         while(seconds_elapsed < time_limit or count <= minimum):
+        #while(count < 10):
             seconds_elapsed = time.time() - start_time
-            #if(count % 100 == 0): 
-            #    print(count)
+            if(count % 100 == 0): 
+                print("Count is ",count)
             # Create a new node on the tree
             #print("Make new node")
             new_node, path = tree_policy(self.root, env, self.explore_const, self.reward, self.transposition_table)
@@ -110,16 +112,22 @@ class MonteAgent(Agent):
             #updated_set = set()
             
             #print("Backpropogate")
-            # if(delta > 0):
-                # print("delta value is ", delta)
-            #print(str(new_node.state))
+            if(delta > 0):
+                print("delta value is ", delta)
+            print(new_node.toString())
             backup(path,delta)
             # reset the state of the game when done with one simulation
             env.reset()
             env.set_state(curr_state)
             count += 1
+        """
+        print("Total count was: ", count)
+        print("\nPrinting out transposition table:")
+        for entry in self.transposition_table:
+            print(entry, " : ", self.transposition_table[entry].toString())
+        print("\nOptions for children:")
 
-        print("Count: ", count)
+        """
 
         for child in self.root.get_children():
             child_sim_value = child.get_sim_value()

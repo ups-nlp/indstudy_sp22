@@ -29,7 +29,7 @@ class Transposition_Node:
 
         if(transposition_table.get(state) is None):
             # Create a key-value pair for the new state
-            transposition_table[state] = State(parent, new_actions)
+            transposition_table[state] = State(parent, new_actions, state)
         else:
             # Update the existing key-value pair for the state
             entry = transposition_table.get(state)
@@ -40,6 +40,8 @@ class Transposition_Node:
         self.state = transposition_table.get(state)
 
 
+    def toString(self):
+        return self.state.toString()
 
     def is_terminal(self):
         """ Returns true if the node is terminal
@@ -115,7 +117,7 @@ class State:
     new_actions -- a list of all the unexplored actions at this node
     """
 
-    def __init__(self, parent, new_actions):
+    def __init__(self, parent, new_actions, state):
         # The simulated value for this state of the game
         self.sim_value = 0
         # The number of times we have simulated this state of the game
@@ -128,5 +130,10 @@ class State:
         self.children = []
         # a list of the unexplored actions at this node
         self.new_actions = new_actions
+
+        self.state = state
+
+    def toString(self):
+        return str(self.state)+" has been explored "+ str(self.visited) + " times and has a score of "+ str(self.sim_value)
 
  

@@ -25,6 +25,8 @@ def tree_policy(root, env: Environment, explore_exploit_const, reward_policy, tr
     history = {root.get_state()}
     path = [root] #
     while not node.is_terminal():
+        #!state = get_world_state_hash(env.get_player_location(), env.get_valid_actions())
+        #!print("Passed through state: ",state)
         #if parent is not full expanded, expand it and return
         if not node.is_expanded():
             #print("Expand Node")
@@ -55,6 +57,7 @@ def tree_policy(root, env: Environment, explore_exploit_const, reward_policy, tr
             history.add(node.get_state())
             path.append(node) #
             # update the env variable
+            #!print("Moved: ",node.get_prev_action())
             env.step(node.get_prev_action())
             # print("Entered child: ", node.get_prev_action(), ", env: ", env.get_valid_actions())
 
@@ -164,7 +167,9 @@ def expand_node(parent, env, transposition_table):
     # Create the child
     # new_node = Node(parent, action, new_actions)
     # print("Make new node")
+
     state = get_world_state_hash(env.get_player_location(), env.get_valid_actions())
+    #!print("Creating node of state: ",state)
     new_node = Transposition_Node(state, parent, action, new_actions, transposition_table)
 
     # print("Made new node")
@@ -282,12 +287,18 @@ def backup(path, delta):
     node -- the child node we simulated from
     delta -- the component of the reward vector associated with the current player at node v
     """
-    for node in path:
+    # print("[")
+    max_size = len(path)
+    for index in range(max_size):
         # Increment the number of times the node has
         # been visited and the simulated value of the node
+        node = path[index]
         node.update_visited(1)
-        node.update_sim_value(delta)
-
+        # decaying rewards
+        alpha = delta/2**(max_size - (index+1))
+        node.update_sim_value(alpha)
+        # print(index, ":", alpha, ":", node.toString())
+    # print("]")
 
 def dynamic_sim_len(max_nodes, sim_limit, diff) -> int:
         """Given the current simulation depth limit and the difference between 
