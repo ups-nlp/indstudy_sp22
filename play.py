@@ -100,7 +100,7 @@ if __name__ == "__main__":
     elif args.agent == 'mcts':
         ai_agent = MonteAgent(JerichoEnvironment(args.game_file), args.num_moves)
     elif args.agent == 'collector':
-        ai_agent = CollectionAgent(JerichoEnvironment(args.game_file))
+        ai_agent = CollectionAgent(JerichoEnvironment(args.game_file), "data") # need num moves again actually just in case
     else:
         ai_agent = RandomAgent()
 
