@@ -2,94 +2,130 @@
 An implementation of the UCT algorithm for text-based games
 """
 from math import floor, inf
+from platform import architecture
 import random
 from xmlrpc.client import Boolean
 from environment import *
 from mcts_node import Node
 from mcts_reward import *
 ACTION_BOUND = .001
+SIM_SCALE = .15
 
 
-#class mcts:
+def take_action(queue_list, env: Environment, explore_exploit_const, simulation_length, reward_policy, timer, procs_finished, lock):
+    """
+    Take action continuously expands and explores the tree from the root passed in.
+    It runs until a timer from the main thread tells it to stop, or until it calculates 10,000 nodes.
 
+    Keyword arguments:
+    queue_list: shared queue that stores the score dictionary, count dictionary, and root
+    env: game environment
+    explore_exploit_const: constant that determines balance between exploring new path versus taking old path
+    simulation_length: length of the simulation to run from each new node
+    reward_policy: determines which reward policy to use
+    timer: shared timer will set to false when the time is up, and this function will return
+    procs_finished: shared integer that holds the number of processes that have returned from take_action
+    lock: locks procs_finished so only one process can edit at a time
+    """
 
-def take_action(root, env: Environment, explore_exploit_const, simulation_length, reward_policy, score_dict, count_dict, timer):
-#def take_action(self, thread_args:list):
-
-    #hi
-    #curr_state = env.get_state()
-    print("ENTERING TAKE_ACTION")
-    print("root = ",root.print(0), " const = ",explore_exploit_const,"reward = ", reward_policy)
+    #get the dictionaries off of the multiprocessing queue
+    score_dict = queue_list.get()
+    count_dict = queue_list.get()
+    root = queue_list.get()
     curr_state = env.get_state()
     count = 0
     action = None
-    while(timer.value==0 and count < 10):
+    sim_length_scale = 1
+    num_children = len(env.get_valid_actions())
+
+    #if the children of the root have been thoroughly explored and there are no 
+    #obvious score differences, adjust the simulation length before exploring further down
+    #this tree
+    if calc_score_dif(root) <=ACTION_BOUND and root.get_prev_action() is not None and root.subtree_size >= num_children*3:
+        sim_length_scale = sim_length_scale/num_children
+
+    while(timer.value==0 and count < 10000):
+
             count = count+1
-            print("TAKE_ACTION COUNT:",count)
-            #print("timer value:",timer.timer)
-            #store action taken from root node
-            if len(root.get_children()) != 0:
-                action = (best_child(root,explore_exploit_const,env,reward_policy)[0]).get_prev_action()
-                #print("testing action ",action,"\n")
-                action_num = (best_child(root,explore_exploit_const,env,reward_policy)[0]).get_visited() +1
 
-            # Create a new node on the tree
-            print("making new node")
-            new_node = tree_policy(root, env, explore_exploit_const, reward_policy)
+            #create a new node on the tree and store the action taken to get there
+            new_node,action = tree_policy(root, env, explore_exploit_const, reward_policy)
+
+            #update the size of the tree
+            update_tree(new_node)
+
             # Determine the simulated value of the new node
-            print("determine simulated value")
-            delta = default_policy(new_node, env, simulation_length, reward_policy)
-
-            #adjust simulation length from parent of leaf node
-            if calc_score_dif(new_node.parent) <= ACTION_BOUND:
-                new_node.parent.changeLength(1)
+            delta = default_policy(new_node, env, sim_length_scale* simulation_length, reward_policy)
 
             # Propogate the simulated value back up the tree
-            print("propogate value")
             backup(new_node, delta)
 
             # reset the state of the game when done with one simulation
-            #env.reset()
-            print("reset env state")
             env.set_state(curr_state)
 
             #update the shared table 
-            if action in score_dict.keys():
-                temp1 = {action: delta}
-                score_dict.update(temp1)
+            if action in count_dict.keys():
+                new_count = count_dict[action]+1
+            else:
+                new_count = 1
+            score_dict[action] = root.get_child(action).get_sim_value()
+            count_dict[action] = new_count
 
-                temp2 = {action: action_num}
-                count_dict.update(temp2)
-            elif action is not None:
-                score_dict[action] = delta
-                count_dict[action] = action_num
-    print("EXIT WHILE LOOP. timer value = ",timer.value())
-    print("score_dict: \n")
-    for item in score_dict.items():
-        print(item)
-
-    print("count_dict: \n")
-    for item in count_dict.items():
-        print(item)
-
-
-
+    #after leaving the action sequence, place the dictionaries back on the shared queue
+    queue_list.put(score_dict)
+    queue_list.put(count_dict)
+    queue_list.put(root)
+   
+   #increment value of finished processes before returning
+    lock.acquire()
+    procs_finished.value +=1
+    lock.release()
+    print("TREE TOTAL RUNS = ",count)
+    return 
 
 
-def calc_score_dif( node):
-    diff = inf
-    max = 0
-    for  n in node.get_children():
-        if n.sim_value < max:
-            if (max - n.sim_value) < diff:
-                diff = max - n.sim_value
-        if n.sim_value > max:
-            if (n.sim_value - max) < diff:
-                diff = n.sim_value - max
-                max = n.sim_value
-        if max == n.sim_value:
-            diff = 0
-    return diff
+
+
+def calc_score_dif(node):
+    """
+    Calculates the difference between the smallest scoring child and the largest scoring child
+
+    This function sorts the children of the input node into a list ordered on the children's scores,
+    then calculates the difference between the first and last element.
+
+    Keyword arguments:
+    node: the node to calculate the child difference on
+    Return the difference
+    """
+    child_list = node.get_children()
+
+    #If there are no children, do not adjust the simulation length
+    if len(child_list)==0:
+        return ACTION_BOUND+1
+
+    #create a list and fill with the simulated values from each child
+    child_val_list = [0]*len(child_list)
+    for i in range(len(child_list)):
+        child_val_list[i] = child_list[i].sim_value
+
+    #sort the list
+    child_val_list.sort()
+
+    #calculate the difference between the first and last element
+    largest_diff = abs(child_val_list[len(child_val_list)-1]) - child_val_list[0]
+    return largest_diff
+
+def update_tree(node):
+    """
+    Update the size of the subtree stored in each node
+    """
+    curr_node = node
+
+    #for each node from the current node to the root, increment its subtree size by 1
+    while curr_node is not None:
+        curr_node.update_subtree_size()
+        curr_node = curr_node.get_parent()
+
 
 
 
@@ -105,29 +141,30 @@ def tree_policy(root, env: Environment, explore_exploit_const, reward_policy):
     env -- Environment interface between the learning agent and the game
     Return: the ideal node to expand on
     """
-    print("tree policy")
     node = root
-    # How do you go back up the tree to explore other paths
-    # when the best path has progressed past the max_depth?
-    #while env.get_moves() < max_depth:
+    count = 0
+    first_step = None
     while not node.is_terminal():
-        print("going down tree")
-        #if parent is not full expanded, expand it and return
+        count = count+1
+        #if parent is not fully expanded, expand it and return
         if not node.is_expanded():
-            return expand_node(node, env)
+            new_node = expand_node(node,env)
+            if count == 1:
+                first_step = new_node.get_prev_action()
+            return new_node, first_step
         #Otherwise, look at the parent's best child
         else:
             # Select the best child of the current node to explore
-            print("\tgetting best child")
             child = best_child(node, explore_exploit_const, env, reward_policy)[0]
+            if count == 1:
+                first_step = child.get_prev_action()
             # else, go into the best child
             node = child
-            print("\t taking a step")
             # update the env variable
             env.step(node.get_prev_action())
 
     # The node is terminal, so return it
-    return node
+    return node, first_step
 
 def best_child(parent, exploration, env: Environment, reward_policy, use_bound = True):
     """ Select and return the best child of the parent node to explore or the action to take
@@ -148,7 +185,6 @@ def best_child(parent, exploration, env: Environment, reward_policy, use_bound =
     use_bound -- whether you are picking the best child to expand (true) or selecting the best action (false)
     Return: the best child to explore in an array with the difference in score between the first and second pick
     """
-    print("best child")
     max_val = -inf
     bestLs = [None]
     second_best_score = -inf
@@ -159,34 +195,23 @@ def best_child(parent, exploration, env: Environment, reward_policy, use_bound =
         else:
             child_value = reward_policy.select_action(env, child.sim_value, child.visited, parent.visited)
         
-        #print("child_value", child_value)
         # if there is a tie for best child, randomly pick one
-        # if(child_value == max_val) with floats
         if (abs(child_value - max_val) < 0.000000001):
-            
-            #print("reoccuring best", child_value)
-            #print("next best", child_value)
             bestLs.append(child)
             second_best_score = child_value
             
         #if it's value is greater than the best so far, it will be our best so far
         elif child_value > max_val:
-            #print("new best", child_value)
-            #print("next best", max_val)
             second_best_score = max_val
             bestLs = [child]
             max_val = child_value
         #if it's value is greater than the 2nd best, update our 2nd best
         elif child_value > second_best_score:
-            #print("best", bestLs[0])
-            #print("new next best", child_value)
-            #print("old next best", second_best_score)
             second_best_score = child_value
     chosen = random.choice(bestLs)
     if( not use_bound):
         print("best, second", max_val, second_best_score)
-    print("returning best child")
-    return chosen, abs(max_val - second_best_score) ## Worry about if only 1 node possible infinity?
+    return chosen, abs(max_val - second_best_score) 
 
 def expand_node(parent, env:Environment):
     """
@@ -199,41 +224,28 @@ def expand_node(parent, env:Environment):
     env -- Environment interface between the learning agent and the game
     Return: a child node to explore
     """
-    print("expanding node")
     # Get possible unexplored actions
     actions = parent.new_actions 
-
-    #print(len(actions), rand_index)
     action = random.choice(actions)
 
     # Remove that action from the unexplored action list and update parent
     actions.remove(action)
-    print("\tstepping into random child (action = ",action,")")
-    print(env.get_valid_actions())
     # Step into the state of that child and get its possible actions
     env.step(action)
     new_actions = env.get_valid_actions()
-    print("\t making new node")
     # Create the child
     new_node = Node(parent, action, new_actions)
-    print("\tadding new child")
     # Add the child to the parent
     parent.add_child(new_node)
-
     return new_node
 
+def print_arr(arr):
+    str = ""
+    for ar in arr:
+         str = str+ " "+ar.get_prev_action()
+    return str
+        
 
-    # # if no new nodes were created, we are at a terminal state
-    # if new_node is None:
-    #     # set the parent to terminal and return the parent
-    #     parent.terminal = True
-    #     return parent
-
-    # else:
-    #     # update the env variable to the new node we are exploring
-    #     env.step(new_node.get_prev_action())
-    #     # Return a newly created node to-be-explored
-    #     return new_node
 
 def default_policy(new_node, env, sim_length, reward_policy):
     """
@@ -244,7 +256,8 @@ def default_policy(new_node, env, sim_length, reward_policy):
     """
     #if node is already terminal, return 0    
     if(env.game_over()):
-        return 0
+        #return 0
+        return env.get_score()
 
     running_score = env.get_score()
     count = 0
@@ -254,7 +267,6 @@ def default_policy(new_node, env, sim_length, reward_policy):
         # if we have reached the limit for exploration
         if(env.get_moves() > sim_length):
             #return the reward received by reaching terminal state
-            #return reward_policy.simulation_limit(env)
             return running_score
 
         #Get the list of valid actions from this state
@@ -267,10 +279,9 @@ def default_policy(new_node, env, sim_length, reward_policy):
         
         #if there was an increase in the score, add it to the running total
         if((after-before) > 0):
-            running_score += (after-before)/count
+            running_score += (after-before)/(count+1)
 
     #return the reward received by reaching terminal state
-    #return reward_policy.simulation_terminal(env)
     return running_score
 
 def backup(node, delta):

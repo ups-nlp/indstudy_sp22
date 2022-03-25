@@ -21,12 +21,13 @@ class Node:
     """
 
     def __init__(self, parent, prev_act, new_actions):
-        self.SIM_SCALE = .25
+        self.SIM_SCALE = .15
         self.parent = parent
         self.prev_act = prev_act
         self.children = []
         self.sim_value = 0
         self.visited = 0
+        self.subtree_size = 1
         self.sim_length_scale = 1
         self.max_children = len(new_actions)
         self.new_actions = new_actions
@@ -41,6 +42,8 @@ class Node:
     def get_visited(self):
         return self.visited
 
+    def get_sim_value(self):
+        return self.sim_value
 
     def changeLength(self, scalar):
         if scalar < 0:
@@ -48,6 +51,9 @@ class Node:
         
         if scalar >0:
             self.sim_length_scale = self.sim_length_scale*(1+self.SIM_SCALE)
+
+    def update_subtree_size(self):
+        self.subtree_size = self.subtree_size+1
 
     def print(self, level):
         """ Print a text representation of the tree
@@ -78,6 +84,13 @@ class Node:
     def get_children(self):
         """Return the list of children"""
         return self.children
+    
+    def get_child(self, action):
+        """Return the child that results from taking the action"""
+        for chil in self.children:
+            if chil.get_prev_action() == action:
+                return chil
+        return self
 
     def is_expanded(self):
         """ Returns true if the number of child is equal to the max number of children.
