@@ -227,9 +227,11 @@ else:
     input_size = 50 #NOTE PLACEHOLDER?
     output_size = 1
 
+    print(inputs.shape)
+
     print("Making Q-Net")
     q_net = Sequential()
-    q_net.add(keras.Input(shape=(input_size,)))
+    q_net.add(keras.Input(shape=(50, 1)))
     q_net.add(layers.Dense(layer_one_nodes, activation = 'relu'))
     q_net.add(layers.Dense(layer_two_nodes, activation = 'relu'))
     q_net.add(layers.Dense(output_size, activation = 'sigmoid'))
