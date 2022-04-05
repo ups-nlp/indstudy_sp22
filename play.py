@@ -86,7 +86,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         'num_moves', type=int, help="Number of moves for the agent to make. Enter '-1' for unlimited moves.")
-    parser.add_argument('agent', help='[random|human|mcts]')
+    parser.add_argument('agent', help='[random|human|mcts|dep]')
     parser.add_argument('game_file', help='Full pathname for game')
     parser.add_argument('-v', '--verbosity', type=int,
                         help='[0|1] verbosity level')
@@ -99,7 +99,7 @@ if __name__ == "__main__":
         ai_agent = HumanAgent()
     elif args.agent == 'mcts':
         ai_agent = MonteAgent(JerichoEnvironment(args.game_file), args.num_moves)
-    elif args.agent == 'DEPagent':
+    elif args.agent == 'dep':
         ai_agent = DEPagent()
     else:
         ai_agent = RandomAgent()
