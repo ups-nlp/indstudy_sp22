@@ -159,7 +159,10 @@ def default_policy(new_node, env, sim_length, reward_policy):
     while (not env.game_over()) and (not env.victory()):
         count += 1
         # if we have reached the limit for exploration
-        if(env.get_moves() > sim_length):
+
+        # NOTE: It would spend so much time simulating in the default policy, that we'd only
+        # get 5-15 simulations done
+        if(count > sim_length):
             #return the reward received by reaching terminal state
             #return reward_policy.simulation_limit(env)
             return running_score

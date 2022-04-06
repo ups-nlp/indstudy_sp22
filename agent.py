@@ -84,6 +84,10 @@ class MonteAgent(Agent):
 
         #current state of the game. Return to this state each time generating a new node
         curr_state = env.get_state()
+
+        # NOTE: Got a minimum number of nodes created before took an action
+        # E.g., if some states have lots of actions, we'd want to do more simulations
+        # Ensuring a minimum number
         while((seconds_elapsed < time_limit or count <= minimum)):
             seconds_elapsed = time.time() - start_time
             if(count % 10 == 0): 
