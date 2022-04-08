@@ -7,6 +7,7 @@ from environment import *
 from mcts_node import Node
 from transposition_table import Transposition_Node, get_world_state_hash
 from mcts_reward import *
+import config
 
 
 def tree_policy(root, env: Environment, explore_exploit_const, reward_policy, transposition_table):
@@ -24,13 +25,24 @@ def tree_policy(root, env: Environment, explore_exploit_const, reward_policy, tr
     node = root
     history = {root.get_state()}
     path = [root] #
+    #print("\nstarting at node:", node.get_state().state)
+    count = 0
     while not node.is_terminal():
+        count += 1
+        if(get_world_state_hash(env.get_player_location(), env.get_valid_actions()) != node.get_state().state):
+            print("Node-State Mismatch!!! in tree_policy")
+            print("env:'", get_world_state_hash(env.get_player_location(), env.get_valid_actions()), "'")
+            print("node:'", node.get_state().state, "'")
+            sys.exit()
         #!state = get_world_state_hash(env.get_player_location(), env.get_valid_actions())
         #!print("Passed through state: ",state)
         #if parent is not full expanded, expand it and return
         if not node.is_expanded():
             #print("Expand Node")
             new_node = expand_node(node, env, transposition_table)
+            #print("exploring node:", new_node.get_state().state)
+            #print("with parent node:", new_node.get_parent().get_state().state)
+            #print("env:'", get_world_state_hash(env.get_player_location(), env.get_valid_actions()), "'")
             path.append(new_node) #
             return new_node, path
 
@@ -57,9 +69,14 @@ def tree_policy(root, env: Environment, explore_exploit_const, reward_policy, tr
             history.add(node.get_state())
             path.append(node) #
             # update the env variable
-            #!print("Moved: ",node.get_prev_action())
             env.step(node.get_prev_action())
+            if(config.VERBOSITY > 1):
+                if(count == 1):
+                    print(node.get_prev_action())
             # print("Entered child: ", node.get_prev_action(), ", env: ", env.get_valid_actions())
+            
+            #print("entering node:", node.get_state().state, ", with action: ", node.get_prev_action())
+            #print("env:'", get_world_state_hash(env.get_player_location(), env.get_valid_actions()), "'")
 
     # The node is terminal, so return it
     return node, path
@@ -87,6 +104,20 @@ def best_child(parent, exploration, env: Environment, reward_policy, history, us
     bestLs = [None]
     second_best_score = -inf
     valid_children = []
+
+
+    if(get_world_state_hash(env.get_player_location(), env.get_valid_actions()) != parent.get_state().state):
+        print("Node-State Mismatch!!! in best_child")
+        if(use_bound):
+            print("best child to expand")
+        else:
+            print("selecting the best action")
+        print(get_world_state_hash(env.get_player_location(), env.get_valid_actions()))
+        print(parent.get_state().state)
+        sys.exit()
+    
+
+
     # first we will accrue a list of children nodes with states we have not already been to
     if use_bound:
         for child in parent.get_children():
@@ -132,8 +163,9 @@ def best_child(parent, exploration, env: Environment, reward_policy, history, us
             #print("old next best", second_best_score)
             second_best_score = child_value
     chosen = random.choice(bestLs)
-    if( not use_bound):
-        print("best, second", max_val, second_best_score)
+    if(config.VERBOSITY > 1):
+        if( not use_bound):
+            print("best, second", max_val, second_best_score)
     return chosen, abs(max_val - second_best_score) ## Worry about if only 1 node possible infinity?
 
 def expand_node(parent, env, transposition_table):
@@ -156,6 +188,7 @@ def expand_node(parent, env, transposition_table):
     #print(action)
 
     # Remove that action from the unexplored action list and update parent
+    p_state = get_world_state_hash(env.get_player_location(), env.get_valid_actions())
     actions.remove(action)
 
     # Step into the state of that child and get its possible actions
@@ -169,9 +202,12 @@ def expand_node(parent, env, transposition_table):
     # print("Make new node")
 
     state = get_world_state_hash(env.get_player_location(), env.get_valid_actions())
-    #!print("Creating node of state: ",state)
     new_node = Transposition_Node(state, parent, action, new_actions, transposition_table)
 
+    if(p_state != parent.get_state().state):
+        print("Error!!!!!!! ---------------------------")
+        print("\tCreating node of state: ",state, "\n\twith parent: ", p_state,"\n\tand node: ", new_node.toString())
+        sys.exit()
     # print("Made new node")
     # Add the child to the parent
     parent.add_child(new_node)
@@ -208,11 +244,11 @@ def default_policy(new_node, env, sim_length, reward_policy):
     while (not env.game_over()) and (not env.victory()):
         count += 1
         # if we have reached the limit for exploration
-        if(env.get_moves() > sim_length):
+        if(count > sim_length):
             #return the reward received by reaching terminal state
             #return reward_policy.simulation_limit(env)
-            if(running_score < 0):
-                return 0
+            #if(running_score < 0):
+                #return 0
             return running_score
 
         #Get the list of valid actions from this state
@@ -220,64 +256,20 @@ def default_policy(new_node, env, sim_length, reward_policy):
 
         # Take a random action from the list of available actions
         before = env.get_score()
-        env.step(random.choice(actions))
+        action = random.choice(actions)
+        env.step(action)
         after = env.get_score()
         
         #if there was an increase in the score, add it to the running total
         if((after-before) > 0):
+            #print(action, " resulted in an increase of ", (after-before))
             running_score += (after-before)/count
 
     #return the reward received by reaching terminal state
     #return reward_policy.simulation_terminal(env)
-    if(running_score < 0):
-        return 0
+    #if(running_score < 0):
+        #return 0
     return running_score
-
-def backup_recursive(unexplored, delta, explored, root):
-    """
-    This function backpropogates the results of the Monte Carlo Simulation back up the tree
-
-    We need to ensure this is a breadth-first traversal
-
-    Need to ensure nodes in the set are only added when they should be
-
-    Keyword arguments:
-    node -- the child node we simulated from
-    delta -- the component of the reward vector associated with the current player at node v
-    """
-    max_depth = inf
-    while len(unexplored) > 0:
-        # print("unexplored: ", len(unexplored))
-        # get the next item in the list
-        tuple = unexplored.pop(0)
-        node = tuple[0]
-        layer = tuple[1]
-        if (node is not None) and (node.state not in explored) and (not layer > max_depth):
-            #print("Incrementing")
-            # Increment the number of times the node has
-            # been visited and the simulated value of the node
-            node.update_visited(1)
-            #print("delta is: ",delta/(2**layer), " for layer ", layer)
-            node.update_sim_value(delta)
-            if(delta > 0):
-                print(node.get_prev_action(), " gained ", delta)
-            # add the node to the explored set
-            explored.add(node.state)
-            
-            # add the node's state to the set of updated states
-            if (node is not root):
-                #unexplored.append((node.get_parent(), layer+1))
-                parent_set = node.get_state_parents()
-                #if the root is in the parent set, only add the root
-                if(root in parent_set):
-                    unexplored.append((root, layer+1))
-                    max_depth = layer+1
-                else:
-                    for parent in node.get_state_parents():
-                        unexplored.append((parent, layer+1))
-            # if we have reached the root, we are done
-            #else:
-                #return
 
 def backup(path, delta):
     """
@@ -289,15 +281,17 @@ def backup(path, delta):
     """
     # print("[")
     max_size = len(path)
-    for index in range(max_size):
+    updated_states = []
+    for index in reversed(range(max_size)):
         # Increment the number of times the node has
         # been visited and the simulated value of the node
         node = path[index]
-        node.update_visited(1)
-        # decaying rewards
-        alpha = delta/2**(max_size - (index+1))
-        node.update_sim_value(alpha)
-        # print(index, ":", alpha, ":", node.toString())
+        if(not updated_states.__contains__(node.get_state())):
+            node.update_visited(1)
+            # decaying rewards
+            alpha = delta/2**(max_size - (index+1))
+            node.update_sim_value(alpha)
+            updated_states.append(node.get_state())
     # print("]")
 
 def dynamic_sim_len(max_nodes, sim_limit, diff) -> int:
@@ -334,75 +328,3 @@ def dynamic_sim_len(max_nodes, sim_limit, diff) -> int:
             
         
         return max_nodes, sim_limit
-
-def node_explore(agent):
-    depth = 0
-
-    cur_node = agent.root
-
-    test_input = "-----"
-
-    chosen_path = agent.node_path
-
-    node_history = agent.node_path
-
-    while test_input != "":
-    
-        print("\n")
-
-        if(input == ""):
-            break
-
-        print("Current Depth:", depth)
-
-        for i in range(0, len(node_history)):
-            if depth == 0:
-                print(i, "-", node_history[i].get_prev_action())
-            else:
-                print(i, "-", node_history[i].get_prev_action())
-
-        print("\n")
-
-        test_input = input("Enter the number of the node you wish to explore. Press enter to stop, -1 to go up a layer")
-
-        print("\n")
-
-        if(int(test_input) >= 0 and int(test_input) < len(node_history)):
-            depth += 1
-            cur_node = node_history[int(test_input)]
-        
-            print("-------", cur_node.get_prev_action(), "-------")
-        
-            print("Sim-value:", cur_node.sim_value)
-        
-            print("Visited:", cur_node.visited)
-        
-            print("Unexplored Children:", cur_node.new_actions)
-        
-            print("Children:")
-        
-            node_history = cur_node.get_children()
-            for i in range(0, len(node_history)):
-                print(node_history[i].get_prev_action(), "with value", node_history[i].sim_value, "visited", node_history[i].visited)
-        elif test_input == "-1":
-            depth -= 1
-            if depth == 0:
-                node_history = agent.node_path
-            else:
-                cur_node = cur_node.parent
-                node_history = cur_node.get_children()
-
-            print("-------", cur_node.get_prev_action(), "-------")
-        
-            print("Sim-value:", cur_node.sim_value)
-        
-            print("Visited:", cur_node.visited)
-        
-            print("Unexplored Children:", cur_node.new_actions)
-        
-            print("Children:")
-
-            for i in range(0, len(node_history)):
-                was_taken = bool(node_history[i] in chosen_path)                
-
-                print(node_history[i].get_prev_action(), "with value", node_history[i].sim_value, "visited", node_history[i].visited, "was_chosen?", was_taken)

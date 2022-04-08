@@ -11,6 +11,7 @@ from mcts_agent import best_child, tree_policy, default_policy, backup, dynamic_
 from mcts_node import Node
 from transposition_table import Transposition_Node, get_world_state_hash
 from mcts_reward import AdditiveReward
+import config
 
 class Agent:
     """Interface for an Agent"""
@@ -61,7 +62,7 @@ class MonteAgent(Agent):
         self.explore_const = 1.0/sqrt(2)
 
         # The length of each monte carlo simulation
-        self.simulation_length = 15
+        self.simulation_length = 8
 
         # Maximum number of nodes to generate in the tree each time a move is made
         self.max_nodes = 200
@@ -69,6 +70,7 @@ class MonteAgent(Agent):
         self.reward = AdditiveReward()
 
         self.history = {self.root.state}
+        random.seed(101)
 
 
     def take_action(self, env: Environment, history: list) -> str:
@@ -89,18 +91,21 @@ class MonteAgent(Agent):
         seconds_elapsed = 0
 
         # loose time limit for simulation phase
-        time_limit = 59
+        time_limit = 90
 
         # minimum number of nodes per simulation phase
-        minimum = env.get_moves()*env.get_moves()
+        minimum = len(env.get_valid_actions())*len(env.get_valid_actions())
+        if(config.VERBOSITY > 0):
+            print("count: ", count, ", minimum: ", minimum)
 
         #current state of the game. Return to this state each time generating a new node
         curr_state = env.get_state()
-        while(seconds_elapsed < time_limit or count <= minimum):
-        #while(count < 10):
+        #while(seconds_elapsed < time_limit or count <= minimum):
+        while(count < 100):
             seconds_elapsed = time.time() - start_time
-            if(count % 100 == 0): 
-                print("Count is ",count)
+            if(config.VERBOSITY > 0):
+                if(count % 50 == 0): 
+                    print("Count is ",count)
             # Create a new node on the tree
             #print("Make new node")
             new_node, path = tree_policy(self.root, env, self.explore_const, self.reward, self.transposition_table)
@@ -112,9 +117,14 @@ class MonteAgent(Agent):
             #updated_set = set()
             
             #print("Backpropogate")
-            if(delta > 0):
+            #if(delta > 0):
+            if(config.VERBOSITY > 1):
                 print("delta value is ", delta)
-            print(new_node.toString())
+                total = ""
+                for node in path:
+                    if(node is not None):
+                        total = total + str(node.get_prev_action()) + "->"
+                print(total)
             backup(path,delta)
             # reset the state of the game when done with one simulation
             env.reset()
@@ -128,11 +138,13 @@ class MonteAgent(Agent):
         print("\nOptions for children:")
 
         """
-
-        for child in self.root.get_children():
-            child_sim_value = child.get_sim_value()
-            child_visited = child.get_visited()
-            print(child.get_prev_action(), ", count:", child_visited, ", value:", child_sim_value, "normalized value:", self.reward.select_action(env, child_sim_value, child_visited, None))
+        if(config.VERBOSITY > 0):
+            print("seconds_elapsed: ", seconds_elapsed, ", time_limit: ", time_limit)
+            print("count: ", count, ", minimum: ", minimum)
+            for child in self.root.get_children():
+                child_sim_value = child.get_sim_value()
+                child_visited = child.get_visited()
+                print(child.get_prev_action(), ", count:", child_visited, ", value:", child_sim_value, "normalized value:", self.reward.select_action(env, child_sim_value, child_visited, None))
 
         ## Pick the next action
         self.root, score_dif = best_child(self.root, self.explore_const, env, self.reward, self.history, False)
@@ -143,8 +155,9 @@ class MonteAgent(Agent):
         self.node_path.append(self.root)
 
         ## Dynamically adjust simulation length based on how sure we are 
-        self.max_nodes, self.simulation_length = dynamic_sim_len(self.max_nodes, self.simulation_length, score_dif)
+        #self.max_nodes, self.simulation_length = dynamic_sim_len(self.max_nodes, self.simulation_length, score_dif)
 
-        print("\n\n------------------ ", score_dif, self.max_nodes, self.simulation_length)
+        if(config.VERBOSITY > 0):
+            print("\n------------------ ", score_dif)#, self.max_nodes, self.simulation_length)
 
         return self.root.get_prev_action()

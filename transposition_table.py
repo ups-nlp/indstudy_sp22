@@ -25,41 +25,44 @@ class Transposition_Node:
     def __init__(self, state, parent, prev_act, new_actions, transposition_table):
         self.parent = parent
         self.prev_act = prev_act
+         # the total number of children this state can have
+        self.max_children = len(new_actions)
+        # a list of the explored states from this node
+        self.children = []
+        # a list of the unexplored actions at this node
+        self.new_actions = new_actions
         self.state = state
 
         if(transposition_table.get(state) is None):
             # Create a key-value pair for the new state
-            transposition_table[state] = State(parent, new_actions, state)
-        else:
-            # Update the existing key-value pair for the state
-            entry = transposition_table.get(state)
-            entry.parents.append(parent)
-            #entry.children = []
-            #entry.new_actions.remove(prev_act)
+            transposition_table[state] = State(state)
         
         self.state = transposition_table.get(state)
 
 
     def toString(self):
-        return self.state.toString()
+        if(self.parent is not None):
+            return self.state.toString()#+" with parent: "+self.parent.state.toString()
+        else:
+            return self.state.toString()#+" with NONE parent!"
 
     def is_terminal(self):
         """ Returns true if the node is terminal
         Returns:
             boolean: true if the max number of children is 0
         """
-        return self.state.max_children == 0
+        return self.max_children == 0
 
 
     def add_child(self, child):
-        self.state.children.append(child)
+        self.children.append(child)
 
     def is_expanded(self):
         """ Returns true if the number of child is equal to the max number of children.
         Returns:
             boolean: true if the number of child is equal to the max number of children
         """
-        return (len(self.state.children) >= self.state.max_children)
+        return (len(self.children) >= self.max_children)
 
     
     def get_prev_action(self):
@@ -78,18 +81,15 @@ class Transposition_Node:
 
     def get_visited(self):
         return self.state.visited
-    
-    def get_state_parents(self):
-        return self.state.parents
 
     def get_max_children(self):
-        return self.state.max_children
+        return self.max_children
 
     def get_children(self):
-        return self.state.children
+        return self.children
 
     def get_new_actions(self):
-        return self.state.new_actions
+        return self.new_actions
 
     
     # The below methods updates the fields from the Node's State
@@ -117,19 +117,11 @@ class State:
     new_actions -- a list of all the unexplored actions at this node
     """
 
-    def __init__(self, parent, new_actions, state):
+    def __init__(self, state):
         # The simulated value for this state of the game
         self.sim_value = 0
         # The number of times we have simulated this state of the game
         self.visited = 0
-        # The set of parents leading to this state
-        self.parents = [parent]
-        # the total number of children this state can have
-        self.max_children = len(new_actions)
-        # a list of the explored states from this node
-        self.children = []
-        # a list of the unexplored actions at this node
-        self.new_actions = new_actions
 
         self.state = state
 

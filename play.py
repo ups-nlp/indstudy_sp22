@@ -34,8 +34,37 @@ def play_game(agent: Agent, game_file: str, num_steps: int):
     num_times_called = 0 # total number of iterations performed
     seconds = 0 # total time spent in take_action() over all iterations
 
+    """
+    for act in ["south", "east", "open window", "west", "west"]:#, "take all", "push rug", "open trap", "down", "turn on lantern"]:
+        # timing the call to take_action()
+        action_to_take = act
+
+        # updating environment with selected action
+        next_obs, _, done, info = env.step(action_to_take)        
+
+
+        history.append((curr_obs, action_to_take))
+
+        # checking if the action taken caused a change in location
+        curr_location = env.get_player_location()
+        if prev_location != curr_location:
+            num_location_changes += 1
+        prev_location = curr_location
+
+        curr_obs = next_obs
+
+        if config.VERBOSITY > 0:
+            print('\n\n=========================================')
+            print('Taking action: ', action_to_take)
+            print('Game State:', next_obs.strip())
+            print('Total Score', info['score'], 'Moves', info['moves'])
+
+    agent = MonteAgent(env, args.num_moves)
+
+    """
     while num_steps > 0 and not done:
 
+        print("env:'", get_world_state_hash(env.get_player_location(), env.get_valid_actions()), "'")
         # timing the call to take_action()
         start_time = time.time()
         action_to_take = agent.take_action(env, history)
