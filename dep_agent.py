@@ -5,7 +5,7 @@ Recreated 22.2.6
 @author Eric Markewitz, Penny Rowe, Danielle Dolan
 """
 
-#Built-in modules
+# Built-in modules
 import random
 import numpy as np
 import re
@@ -33,12 +33,12 @@ class DEPagent(Agent):
         """
 
         # Movements and their opposites
-        self.movements = {'north':'south', 'south':'north',
-                          'east':'west', 'west':'east',
-                          'up':'down', 'down':'up',
-                          'northwest':'southeast', 'southeast':'northwest',
-                          'northeast':'southwest', 'southwest':'southeast',
-                          'go':'go', 'jump':'jump'}
+        self.movements = {'north': 'south', 'south': 'north',
+                          'east': 'west', 'west': 'east',
+                          'up': 'down', 'down': 'up',
+                          'northwest': 'southeast', 'southeast': 'northwest',
+                          'northeast': 'southwest', 'southwest': 'southeast',
+                          'go': 'go', 'jump': 'jump'}
 
         # index of the current observation in the enviroment
         self.OBSERVATION_INDEX = 8
@@ -50,7 +50,7 @@ class DEPagent(Agent):
 
         self.reconstructed_model = tf.keras.models.load_model('./NN/dm_nn')
 
-    def mover(self, env:FrotzEnv, valid_actions:list, history:list) -> str:
+    def mover(self, env: FrotzEnv, valid_actions: list, history: list) -> str:
         """
         @param FrotzEnv
         @param valid_actions
@@ -62,14 +62,14 @@ class DEPagent(Agent):
         """
         num_actions = len(valid_actions)
 
-        if num_actions==0:
+        if num_actions == 0:
             print("ERROR - NO VALID MOVE ACTIONS")
             return 'nva'
 
         else:
             return random.choice(valid_actions)
 
-    def everything_else(self, env:FrotzEnv, valid_actions:list, history:list) -> str:
+    def everything_else(self, env: FrotzEnv, valid_actions: list, history: list) -> str:
         """
         @param FrotzEnv
         @param valid_actions
@@ -83,7 +83,7 @@ class DEPagent(Agent):
 
         num_actions = len(valid_actions)
 
-        if num_actions==0:
+        if num_actions == 0:
             print("ERROR - NO VALID MOVE ACTIONS")
             return 'nva'
 
@@ -100,7 +100,7 @@ class DEPagent(Agent):
         @return action, A string with the action to take
         """
 
-        #Get a list of all valid actions from jericho
+        # Get a list of all valid actions from jericho
         valid_actions = env.get_valid_actions()
 
         # get sorted actions: in order: mover, everything_else
@@ -116,23 +116,22 @@ class DEPagent(Agent):
         print()
         """
 
-
         chosen_module = self.decision_maker(sorted_actions, env, history)
 
         action_modules = [self.mover, self.everything_else]
 
-        #If the chosen module has no possible actions use the other one
-        if len(sorted_actions[0])==0 and chosen_module==0:
-            chosen_module=1
-        elif len(sorted_actions[1])==0 and chosen_module==1:
-            chosen_module=0
+        # If the chosen module has no possible actions use the other one
+        if len(sorted_actions[0]) == 0 and chosen_module == 0:
+            chosen_module = 1
+        elif len(sorted_actions[1]) == 0 and chosen_module == 1:
+            chosen_module = 0
 
-        action = action_modules[chosen_module](env, sorted_actions[chosen_module], history)
+        action = action_modules[chosen_module](
+            env, sorted_actions[chosen_module], history)
 
         return action
 
-
-    def decision_maker(self, sorted_actions:list, env:FrotzEnv, history:list) -> int:
+    def decision_maker(self, sorted_actions: list, env: FrotzEnv, history: list) -> int:
         """
         Decide which choice to take.
 
@@ -151,21 +150,21 @@ class DEPagent(Agent):
         vector = self.create_observation_vect(env)
         np_vector = np.array([vector])
 
+        prediction2DArr = self.reconstructed_model.predict(np_vector)
 
-        prediction = self.reconstructed_model.predict(np_vector)
-        sorted_prediction = np.ndarray.argsort(prediction)[0] #0 at the end because its a 2D array for some reason
-        reverse_sorted_prediction = sorted_prediction[::-1]
+        #print("Prediction" + str(prediction))
 
-        module_num = reverse_sorted_prediction[0]
+        # 0 at the end because its a 2D array for some reason
+        prediction = prediction2DArr[0][0]
 
-        if(module_num == 0):
+        if(prediction > .5):
             print("MOVER MODULE")
+            return 0
         else:
             print("EVERYTHING ELSE")
+            return 1
 
-        return module_num
-
-    def create_observation_vect(self, env:FrotzEnv) -> list:
+    def create_observation_vect(self, env: FrotzEnv) -> list:
         """
         Takes the gamestate and returns a vector representing the previous observation
 
@@ -175,13 +174,13 @@ class DEPagent(Agent):
         curr_state = env.get_state()
         gameState = curr_state[self.OBSERVATION_INDEX].decode()
 
-        #Cleanup input
+        # Cleanup input
         onlyTxt = re.sub('\n', ' ', gameState)
         onlyTxt = re.sub('[,?!.:;\'\"]', '', onlyTxt)
         onlyTxt = re.sub('\s+', ' ', onlyTxt)
         onlyTxt = onlyTxt.lower()
 
-        #Remove the newline character
+        # Remove the newline character
         onlyTxt = onlyTxt[:len(onlyTxt)-1]
         observation = onlyTxt
 
@@ -189,8 +188,7 @@ class DEPagent(Agent):
 
         return(avg_vect)
 
-
-    def create_vect(self, observation:str):
+    def create_vect(self, observation: str):
         """
         Takes an observation and returns a 50 dimensional vector representation of it
 
@@ -203,14 +201,14 @@ class DEPagent(Agent):
         vect_size = 50
         avg_vect = [0] * vect_size
 
-        num_words=0
+        num_words = 0
         for word in obs_split:
-            #Check if word is in vocab, if it is add it to the vector
+            # Check if word is in vocab, if it is add it to the vector
             if(self.word2id.get(word) is not None):
                 id = self.word2id.get(word)
                 norm_vect = self.vocab_vectors[id]
                 avg_vect = list(map(add, avg_vect, norm_vect))
-                num_words +=1
+                num_words += 1
             else:
                 print("Word not in the vocab: " + word)
 
@@ -219,8 +217,7 @@ class DEPagent(Agent):
 
         return(avg_vect)
 
-
-    def sort_actions(self, valid_actions:list) -> list:
+    def sort_actions(self, valid_actions: list) -> list:
         """
         looks through all the valid actions and sorted them into mover
         or everything_else
@@ -235,15 +232,14 @@ class DEPagent(Agent):
         for action in valid_actions:
             # check if action aligns with movements
             if action in self.movements:
-               mover_actions.append(action)
+                mover_actions.append(action)
 
             else:
-               ee_actions.append(action)
+                ee_actions.append(action)
 
         sorted_actions = [mover_actions, ee_actions]
 
         return sorted_actions
-
 
 
 def embed_vocab() -> (list, dict):
@@ -255,11 +251,11 @@ def embed_vocab() -> (list, dict):
     @return dict: A dictionary with a word as a key and the id for the list as the value
     """
     with open("./data/vocab.txt", 'r') as f:
-        #Read in the list of words
+        # Read in the list of words
         words = [word.rstrip().split(' ')[0] for word in f.readlines()]
 
     with open("./data/vectors.txt", 'r') as f:
-        #word --> [vector]
+        # word --> [vector]
         vectors = {}
         for line in f:
             vals = line.rstrip().split(' ')
@@ -267,21 +263,21 @@ def embed_vocab() -> (list, dict):
             vec = vals[1:]
             vectors[word] = [float(x) for x in vec]
 
-    #Compute size of vocabulary
+    # Compute size of vocabulary
     vocab_size = len(words)
     word2id = {w: idx for idx, w in enumerate(words)}
     id2word = {idx: w for idx, w in enumerate(words)}
 
     vector_dim = len(vectors[id2word[0]])
 
-    #Create a numpy matrix to hold word vectors
+    # Create a numpy matrix to hold word vectors
     W = np.zeros((vocab_size, vector_dim))
     for word, v in vectors.items():
         if word == '<unk>':
             continue
         W[word2id[word], :] = v
 
-    #Normalize each word vector to unit length
+    # Normalize each word vector to unit length
     W_norm = np.zeros(W.shape)
     d = (np.sum(W ** 2, 1) ** (0.5))
     W_norm = (W.T / d).T
