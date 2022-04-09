@@ -12,7 +12,7 @@ ACTION_BOUND = .001
 SIM_SCALE = .15
 
 
-def take_action(queue_list, env: Environment, explore_exploit_const, simulation_length, reward_policy, timer, procs_finished, lock):
+def take_action(queue_list, env: Environment, explore_exploit_const, reward_policy, timer, procs_finished, lock):
     """
     Take action continuously expands and explores the tree from the root passed in.
     It runs until a timer from the main thread tells it to stop, or until it calculates 10,000 nodes.
@@ -32,6 +32,7 @@ def take_action(queue_list, env: Environment, explore_exploit_const, simulation_
     score_dict = queue_list.get()
     count_dict = queue_list.get()
     root = queue_list.get()
+    simulation = queue_list.get()
     curr_state = env.get_state()
     count = 0
     action = None
@@ -42,7 +43,13 @@ def take_action(queue_list, env: Environment, explore_exploit_const, simulation_
     #obvious score differences, adjust the simulation length before exploring further down
     #this tree
     if calc_score_dif(root) <=ACTION_BOUND and root.get_prev_action() is not None and root.subtree_size >= num_children*3:
+        print("adjusting sim score")
         sim_length_scale = sim_length_scale/num_children
+        #simulation_length = simulation_length*sim_length_scale
+        simulation.adjust_sim_length(sim_length_scale)
+        if simulation.get_length() < 10:
+            simulation.adjust_sim_length(1/sim_length_scale)
+        print("sim length:", simulation.get_length())
 
     while(timer.value==0 and count < 10000):
 
@@ -55,7 +62,7 @@ def take_action(queue_list, env: Environment, explore_exploit_const, simulation_
             update_tree(new_node)
 
             # Determine the simulated value of the new node
-            delta = default_policy(new_node, env, sim_length_scale* simulation_length, reward_policy)
+            delta = default_policy(new_node, env, simulation.get_length(), reward_policy)
 
             # Propogate the simulated value back up the tree
             backup(new_node, delta)
@@ -257,7 +264,8 @@ def default_policy(new_node, env, sim_length, reward_policy):
     #if node is already terminal, return 0    
     if(env.game_over()):
         #return 0
-        return env.get_score()
+        return 10
+        #return env.get_score()
 
     running_score = env.get_score()
     count = 0
@@ -265,7 +273,7 @@ def default_policy(new_node, env, sim_length, reward_policy):
     while (not env.game_over()) and (not env.victory()):
         count += 1
         # if we have reached the limit for exploration
-        if(env.get_moves() > sim_length):
+        if(count > sim_length):
             #return the reward received by reaching terminal state
             return running_score
 
@@ -279,7 +287,7 @@ def default_policy(new_node, env, sim_length, reward_policy):
         
         #if there was an increase in the score, add it to the running total
         if((after-before) > 0):
-            running_score += (after-before)/(count+1)
+            running_score += (after-before)/(count)
 
     #return the reward received by reaching terminal state
     return running_score

@@ -7,6 +7,7 @@ import random
 import time
 from environment import *
 import mcts_agent
+from simulation_length import simulation_length
 #from mcts_agent import take_action, best_child, tree_policy, default_policy, backup
 #from mcts_agent import mcts
 from mcts_node import Node
@@ -52,6 +53,8 @@ class MonteAgent(Agent):
         # create root node with the initial state
         self.root = Node(None, None, env.get_valid_actions())
 
+        self.simulation = simulation_length()
+
         self.node_path.append(self.root)
 
         # This constant balances tree exploration with exploitation of ideal nodes
@@ -81,13 +84,15 @@ class MonteAgent(Agent):
 
 
         # The starting length of each monte carlo simulation
-        self.simulation_length = 75
+        self.simulation.initialize_agent(10)
 
         # Maximum number of nodes to generate in the tree each time a move is made
         self.max_nodes = 200
 
         #reward to use
         self.reward = DynamicReward()
+
+        self.booster_threshold = 3
 
 
 
@@ -105,7 +110,7 @@ class MonteAgent(Agent):
         seconds_elapsed = 0
 
         # loose time limit for simulation phase
-        time_limit = 40
+        time_limit = 45
 
         # minimum number of nodes per simulation phase
         minimum = env.get_moves()*5
@@ -124,6 +129,12 @@ class MonteAgent(Agent):
         #the environments will be stored in its own array
         self.env_arr = [None]*self.tree_count
 
+        #create multiple simulation objects for the trees
+        self.sim_list = [None]*self.tree_count
+        for i in range(self.tree_count):
+            self.sim_list[i] = simulation_length()
+            self.sim_list[i].initialize_agent(self.simulation.get_length())
+
         #array will check to see if processes have returned cleanly
         self.has_returned = [True]*self.tree_count
         new_state = env.get_state()
@@ -135,12 +146,14 @@ class MonteAgent(Agent):
         # 1) a score dictionary
         # 2) a count dictionary
         # 3) the root to the tree
+        # 4) the simulation object for that tree
         proc_queues = [None]*self.tree_count
         for i in range(self.tree_count):
             proc_queues[i] = Queue(4)
             proc_queues[i].put({})
             proc_queues[i].put({})
             proc_queues[i].put(self.tree_arr[i])
+            proc_queues[i].put(self.sim_list[i])
 
 
 
@@ -161,7 +174,7 @@ class MonteAgent(Agent):
             procs = []
             for i in range(self.tree_count):
                 #spin off a new process to take_action and append to processes list
-                proc = Process(name = self.proc_names[i], target = mcts_agent.take_action, args = (proc_queues[i],self.env_arr[i],self.explore_const,self.simulation_length,self.reward,timer,procs_finished,proc_lock,))
+                proc = Process(name = self.proc_names[i], target = mcts_agent.take_action, args = (proc_queues[i],self.env_arr[i],self.explore_const,self.reward,timer,procs_finished,proc_lock,))
                 procs.append(proc)
                 proc.start()
 
@@ -172,6 +185,7 @@ class MonteAgent(Agent):
         #when the timer runs out, set the timer value to 1 so the threads start to return
         with timer.get_lock():
             timer.value = 1
+        #time.sleep(1)
 
         #wait for all the processes to exit the while loop and restock the queues before joining
         while procs_finished.value < self.tree_count:
@@ -265,9 +279,13 @@ class MonteAgent(Agent):
                     continue
                 #update the accumulated dictionary with the values from this tree
                 temp_score = action_score_dict[act]
-                action_score_dict[act] = (score_dict[act]*count_dict[act])+temp_score
-
                 temp_count = action_count_dict[act]
+                #if action_count_dict[act]>0 and temp_score/temp_count+self.booster_threshold <= (score_dict[act]/(count_dict[act]+1)):
+                #    temp_score += self.booster_threshold
+                #action_score_dict[act] = (score_dict[act]*count_dict[act])+temp_score
+                action_score_dict[act] = score_dict[act]+temp_score
+
+
                 action_count_dict[act] = count_dict[act]+temp_count
         return self.calculate_action_values(action_score_dict, action_count_dict), action_score_dict, action_count_dict
 
