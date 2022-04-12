@@ -2,11 +2,10 @@
 An implementation of the UCT algorithm for text-based games
 """
 from math import floor, inf
-import random
+from config import random
 from environment import *
-from mcts_node import Node, MCTS_node
+from mcts_node import MCTS_node
 from mcts_reward import *
-
 
 def tree_policy(root, env: Environment, explore_exploit_const, reward_policy):
     """ Travel down the tree to the ideal node to expand on
@@ -81,6 +80,9 @@ def best_child(parent, env: Environment, reward_policy):
             max_val = child_value
 
     chosen = random.choice(bestLs)
+
+    # Colin is stil computing the 2nd best but he's not using it programmatically (but wants to keep)
+    # Anna is not using the 2nd best anymore
     return chosen
 
 def expand_node(parent, env):
@@ -113,7 +115,6 @@ def expand_node(parent, env):
 
     return new_node
   
-
 def default_policy(new_node, env):
     """
     The default_policy represents a simulated exploration of the tree from
@@ -131,7 +132,7 @@ def default_policy(new_node, env):
     while (not env.game_over()) and (not env.victory()):
         count += 1
         # if we have reached the limit for exploration
-        #if(env.get_moves() > sim_length):
+        #if(count > sim_length):
             #return the reward received by reaching terminal state
             #return reward_policy.simulation_limit(env)
         #    return running_score
@@ -143,6 +144,11 @@ def default_policy(new_node, env):
         before = env.get_score()
         env.step(random.choice(actions))
         after = env.get_score()
+        
+        # TODO: Colin wants to use this information to update his simulation length
+        # so he'll need to pass the simulation length object to this function and 
+        # he'll need a method like simulationLength.heresSomeData(count)
+
         
         #if there was an increase in the score, add it to the running total
         if((after-before) > 0):

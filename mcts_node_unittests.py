@@ -1,8 +1,13 @@
-import random
+
 import unittest
+
+import config
+import rand
+config.random = rand.Deterministic()
 
 from environment import ChamberEnvironment
 from mcts_node import MCTS_node
+from mcts_agent import *
 
 class NodeTest(unittest.TestCase):
 
@@ -46,9 +51,45 @@ class NodeTest(unittest.TestCase):
         self.assertEqual(root.get_new_actions(), env.get_valid_actions())
 
 
-    def test_chamber_play_game(self):
+    def test_chamber_expand_node(self):
         env = ChamberEnvironment(None)
         root = MCTS_node(None, None, env.get_valid_actions())
+
+        print('Initial parent:')
+        print(root)
+
+        print()
+        print('New Child:')
+        new_node = expand_node(root, env)
+        print(new_node)
+
+        print()
+        print('Updated parent:')
+        print(root)
+
+
+        print()
+        print('New Child:')
+        new_node = expand_node(root, env)
+        print(new_node)
+
+        print()
+        print('Updated parent:')
+        print(root)
+
+
+
+        print()
+        print('New Child:')
+        new_node = expand_node(root, env)
+        print(new_node)
+
+        print()
+        print('Updated parent:')
+        print(root)
+        
+
+
 
         
         

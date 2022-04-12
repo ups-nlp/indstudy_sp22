@@ -51,7 +51,10 @@ class MonteAgent(Agent):
         self.explore_const = 1.0/sqrt(2)
 
         # The length of each monte carlo simulation
-        self.simulation_length = 15
+        # NOTE: This is a place of departure
+        self.simulation = SimulationLength()
+        self.simulation_length = simulation.startMeOff()
+        #simulation.updateMe(root node, env, )
 
         # Maximum number of nodes to generate in the tree each time a move is made
         self.max_nodes = 200
@@ -81,10 +84,15 @@ class MonteAgent(Agent):
         # loose time limit for simulation phase
         time_limit = 59
 
+        # TODO: This is where Anna is adjusting the simulation length
+        # TODO: Divide it by teh number of children. Clamp it to 10
 
         #current state of the game. Return to this state each time generating a new node
         curr_state = env.get_state()
 
+        # TODO: an object to control the exit condition for the loop
+        # TODO: could this contain a shared variable
+        # TODO: [COLIN] seconds_elapsed < time_limit or count <= minimum
         while seconds_elapsed < time_limit :
             seconds_elapsed = time.time() - start_time
 
@@ -110,6 +118,7 @@ class MonteAgent(Agent):
         for child in self.root.children:
             print(child.get_prev_action(), ", count:", child.visited, ", value:", child.sim_value, "normalized value:", self.reward.calculate_child_value(env, child, self.root))
 
+        #TODO: Colin is still updatiing simulation length at bottom of method
         ## Pick the next action
         self.root = best_child(self.root, env, self.reward)
         self.node_path.append(self.root)

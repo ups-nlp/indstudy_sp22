@@ -59,6 +59,11 @@ class Node:
         """ Updates the visit count of this node by a specified amount """
         raise NotImplementedError
 
+    def __str__(self):
+        """Returns a string representation of the node"""
+        raise NotImplementedError
+
+
 class MCTS_node(Node):
     """
     This Node class represents a state of the game. Each node holds the following:
@@ -150,3 +155,16 @@ class MCTS_node(Node):
     def update_visited(self, delta):
         """ Updates the visit count of this node by a specified amount """
         self.visited += delta
+
+    def __str__(self):
+        child_node_str = "["
+        for child in self.children:
+            child_node_str += child.prev_act + ", "            
+        child_node_str += "]"
+        
+        if self.parent is None:
+            return f'Parent: None, prev_act: {self.prev_act}, sim_value: {self.sim_value}, visited: {self.visited}, max_children: {self.max_children}, new_actions:{self.new_actions}, children: {child_node_str}\n'
+        else:
+            return f'Parent: {self.parent.prev_act}, prev_act: {self.prev_act}, sim_value: {self.sim_value}, visited: {self.visited}, max_children: {self.max_children}, new_actions:{self.new_actions}, children: {child_node_str}\n'
+        
+        
