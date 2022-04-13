@@ -3,6 +3,7 @@ Agents for playing text-based games
 """
 
 from math import sqrt
+import os
 import random
 import time
 from environment import *
@@ -15,8 +16,18 @@ from mcts_reward import AdditiveReward, DynamicReward
 import multiprocessing_on_dill as multiprocessing
 #from multiprocessing import Process,cpu_count
 from multiprocessing_on_dill import Process, cpu_count, Queue, Lock
+from multiprocessing import  util
+util.log_to_stderr(util.SUBDEBUG)
+
+import atexit
 #from pathos.pools import ParallelPool
 #import dill as pickle
+
+
+class Foo:
+    pass
+
+foo=Foo()
 
 class Agent:
     """Interface for an Agent"""
@@ -74,6 +85,13 @@ class MonteAgent(Agent):
             self.tree_arr[i] = Node(None,None, env.get_valid_actions())
 
 
+        #create multiple simulation objects for the trees
+        self.sim_list = [None]*self.tree_count
+        for i in range(self.tree_count):
+            self.sim_list[i] = simulation_length()
+            self.sim_list[i].initialize_agent(self.simulation.get_length())
+
+
         #name the processes
         #UNUSED
         self.proc_names = [None]*self.tree_count
@@ -96,7 +114,26 @@ class MonteAgent(Agent):
 
 
 
+    def exit_handler(self):
+        print("finished process:"+str(os.getpid()))
+
+
+
+    def _workInitialize(self):
+        print("initialize:"+str(os.getpid()))
+
+        from multiprocessing.util import Finalize
+        #create a Finalize object, the first parameter is an object referenced 
+        #by weakref, this can be anything, just make sure this object will be alive 
+        #during the time when the process is alive 
+
+        Finalize(foo, self.exit_handler, exitpriority=0)
+
+
+
     def take_action(self, env: Environment, history: list) -> str:
+
+
         """Takes in the history and returns the next action to take"""
         print("Action: ")
         print("possible actions: ")
@@ -110,7 +147,7 @@ class MonteAgent(Agent):
         seconds_elapsed = 0
 
         # loose time limit for simulation phase
-        time_limit = 45
+        time_limit = 10
 
         # minimum number of nodes per simulation phase
         minimum = env.get_moves()*5
@@ -129,11 +166,7 @@ class MonteAgent(Agent):
         #the environments will be stored in its own array
         self.env_arr = [None]*self.tree_count
 
-        #create multiple simulation objects for the trees
-        self.sim_list = [None]*self.tree_count
-        for i in range(self.tree_count):
-            self.sim_list[i] = simulation_length()
-            self.sim_list[i].initialize_agent(self.simulation.get_length())
+
 
         #array will check to see if processes have returned cleanly
         self.has_returned = [True]*self.tree_count
@@ -174,7 +207,9 @@ class MonteAgent(Agent):
             procs = []
             for i in range(self.tree_count):
                 #spin off a new process to take_action and append to processes list
-                proc = Process(name = self.proc_names[i], target = mcts_agent.take_action, args = (proc_queues[i],self.env_arr[i],self.explore_const,self.reward,timer,procs_finished,proc_lock,))
+                proc = Process(name = self.proc_names[i], target = mcts_agent.take_action, initializer=self._workInitialize, args = (proc_queues[i],self.env_arr[i],self.explore_const,self.reward,timer,procs_finished,proc_lock,))
+                #proc = Process(name = self.proc_names[i], target = mcts_agent.take_action, args = (self.tree_arr[i],self.sim_list[i],self.env_arr[i],self.explore_const,self.reward,))
+
                 procs.append(proc)
                 proc.start()
 
@@ -185,7 +220,7 @@ class MonteAgent(Agent):
         #when the timer runs out, set the timer value to 1 so the threads start to return
         with timer.get_lock():
             timer.value = 1
-        #time.sleep(1)
+        time.sleep(15)
 
         #wait for all the processes to exit the while loop and restock the queues before joining
         while procs_finished.value < self.tree_count:
@@ -207,18 +242,22 @@ class MonteAgent(Agent):
             tree_scores[i] = que.get()
             tree_counts[i] = que.get()
             self.tree_arr[i] = que.get()
+            self.sim_list[i] = que.get()
             print("tree size for subtree: ",self.tree_arr[i].subtree_size)
             proc.join(5)
-
             #if the process doesn't exit cleanly, update its has_returned value
             if proc.exitcode is None:
                 proc.terminate()
                 proc.join()
                 self.has_returned[i] = False
+            atexit.register(self.exit_handler)
+
+        
+        
 
         #grab the best action, and the dictionaries that store the action and the counts 
         best_action, action_values, action_counts = self.best_shared_child(env, tree_scores, tree_counts)
-
+        #best_action = "north"
         #for each action, print the calculated score and the total count
         for act in env.get_valid_actions():
             if act not in action_values.keys() or action_counts.get(act)==0:

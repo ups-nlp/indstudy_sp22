@@ -9,10 +9,13 @@ from environment import *
 from mcts_node import Node
 from mcts_reward import *
 ACTION_BOUND = .001
-SIM_SCALE = .15
+SIM_SCALE = .25
+THRESHOLD = 2
 
 
 def take_action(queue_list, env: Environment, explore_exploit_const, reward_policy, timer, procs_finished, lock):
+#def take_action(tree, sim, env: Environment, explore_exploit_const, reward_policy):
+
     """
     Take action continuously expands and explores the tree from the root passed in.
     It runs until a timer from the main thread tells it to stop, or until it calculates 10,000 nodes.
@@ -33,61 +36,78 @@ def take_action(queue_list, env: Environment, explore_exploit_const, reward_poli
     count_dict = queue_list.get()
     root = queue_list.get()
     simulation = queue_list.get()
+    score_dict ={}
+    count_dict = {}
+    # root = tree
+    # simulation = sim
     curr_state = env.get_state()
     count = 0
     action = None
     sim_length_scale = 1
     num_children = len(env.get_valid_actions())
+    total_scoring_states = 0
 
     #if the children of the root have been thoroughly explored and there are no 
     #obvious score differences, adjust the simulation length before exploring further down
     #this tree
-    if calc_score_dif(root) <=ACTION_BOUND and root.get_prev_action() is not None and root.subtree_size >= num_children*3:
-        print("adjusting sim score")
-        sim_length_scale = sim_length_scale/num_children
+
+    #timer.value==0 and 
+    while(timer.value==0 and count < 20000):
+
+        count = count+1
+
+        #create a new node on the tree and store the action taken to get there
+        new_node,action = tree_policy(root, env, explore_exploit_const, reward_policy)
+
+        #update the size of the tree
+        update_tree(new_node)
+
+        # Determine the simulated value of the new node
+        adjust_scoring_states = 0
+        delta, adjust_scoring_states = default_policy(new_node, env, simulation, reward_policy)
+
+        total_scoring_states += adjust_scoring_states
+
+        # Propogate the simulated value back up the tree
+        backup(new_node, delta)
+
+        # reset the state of the game when done with one simulation
+        env.set_state(curr_state)
+
+        #update the shared table 
+        if action in count_dict.keys():
+            new_count = count_dict[action]+1
+        else:
+            new_count = 1
+        score_dict[action] = root.get_child(action).get_sim_value()
+        count_dict[action] = new_count
+
+    print("TREE TOTAL RUNS = ",count," SIM LENGTH = ",simulation.get_length()," SCORING STATES = ",total_scoring_states)
+    if total_scoring_states < THRESHOLD and root.get_prev_action() is not None and count >= num_children*2:
+        print("incrementing sim scale")
+        simulation.adjust_sim_length(1+SIM_SCALE)
+        print("adjusted sim length: ",simulation.get_length())
+
+    elif calc_score_dif(root) <=ACTION_BOUND and root.get_prev_action() is not None and root.subtree_size >= num_children*2 and total_scoring_states > THRESHOLD:
+        print("decrementing sim score")
+        sim_length_scale = 1/num_children
         #simulation_length = simulation_length*sim_length_scale
         simulation.adjust_sim_length(sim_length_scale)
         if simulation.get_length() < 10:
             simulation.adjust_sim_length(1/sim_length_scale)
         print("sim length:", simulation.get_length())
 
-    while(timer.value==0 and count < 10000):
-
-            count = count+1
-
-            #create a new node on the tree and store the action taken to get there
-            new_node,action = tree_policy(root, env, explore_exploit_const, reward_policy)
-
-            #update the size of the tree
-            update_tree(new_node)
-
-            # Determine the simulated value of the new node
-            delta = default_policy(new_node, env, simulation.get_length(), reward_policy)
-
-            # Propogate the simulated value back up the tree
-            backup(new_node, delta)
-
-            # reset the state of the game when done with one simulation
-            env.set_state(curr_state)
-
-            #update the shared table 
-            if action in count_dict.keys():
-                new_count = count_dict[action]+1
-            else:
-                new_count = 1
-            score_dict[action] = root.get_child(action).get_sim_value()
-            count_dict[action] = new_count
 
     #after leaving the action sequence, place the dictionaries back on the shared queue
     queue_list.put(score_dict)
     queue_list.put(count_dict)
     queue_list.put(root)
+    queue_list.put(simulation)
    
    #increment value of finished processes before returning
     lock.acquire()
     procs_finished.value +=1
     lock.release()
-    print("TREE TOTAL RUNS = ",count)
     return 
 
 
@@ -254,7 +274,7 @@ def print_arr(arr):
         
 
 
-def default_policy(new_node, env, sim_length, reward_policy):
+def default_policy(new_node, env, simulation, reward_policy):
     """
     The default_policy represents a simulated exploration of the tree from
     the passed-in node to a terminal state.
@@ -264,18 +284,19 @@ def default_policy(new_node, env, sim_length, reward_policy):
     #if node is already terminal, return 0    
     if(env.game_over()):
         #return 0
-        return 10
+        return (10,0)
         #return env.get_score()
-
+    sim_length = simulation.get_length()
     running_score = env.get_score()
     count = 0
+    score_states = 0
     # While the game is not over and we have not run out of moves, keep exploring
     while (not env.game_over()) and (not env.victory()):
         count += 1
         # if we have reached the limit for exploration
         if(count > sim_length):
             #return the reward received by reaching terminal state
-            return running_score
+            return (running_score, score_states)
 
         #Get the list of valid actions from this state
         actions = env.get_valid_actions()
@@ -287,10 +308,11 @@ def default_policy(new_node, env, sim_length, reward_policy):
         
         #if there was an increase in the score, add it to the running total
         if((after-before) > 0):
+            score_states +=1
             running_score += (after-before)/(count)
 
     #return the reward received by reaching terminal state
-    return running_score
+    return (running_score, score_states)
 
 def backup(node, delta):
     """
