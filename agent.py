@@ -66,8 +66,6 @@ class MonteAgent(Agent):
 
         self.reward = AdditiveReward()
 
-        self.history = {self.root.state}
-
 
     def take_action(self, env: Environment, history: list) -> str:
         """Takes in the history and returns the next action to take"""
@@ -137,7 +135,7 @@ class MonteAgent(Agent):
                 print(child.get_prev_action(), ", count:", child_visited, ", value:", child_sim_value, "normalized value:", self.reward.select_action(env, child_sim_value, child_visited, None))
 
         ## Pick the next action
-        self.root, score_dif = best_child(self.root, self.explore_const, env, self.reward, self.history, False)
+        self.root, score_dif = best_child(self.root, self.explore_const, env, self.reward, False)
 
         self.node_path.append(self.root)
 

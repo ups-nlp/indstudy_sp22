@@ -3,7 +3,7 @@ This file contains the node and state classes for building the game tree with a 
 """
 
 def get_world_state_hash(location, valid_actions):
-    return location+str(valid_actions)
+    return str(location.name)+str(valid_actions)
 
 class Transposition_Node:
     """

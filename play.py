@@ -9,8 +9,6 @@ from agent import MonteAgent
 import config
 from environment import *
 
-from transposition_table import get_world_state_hash
-
 
 
 def play_game(agent: Agent, game_file: str, num_steps: int):
@@ -34,37 +32,8 @@ def play_game(agent: Agent, game_file: str, num_steps: int):
     num_times_called = 0 # total number of iterations performed
     seconds = 0 # total time spent in take_action() over all iterations
 
-    """
-    for act in ["south", "east", "open window", "west", "west"]:#, "take all", "push rug", "open trap", "down", "turn on lantern"]:
-        # timing the call to take_action()
-        action_to_take = act
+    while num_steps != 0 and not done:
 
-        # updating environment with selected action
-        next_obs, _, done, info = env.step(action_to_take)        
-
-
-        history.append((curr_obs, action_to_take))
-
-        # checking if the action taken caused a change in location
-        curr_location = env.get_player_location()
-        if prev_location != curr_location:
-            num_location_changes += 1
-        prev_location = curr_location
-
-        curr_obs = next_obs
-
-        if config.VERBOSITY > 0:
-            print('\n\n=========================================')
-            print('Taking action: ', action_to_take)
-            print('Game State:', next_obs.strip())
-            print('Total Score', info['score'], 'Moves', info['moves'])
-
-    agent = MonteAgent(env, args.num_moves)
-
-    """
-    while num_steps > 0 and not done:
-
-        print("env:'", get_world_state_hash(env.get_player_location(), env.get_valid_actions()), "'")
         # timing the call to take_action()
         start_time = time.time()
         action_to_take = agent.take_action(env, history)
@@ -96,7 +65,7 @@ def play_game(agent: Agent, game_file: str, num_steps: int):
 
         num_steps -= 1
 
-    if config.VERBOSITY >= 1:
+    if config.VERBOSITY > 1:
         print('\n\n============= HISTORY OF ACTIONS TAKEN =============')
         for _, action in history:
             print(action)
@@ -115,7 +84,7 @@ if __name__ == "__main__":
         description='Runs an AI agent on a specified game')
 
     parser.add_argument(
-        'num_moves', type=int, help='Number of moves for the agent to make')
+        'num_moves', type=int, help="Number of moves for the agent to make. Enter '-1' for unlimited moves.")
     parser.add_argument('agent', help='[random|human|mcts]')    
     parser.add_argument('game_file', help='Full pathname for game')
     parser.add_argument('-v', '--verbosity', type=int,
