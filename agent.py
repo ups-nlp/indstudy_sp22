@@ -5,6 +5,7 @@ Agents for playing text-based games
 from math import sqrt
 import random
 import time
+import config
 from environment import *
 from mcts_agent import best_child, tree_policy, default_policy, backup, dynamic_sim_len
 from mcts_node import MCTS_node, Node
@@ -61,11 +62,7 @@ class MonteAgent(Agent):
 
 
     def take_action(self, env: Environment, history: list) -> str:
-        """Takes in the history and returns the next action to take"""
-        print("Action: ")
-        #
-        # Train the agent using the Monte Carlo Search Algorithm
-        #
+        """Takes in the history and returns the next action to take using the Monte Carlo Search Algorithm"""                
 
         #current number of generated nodes
         count = 0
@@ -77,7 +74,7 @@ class MonteAgent(Agent):
         seconds_elapsed = 0
 
         # loose time limit for simulation phase
-        time_limit = 59
+        time_limit = 30
 
         # minimum number of nodes per simulation phase
         minimum = env.get_moves()*5
@@ -90,8 +87,9 @@ class MonteAgent(Agent):
         # Ensuring a minimum number
         while((seconds_elapsed < time_limit or count <= minimum)):
             seconds_elapsed = time.time() - start_time
-            if(count % 10 == 0): 
-                print(count)
+            if config.VERBOSITY > 0:
+                if(count % 10 == 0): 
+                    print(count)
             # Create a new node on the tree
             new_node = tree_policy(self.root, env, self.explore_const, self.reward)
             # Determine the simulated value of the new node
@@ -104,10 +102,10 @@ class MonteAgent(Agent):
             count += 1
 
 
-
-        print(env.get_valid_actions())
-        for child in self.root.children:
-            print(child.get_prev_action(), ", count:", child.visited, ", value:", child.sim_value, "normalized value:", self.reward.select_action(env, child.sim_value, child.visited, None))
+        if config.VERBOSITY > 0:
+            print(env.get_valid_actions())
+            for child in self.root.children:
+                print(child.get_prev_action(), ", count:", child.visited, ", value:", child.sim_value, "normalized value:", self.reward.select_action(env, child.sim_value, child.visited, None))
 
         ## Pick the next action
         self.root, score_dif = best_child(self.root, self.explore_const, env, self.reward, False)
@@ -117,6 +115,7 @@ class MonteAgent(Agent):
         ## Dynamically adjust simulation length based on how sure we are 
         self.max_nodes, self.simulation_length = dynamic_sim_len(self.max_nodes, self.simulation_length, score_dif)
 
-        print("\n\n------------------ ", score_dif, self.max_nodes, self.simulation_length)
+        if config.VERBOSITY > 0:
+            print("\n\n------------------ ", score_dif, self.max_nodes, self.simulation_length)
 
         return self.root.get_prev_action()

@@ -3,6 +3,7 @@ An implementation of the UCT algorithm for text-based games
 """
 from math import floor, inf
 import random
+import config
 from environment import *
 from mcts_node import Node, MCTS_node
 from mcts_reward import *
@@ -93,8 +94,9 @@ def best_child(parent, exploration, env: Environment, reward_policy, use_bound =
             #print("old next best", second_best_score)
             second_best_score = child_value
     chosen = random.choice(bestLs)
-    if( not use_bound):
-        print("best, second", max_val, second_best_score)
+    if config.VERBOSITY > 0:
+        if(not use_bound):
+            print("best, second", max_val, second_best_score)
     return chosen, abs(max_val - second_best_score) ## Worry about if only 1 node possible infinity?
 
 def expand_node(parent, env):

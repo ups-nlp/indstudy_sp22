@@ -50,159 +50,158 @@ class DEPagent(Agent):
 
         self.reconstructed_model = tf.keras.models.load_model('./NN/dm_nn')
 
-        def mover(self, env:FrotzEnv, valid_actions:list, history:list) -> str:
-            """
-            @param FrotzEnv
-            @param valid_actions
-            @param history
+    def mover(self, env:FrotzEnv, valid_actions:list, history:list) -> str:
+        """
+        @param FrotzEnv
+        @param valid_actions
+        @param history
 
-            The mover will take the set of valid move actions and return one at random
+        The mover will take the set of valid move actions and return one at random
 
-            @return chosen_action: A string containing a move action
-            """
-            num_actions = len(valid_actions)
+        @return chosen_action: A string containing a move action
+        """
+        num_actions = len(valid_actions)
 
-            if num_actions==0:
-                print("ERROR - NO VALID MOVE ACTIONS")
-                return 'nva'
+        if num_actions==0:
+            print("ERROR - NO VALID MOVE ACTIONS")
+            return 'nva'
 
+        else:
+            return random.choice(valid_actions)
+
+    def everything_else(self, env:FrotzEnv, valid_actions:list, history:list) -> str:
+        """
+        @param FrotzEnv
+        @param valid_actions
+        @param history
+
+        The everything else will take all actions that aren't a movement and
+        choose one at random
+
+        @return chosen_action: A string containing a move actions
+        """
+
+        num_actions = len(valid_actions)
+
+        if num_actions==0:
+            print("ERROR - NO VALID MOVE ACTIONS")
+            return 'nva'
+
+        else:
+            return random.choice(valid_actions)
+
+    def take_action(self, env: FrotzEnv, history: list) -> str:
+        """
+        Takes in the history and returns the next action to take
+
+        @param env, Information about the game state from Frotz
+        @param history, A list of tuples of previous actions and observations
+
+        @return action, A string with the action to take
+        """
+
+        #Get a list of all valid actions from jericho
+        valid_actions = env.get_valid_actions()
+
+        # get sorted actions: in order: mover, everything_else
+        sorted_actions = sort_actions(valid_actions)
+
+        chosen_module = self.decision_maker(sorted_actions, env, history)
+
+        action_modules = [self.mover, self.everything_else]
+
+        #If the chosen module has no possible actions use the other one
+        if len(sorted_actions[0])==0 and chosen_module==0:
+            chosen_module=1
+        elif len(sorted_actions[1])==0 and chosen_module==1:
+            chosen_module=0
+
+        action = action_modules[chosen_module](env, sorted_actions[chosen_module], history)
+
+        return action
+
+
+    def decision_maker(self, sorted_actions:list, env:FrotzEnv, history:list) -> int:
+        """
+        Decide which choice to take.
+
+        @param valid_actions
+        @param environment
+
+        Creates an embedding of all the words in the previous observation,
+        runs that through a neural network that ranks how much we should use
+        each of the modules. Then returns an int that represents the module
+        with the highest value that has valid actions
+
+        @return chosen_module: an integer of 0 or 1,
+                                0 represents mover 1 represents everything_else
+        """
+
+        vector = self.create_observation_vect(env)
+        np_vector = np.array([vector])
+
+
+        prediction = self.reconstructed_model.predict(np_vector)
+        sorted_prediction = np.ndarray.argsort(prediction)[0] #0 at the end because its a 2D array for some reason
+        reverse_sorted_prediction = sorted_prediction[::-1]
+
+        module_num = reverse_sorted_prediction[0]
+
+        return module_num
+
+    def create_observation_vect(self, env:FrotzEnv) -> list:
+        """
+        Takes the gamestate and returns a vector representing the previous observation
+
+        @param env: the current gamestate
+        @return list: A normalized vector representing the previous observation
+        """
+        curr_state = env.get_state()
+        gameState = curr_state[self.OBSERVATION_INDEX].decode()
+
+        #Cleanup input
+        onlyTxt = re.sub('\n', ' ', gameState)
+        onlyTxt = re.sub('[,?!.:;\'\"]', '', onlyTxt)
+        onlyTxt = re.sub('\s+', ' ', onlyTxt)
+        onlyTxt = onlyTxt.lower()
+
+        #Remove the newline character
+        onlyTxt = onlyTxt[:len(onlyTxt)-1]
+        observation = onlyTxt
+
+        avg_vect = create_vect(self.vocab_vectors, self.word2id, observation)
+
+        return(avg_vect)
+
+
+    def create_vect(self, observation:str):
+        """
+        Takes an observation and returns a 50 dimensional vector representation of it
+
+        @param str: a string containing an observation
+
+        @return list: A list representing a 50 dimensional normalized vector
+        """
+        obs_split = observation.split(' ')
+
+        vect_size = 50
+        avg_vect = [0] * vect_size
+
+        num_words=0
+        for word in obs_split:
+            #Check if word is in vocab, if it is add it to the vector
+            if(self.word2id.get(word) is not None):
+                id = self.word2id.get(word)
+                norm_vect = self.vocab_vectors[id]
+                avg_vect = list(map(add, avg_vect, norm_vect))
+                num_words +=1
             else:
-                return random.choice(valid_actions)
+                print("Word not in the vocab: " + word)
 
-        def everything_else(self, env:FrotzEnv, valid_actions:list, history:list) -> str:
-            """
-            @param FrotzEnv
-            @param valid_actions
-            @param history
+        words = [num_words] * vect_size
+        avg_vect = list(map(truediv, avg_vect, words))
 
-            The everything else will take all actions that aren't a movement and
-            choose one at random
-
-            @return chosen_action: A string containing a move actions
-            """
-
-            num_actions = len(valid_actions)
-
-            if num_actions==0:
-                print("ERROR - NO VALID MOVE ACTIONS")
-                return 'nva'
-
-            else:
-                return random.choice(valid_actions)
-
-        def take_action(self, env: FrotzEnv, history: list) -> str:
-            """
-            Takes in the history and returns the next action to take
-
-            @param env, Information about the game state from Frotz
-            @param history, A list of tuples of previous actions and observations
-
-            @return action, A string with the action to take
-            """
-
-            #Get a list of all valid actions from jericho
-            valid_actions = env.get_valid_actions()
-
-            # get sorted actions: in order: mover, everything_else
-            sorted_actions = sort_actions(valid_actions)
-
-            chosen_module = self.decision_maker(sorted_actions, env, history)
-
-            action_modules = [self.mover, self.everything_else]
-
-            #If the chosen module has no possible actions use the other one
-            if len(sorted_actions[0])==0 and chosen_module==0:
-                chosen_module=1
-            elif len(sorted_actions[1])==0 and chosen_module==1:
-                chosen_module=0
-
-            action = action_modules[chosen_module](env, sorted_actions[chosen_module], history)
-
-            return actions
-
-
-        def decision_maker(self, sorted_actions:list, env:FrotzEnv, history:list) -> int:
-            """
-            Decide which choice to take.
-
-            @param valid_actions
-            @param environment
-
-            Creates an embedding of all the words in the previous observation,
-            runs that through a neural network that ranks how much we should use
-            each of the modules. Then returns an int that represents the module
-            with the highest value that has valid actions
-
-            @return chosen_module: an integer of 0 or 1,
-                                   0 represents mover 1 represents everything_else
-            """
-
-            vector = self.create_observation_vect(env)
-            np_vector = np.array([vector])
-
-
-            prediction = self.reconstructed_model.predict(np_vector)
-            sorted_prediction = np.ndarray.argsort(prediction)[0] #0 at the end because its a 2D array for some reason
-            reverse_sorted_prediction = sorted_prediction[::-1]
-
-            moldule_num = reverse_sorted_prediction[0]
-
-            return module_num
-
-        def create_observation_vect(self, env:FrotzEnv) -> list:
-            """
-            Takes the gamestate and returns a vector representing the previous observation
-
-            @param env: the current gamestate
-            @return list: A normalized vector representing the previous observation
-            """
-            curr_state = env.get_state()
-            gameState = curr_state[self.OBSERVATION_INDEX].decode()
-
-            #Cleanup input
-            onlyTxt = re.sub('\n', ' ', gameState)
-            onlyTxt = re.sub('[,?!.:;\'\"]', '', onlyTxt)
-            onlyTxt = re.sub('\s+', ' ', onlyTxt)
-            onlyTxt = onlyTxt.lower()
-
-            #Remove the newline character
-            onlyTxt = onlyTxt[:len(onlyTxt)-1]
-            observation = onlyTxt
-
-            avg_vect = create_vect(self.vocab_vectors, self.word2id, observation)
-
-            return(avg_vect)
-
-
-        def create_vect(self, observation:str):
-            """
-            Takes an observation and returns a 50 dimensional vector representation of it
-
-            @param str: a string containing an observation
-
-            @return list: A list representing a 50 dimensional normalized vector
-            """
-            obs_split = observation.split(' ')
-
-            vect_size = 50
-            avg_vect = [0] * vect_size
-
-            num_words=0
-            for word in obs_split:
-                #Check if word is in vocab, if it is add it to the vector
-                if(self.word2id.get(word) is not None):
-                    id = self.word2id.get(word)
-                    norm_vect = self.vocab_vectors[id]
-                    avg_vect = list(map(add, avg_vect, norm_vect))
-                    num_words +=1
-                else:
-                    print("Word not in the vocab: " + word)
-
-            words = [num_words] * vect_size
-            avg_vect = list(map(truediv, avg_vect, words))
-
-            return(avg_vect)
-
+        return(avg_vect)
 
 
 def sort_actions(valid_actions:list) -> list:
@@ -220,10 +219,10 @@ def sort_actions(valid_actions:list) -> list:
     for action in valid_actions:
         # check if action aligns with movements
         if action in self.movements:
-           mover_actions.append(action)
+            mover_actions.append(action)
 
         else:
-           ee_actions.append(action)
+            ee_actions.append(action)
 
     sorted_actions = [mover_actions, ee_actions]
 
