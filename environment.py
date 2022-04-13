@@ -274,7 +274,8 @@ class ChamberEnvironment(Environment):
 
 
 class Chambers4Environment(Environment):    
-    """Implementes a simple game with 4 chambers:
+    """
+    Implements a simple game with 4 chambers:
 
     |--------------|
     |       |      |
