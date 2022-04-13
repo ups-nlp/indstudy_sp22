@@ -64,19 +64,16 @@ class MonteAgent(Agent):
         # The length of each monte carlo simulation
         self.simulation_length = 8
 
-        # Maximum number of nodes to generate in the tree each time a move is made
-        self.max_nodes = 200
-
         self.reward = AdditiveReward()
 
         self.history = {self.root.state}
-        random.seed(101)
 
 
     def take_action(self, env: Environment, history: list) -> str:
         """Takes in the history and returns the next action to take"""
-        print("Action: ")
-        print(env.get_valid_actions())
+        if(config.VERBOSITY > 0): 
+            print("Action: ")
+            print(env.get_valid_actions())
         #
         # Train the agent using the Monte Carlo Search Algorithm
         #
@@ -101,23 +98,16 @@ class MonteAgent(Agent):
         #current state of the game. Return to this state each time generating a new node
         curr_state = env.get_state()
         #while(seconds_elapsed < time_limit or count <= minimum):
-        while(count < 100):
+        while(seconds_elapsed < time_limit):
+        #while(count < 100):
             seconds_elapsed = time.time() - start_time
-            if(config.VERBOSITY > 0):
-                if(count % 50 == 0): 
+            if(config.VERBOSITY > 0 and count % 50 == 0): 
                     print("Count is ",count)
             # Create a new node on the tree
-            #print("Make new node")
             new_node, path = tree_policy(self.root, env, self.explore_const, self.reward, self.transposition_table)
             # Determine the simulated value of the new node
-            #print("Run simulation")
             delta = default_policy(new_node, env, self.simulation_length, self.reward)
             # Propogate the simulated value back up the tree
-            # create a hashSet of nodes already updated, so we don't update the same state twice
-            #updated_set = set()
-            
-            #print("Backpropogate")
-            #if(delta > 0):
             if(config.VERBOSITY > 1):
                 print("delta value is ", delta)
                 total = ""
@@ -148,9 +138,6 @@ class MonteAgent(Agent):
 
         ## Pick the next action
         self.root, score_dif = best_child(self.root, self.explore_const, env, self.reward, self.history, False)
-
-        # update the history to include the new state
-        #self.history.add(self.root.state)
 
         self.node_path.append(self.root)
 

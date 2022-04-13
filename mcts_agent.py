@@ -181,11 +181,9 @@ def expand_node(parent, env, transposition_table):
     """
     # Get possible unexplored actions
     actions = parent.get_new_actions()
-    #print(actions)
 
     #print(len(actions), rand_index)
     action = random.choice(actions)
-    #print(action)
 
     # Remove that action from the unexplored action list and update parent
     p_state = get_world_state_hash(env.get_player_location(), env.get_valid_actions())
@@ -279,7 +277,6 @@ def backup(path, delta):
     node -- the child node we simulated from
     delta -- the component of the reward vector associated with the current player at node v
     """
-    # print("[")
     max_size = len(path)
     updated_states = []
     for index in reversed(range(max_size)):
@@ -292,7 +289,6 @@ def backup(path, delta):
             alpha = delta/2**(max_size - (index+1))
             node.update_sim_value(alpha)
             updated_states.append(node.get_state())
-    # print("]")
 
 def dynamic_sim_len(max_nodes, sim_limit, diff) -> int:
         """Given the current simulation depth limit and the difference between 
