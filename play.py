@@ -92,7 +92,7 @@ if __name__ == "__main__":
     # Instantiate the game environment    
     if args.game == "chamber":
         env = ChamberEnvironment(None)
-    if args.game == "chamber4":
+    elif args.game == "chamber4":
         env = Chambers4Environment(None)
     else:
         # args.game is the path name to a Z-master game
