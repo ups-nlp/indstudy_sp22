@@ -149,9 +149,22 @@ class ChamberEnvironment(Environment):
     
     def step(self, action: str):
         """Takes an action and returns the next state, reward, and termination"""
+        print()
+        print()
+        print('HERE LEN', len(self.moves))
+        print('MAX LEN', ChamberEnvironment.max_num_moves)
+        print(len(self.moves)==ChamberEnvironment.max_num_moves)
+        print('HERE REWARD', self.reward)      
+        print('GAME OVER', self.is_game_over)
+        print('VICTORY', self.is_victory)
+        print('ACTION', action)
+        print('LAST OBS', self.last_obs)
+
+
 
         # The game is over
         if self.is_game_over:
+            print('RETURN GAME OVER')
             return (self.last_obs, self.reward, self.is_game_over, {'moves' : len(self.moves), 'score' : self.reward})
      
         # Game is not over...process the player's action
@@ -159,6 +172,7 @@ class ChamberEnvironment(Environment):
 
         # An invalid action (nothing about the state changes)
         if action not in ChamberEnvironment.actions:            
+            print('RETURN INVALID ACTION')
             return (response, 0, False, {'moves': len(self.moves), 'score' : 0})
 
         # A valid action: record the action
@@ -169,7 +183,8 @@ class ChamberEnvironment(Environment):
             self.is_game_over = True
             self.is_victory = True
             self.last_obs = ChamberEnvironment.winning_obs
-            self.reward = 1.0 / len(self.moves)            
+            self.reward = 1.0 / len(self.moves)    
+            print('RETURN WIN')             
             return (self.last_obs, self.reward, self.is_game_over, {'moves': len(self.moves), 'score' : self.reward}) 
 
         # Did they just lose (i.e. this is their last move and they didn't win)
@@ -177,10 +192,12 @@ class ChamberEnvironment(Environment):
             self.is_game_over = True
             self.is_victory = False
             self.last_obs = ChamberEnvironment.losing_obs
-            self.reward = -1            
+            self.reward = -1    
+            print('RETURN LOSS')        
             return (self.last_obs, self.reward, self.is_game_over, {'moves': len(self.moves), 'score' : self.reward})
                 
         # Otherwise, it's just a plain ole' turn of the game
+        print('RETURN NORMAL')
         return (response, 0, False, {'moves': len(self.moves), 'score' : 0})
 
         
