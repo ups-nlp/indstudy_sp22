@@ -4,6 +4,7 @@ An implementation of the UCT algorithm for text-based games
 from math import floor, inf
 from platform import architecture
 import random
+import os
 from xmlrpc.client import Boolean
 from environment import *
 from mcts_node import Node
@@ -12,6 +13,24 @@ ACTION_BOUND = .001
 SIM_SCALE = .25
 THRESHOLD = 2
 
+
+class Foo:
+    pass
+foo=Foo()
+
+def exit_handler():
+        print("finished process:"+str(os.getpid()))
+
+
+def workInitialize():
+        print("initialize:"+str(os.getpid()))
+
+        from multiprocessing.util import Finalize
+        #create a Finalize object, the first parameter is an object referenced 
+        #by weakref, this can be anything, just make sure this object will be alive 
+        #during the time when the process is alive 
+
+        Finalize(foo, exit_handler, exitpriority=0)
 
 def take_action(queue_list, env: Environment, explore_exploit_const, reward_policy, timer, procs_finished, lock):
 #def take_action(tree, sim, env: Environment, explore_exploit_const, reward_policy):
@@ -30,6 +49,9 @@ def take_action(queue_list, env: Environment, explore_exploit_const, reward_poli
     procs_finished: shared integer that holds the number of processes that have returned from take_action
     lock: locks procs_finished so only one process can edit at a time
     """
+
+    workInitialize()
+
 
     #get the dictionaries off of the multiprocessing queue
     score_dict = queue_list.get()

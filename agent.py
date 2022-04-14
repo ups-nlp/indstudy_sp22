@@ -8,6 +8,7 @@ import random
 import time
 from environment import *
 import mcts_agent
+from mcts_agent import exit_handler
 from simulation_length import simulation_length
 #from mcts_agent import take_action, best_child, tree_policy, default_policy, backup
 #from mcts_agent import mcts
@@ -16,18 +17,12 @@ from mcts_reward import AdditiveReward, DynamicReward
 import multiprocessing_on_dill as multiprocessing
 #from multiprocessing import Process,cpu_count
 from multiprocessing_on_dill import Process, cpu_count, Queue, Lock
-from multiprocessing import  util
-util.log_to_stderr(util.SUBDEBUG)
 
 import atexit
 #from pathos.pools import ParallelPool
 #import dill as pickle
 
 
-class Foo:
-    pass
-
-foo=Foo()
 
 class Agent:
     """Interface for an Agent"""
@@ -114,22 +109,7 @@ class MonteAgent(Agent):
 
 
 
-    def exit_handler(self):
-        print("finished process:"+str(os.getpid()))
-
-
-
-    def _workInitialize(self):
-        print("initialize:"+str(os.getpid()))
-
-        from multiprocessing.util import Finalize
-        #create a Finalize object, the first parameter is an object referenced 
-        #by weakref, this can be anything, just make sure this object will be alive 
-        #during the time when the process is alive 
-
-        Finalize(foo, self.exit_handler, exitpriority=0)
-
-
+    
 
     def take_action(self, env: Environment, history: list) -> str:
 
@@ -207,7 +187,7 @@ class MonteAgent(Agent):
             procs = []
             for i in range(self.tree_count):
                 #spin off a new process to take_action and append to processes list
-                proc = Process(name = self.proc_names[i], target = mcts_agent.take_action, initializer=self._workInitialize, args = (proc_queues[i],self.env_arr[i],self.explore_const,self.reward,timer,procs_finished,proc_lock,))
+                proc = Process(name = self.proc_names[i], target = mcts_agent.take_action, args = (proc_queues[i],self.env_arr[i],self.explore_const,self.reward,timer,procs_finished,proc_lock,))
                 #proc = Process(name = self.proc_names[i], target = mcts_agent.take_action, args = (self.tree_arr[i],self.sim_list[i],self.env_arr[i],self.explore_const,self.reward,))
 
                 procs.append(proc)
@@ -250,7 +230,7 @@ class MonteAgent(Agent):
                 proc.terminate()
                 proc.join()
                 self.has_returned[i] = False
-            atexit.register(self.exit_handler)
+            atexit.register(exit_handler)
 
         
         
