@@ -82,6 +82,8 @@ class DEPagent(Agent):
         """
 
         num_actions = len(valid_actions)
+        print("EE actions " + str(valid_actions))
+        print("Num EE actions: " + str(num_actions))
 
         if num_actions == 0:
             print("ERROR - NO VALID MOVE ACTIONS")
@@ -102,6 +104,7 @@ class DEPagent(Agent):
 
         # Get a list of all valid actions from jericho
         valid_actions = env.get_valid_actions()
+        print("Valid actions " + str(valid_actions))
 
         # get sorted actions: in order: mover, everything_else
         sorted_actions = self.sort_actions(valid_actions)
