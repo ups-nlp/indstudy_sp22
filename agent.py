@@ -280,6 +280,7 @@ class HumanAgent(Agent):
         return input()
 
 
+
 class MonteAgent(Agent):
     """"Monte Carlo Search Tree Player"""
 

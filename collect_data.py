@@ -1,7 +1,7 @@
 import os
 from os.path import exists
 
-runs = 3 # -1 for infinite
+runs = -1 # -1 for infinite
 steps = -1 # -1 for infinite
 data_dir = "data"
 data_file_name_format = "data_file"
