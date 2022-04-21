@@ -15,6 +15,7 @@ from operator import truediv
 
 # Installed modules
 from jericho import FrotzEnv
+from config import VERBOSITY
 
 import tensorflow as tf
 from tensorflow.keras import models
@@ -62,6 +63,38 @@ class DEPagent(Agent):
         """
         num_actions = len(valid_actions)
 
+        # create empty list of size num actions
+        action_weights = [0] * num_actions
+        i = 0
+
+        # Loop through actions and add weight to the indicies that line up w/ actions that have an action word in them
+        while(i < num_actions):
+            weight_val = 1
+            curr_action = valid_actions[i]
+            action_words = curr_action.split(' ')
+            for a_word in action_words:
+                if a_word in self.movements:
+                    weight_val += 1
+                    break
+
+            action_weights[i] = weight_val
+            i += 1
+
+        total_weight = 0
+        for weight in action_weights:
+            total_weight += weight
+
+        randomChoice = random.randint(0, total_weight)
+
+        curr_weight = 0
+        i = 0
+        while(i < num_actions):
+            curr_weight += action_weights[i]
+            if(randomChoice < curr_weight):
+                chosen_action = valid_actions[i]
+                return chosen_action
+            i += 1
+
         if num_actions == 0:
             print("ERROR - NO VALID MOVE ACTIONS")
             return 'nva'
@@ -82,8 +115,9 @@ class DEPagent(Agent):
         """
 
         num_actions = len(valid_actions)
-        print("EE actions " + str(valid_actions))
-        print("Num EE actions: " + str(num_actions))
+        if(VERBOSITY):
+            print("EE actions " + str(valid_actions))
+            print("Num EE actions: " + str(num_actions))
 
         if num_actions == 0:
             print("ERROR - NO VALID MOVE ACTIONS")
@@ -104,20 +138,26 @@ class DEPagent(Agent):
 
         # Get a list of all valid actions from jericho
         valid_actions = env.get_valid_actions()
-        print("Valid actions " + str(valid_actions))
+        if(VERBOSITY):
+            print("Valid actions " + str(valid_actions))
 
         # get sorted actions: in order: mover, everything_else
         sorted_actions = self.sort_actions(valid_actions)
 
-        """
-        print()
-        print()
-        print(sorted_actions[0])
-        print()
-        print(sorted_actions[1])
-        print()
-        print()
-        """
+        curr_state = env.get_state()
+        gameState = curr_state[self.OBSERVATION_INDEX].decode()
+
+        # Cleanup input
+        onlyTxt = re.sub('\n', ' ', gameState)
+        onlyTxt = re.sub('[,?!.:;\'\"]', '', onlyTxt)
+        onlyTxt = re.sub('\s+', ' ', onlyTxt)
+        onlyTxt = onlyTxt.lower()
+
+        # Remove the newline character
+        onlyTxt = onlyTxt[:len(onlyTxt)-1]
+
+        current_obs = observation = onlyTxt
+        #print("Observation: " + current_obs)
 
         chosen_module = self.decision_maker(sorted_actions, env, history)
 
@@ -131,6 +171,11 @@ class DEPagent(Agent):
 
         action = action_modules[chosen_module](
             env, sorted_actions[chosen_module], history)
+
+        if(current_obs == "with great effort you open the window far enough to allow entry"):
+            if(VERBOSITY):
+                print("WINDOW OPEN GOING EAST")
+            return "west"
 
         return action
 
@@ -160,11 +205,19 @@ class DEPagent(Agent):
         # 0 at the end because its a 2D array for some reason
         prediction = prediction2DArr[0][0]
 
-        if(prediction > .5):
-            print("MOVER MODULE")
+        randVal = random.random()
+
+        if(VERBOSITY):
+            print("Decisionmaker NN value is (1 EE, 0 Move): " + str(prediction))
+            print("Random value is: " + str(randVal))
+
+        if(prediction < randVal):
+            if(VERBOSITY):
+                print("MOVER MODULE")
             return 0
         else:
-            print("EVERYTHING ELSE")
+            if(VERBOSITY):
+                print("EVERYTHING ELSE")
             return 1
 
     def create_observation_vect(self, env: FrotzEnv) -> list:
@@ -213,7 +266,8 @@ class DEPagent(Agent):
                 avg_vect = list(map(add, avg_vect, norm_vect))
                 num_words += 1
             else:
-                print("Word not in the vocab: " + word)
+                if(VERBOSITY):
+                    print("Word not in the vocab: " + word)
 
         words = [num_words] * vect_size
         avg_vect = list(map(truediv, avg_vect, words))
