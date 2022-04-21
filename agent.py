@@ -82,7 +82,8 @@ class CollectionAgent(Agent):
         if next_state_status == -1:
             self.extra_states.append([cur_obs, next_obs, rand_act, cur_score, cur_score, state_status, cur_state])
             # cur_obs = self.data[self.revert_to_best(env)][0]
-            cur_obs = self.data[self.revert_to_weighted_random(env)][0]
+            # cur_obs = self.data[self.revert_to_weighted_random(env)][0]
+            self.write_data()
             rand_act == ""
         elif next_state_status == 1:
             self.data.append([cur_obs, next_obs, rand_act, cur_score, cur_score, state_status, cur_state])

@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-from tensorflow.keras.layers import Embedding, Dense, LSTM, AveragePooling1D, Input
+from tensorflow.keras.layers import Embedding, Dense, LSTM, AveragePooling1D, Input, BatchNormalization, Dropout
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.losses import BinaryCrossentropy 
 from tensorflow.keras.optimizers import Adam
@@ -71,7 +71,7 @@ def read_data(dir_name):
 
     file.close()
 
-    return (data, sentences)
+    return data
 
 
 def generate_glove_embeddings(sentences):
@@ -110,26 +110,28 @@ def compile_embeddings():
     d = (np.sum(w **2, 1) ** (0.5)) # needed?
     wNorm = (w.T / d).T # needed?
 
-    return (word2id, w)
+    return word2id, w
 
 def get_training_data(data, word_to_id, embedding_matrix):
     lstm_dict = {}
 
-    lstm_train_x = []
-    lstm_train_y = []
+    train_x = []
+    ##lstm_train_y = []
     q_vals = []
 
     for datum in data:
         cur_state = datum[0]
         rand_act = datum[2]
 
+        combined_str = cur_state + ' ' + rand_act
+
         q_score = datum[3]
 
-        if not (cur_state in lstm_dict):
+        if not (combined_str in lstm_dict):
             ##print("--Generating vector for state:", combined_str)
-            result = sentence_to_vect_sequence(cur_state, word_to_id, embedding_matrix) #sentence_to_vect(combined_str, word_to_id, embedding_matrix, lstm)
+            result = sentence_to_vect_sequence(combined_str, word_to_id, embedding_matrix) #sentence_to_vect(combined_str, word_to_id, embedding_matrix, lstm)
             if result != []:
-                lstm_dict[cur_state] = result
+                lstm_dict[combined_str] = result
                 ##print("---Generated")     
                 ##print(result)
             ##else:
@@ -138,24 +140,26 @@ def get_training_data(data, word_to_id, embedding_matrix):
         ##else:
             ##print("--Found vector for state:", combined_str)
 
-        if not (rand_act in lstm_dict):
-            ##print("--Generating vector for state:", combined_str)
-            result = sentence_to_vect_sequence(rand_act, word_to_id, embedding_matrix)[0] #sentence_to_vect(combined_str, word_to_id, embedding_matrix, lstm)
-            if result != []:
-                lstm_dict[rand_act] = result
+        # if not (rand_act in lstm_dict):
+        #     ##print("--Generating vector for state:", combined_str)
+        #     print(rand_act)
+        #     res = sentence_to_vect_sequence(rand_act, word_to_id, embedding_matrix)
+        #     if len(res) != 0:
+        #         lstm_dict[rand_act] = res[0]
     
-        if cur_state in lstm_dict.keys() and rand_act in lstm_dict.keys():
+        if combined_str in lstm_dict: ##and rand_act in lstm_dict:
 
            #print(lstm_dict[combined_str].shape)
 
-            lstm_train_x.append(lstm_dict[cur_state])
-            lstm_train_y.append(lstm_dict[rand_act])
+            train_x.append(lstm_dict[combined_str])
+            ##lstm_train_y.append(lstm_dict[rand_act])
             q_vals.append(q_score)
 
             # if len(lstm_dict.keys()) == 10:
             #     break
 
-    return ((lstm_train_x, lstm_train_y), lstm_dict, q_vals)
+    ##print("--------------------------", len(train_x), len(q_vals))
+    return (train_x, q_vals), lstm_dict ##(lstm_train_x, lstm_train_y), lstm_dict, q_vals
     
 ## MAJORLY NEEDS LOOKED AT 
 ## ISSUE IS THAT I NEED TO PASS LSTM SEQUENCE OF WORD VECTORS (sentence) TO OUTPUT SENTENCE STATE VECTOR
@@ -224,8 +228,43 @@ def pad_lstm_input(x_train):
 
     return x_train, max_len
 
+def generate_net():
+    # Hyper Params (need adjust)
+    epochs = 20
+    ##batch_size = 32
+    layer_one_nodes = 32
+    layer_two_nodes = 16
+    learning_rate = 0.005
+    ##output_size = 1
+
+    # print("Making Q-Net")
+    model = Sequential()
+
+    model.add(LSTM(10, return_sequences=True))#, input_shape=(batch_size, 50)))
+    ## lstm.add(BatchNormalization())
+    model.add(Dropout(0.2))
+    model.add(LSTM(10, return_sequences=True))
+    model.add(Dropout(0.2))
+    
+    model.add(AveragePooling1D())
+
+    model.add(layers.Dense(layer_one_nodes, activation = 'relu'))
+    model.add(BatchNormalization())
+    model.add(layers.Dense(layer_two_nodes, activation = 'relu'))
+    model.add(BatchNormalization())
+
+    model.add(layers.Dense(1, activation = 'sigmoid'))
+    
+    model.compile(
+        loss='binary_crossentropy',
+        optimizer=Adam(learning_rate = learning_rate),
+        metrics=['accuracy'],   
+    )
+
+    return model
 
 def generate_lstm(training): ### FOR LSTM train on sentence vect label is the action
+
     x_train, y_train = training
 
     input_size = len(x_train)
@@ -241,22 +280,28 @@ def generate_lstm(training): ### FOR LSTM train on sentence vect label is the ac
 
     ##print('-------', input_size)
 
-    x_train = np.array(x_train)
+    
+    x_train = np.array(padded_x_train)
     y_train = np.array(y_train)
+
+    print("--------------\n",x_train.shape,"\n--------------")
+    print("--------------\n",y_train.shape,"\n--------------")
 
     ##print(x_train.shape)
 
-    x_train.reshape(input_size, batch_size, 50)
-
-    print(x_train.shape)
-    print(y_train.shape)
+    #x_train.reshape(input_size, batch_size, 50)
 
     learning_rate = 0.005
     epochs = 20
 
     lstm = Sequential()
+
     lstm.add(LSTM(10, input_shape=(batch_size, 50), return_sequences=True))
+    ## lstm.add(BatchNormalization())
     lstm.add(AveragePooling1D())
+
+    # More layers + dropout? 20%?
+    
     lstm.add(Dense(1))
 
     lstm.compile(
@@ -267,6 +312,8 @@ def generate_lstm(training): ### FOR LSTM train on sentence vect label is the ac
     # NEEDS FIT
     lstm.fit(x_train, y_train, batch_size = batch_size, epochs = epochs)
 
+    ##print("--------------\n",y_train.shape,"\n--------------")
+
     return lstm, y_train
 
 
@@ -274,8 +321,9 @@ def sentence_through_lstm(sequence_vect, lstm, batch_size):
 
     reformated_input = np.array([sequence_vect]).reshape(1, batch_size, 50)
     ##print("++++++++++++++++", reformated_input.shape)
-
-    val = lstm.predict(reformated_input)[0].reshape(50)
+    st = lstm.predict(reformated_input)
+    print(st.shape)
+    val = st[0].reshape(50)
 
     ##print(val)
 
@@ -283,98 +331,114 @@ def sentence_through_lstm(sequence_vect, lstm, batch_size):
 
 
 ##################################################
-data, sentences = read_data("data")
+data = read_data("data")
 
 
 
 if not exists("GloVe-Master/text.txt"):
     # generate_glove_embeddings(sentences)
-    print("needs GLOVE embeddings")
+    print("needs GLOVE Embeddings")
     
 else:
-    print("-Compiling EMbeddings")
+    print("-Compiling Embeddings")
     word_to_id, embedding_matrix = compile_embeddings()
 
     print("-Getting Training Data")
-    lstm_training, lstm_dict, q_values = get_training_data(data, word_to_id, embedding_matrix)
+    lstm_training, lstm_dict = get_training_data(data, word_to_id, embedding_matrix) ##, q_values = get_training_data(data, word_to_id, embedding_matrix)
 
-    q_values = np.array(q_values)
+    padded_state_vects, max_sen_len = pad_lstm_input(lstm_training[0])
 
-    ##print('-=-=-=-=-=-=-=-=-=', lstm_training[0][0])
+    state_vects = np.array(padded_state_vects).astype("float32")
+    q_values = np.array(lstm_training[1]).astype("float32")
+
+    # for i in state_vects:
+    #     print(len(i))
+
+    ##print('-=-=-=-=-=-=-=-=-=', type(state_vects), type(q_values))
 
     # print("-Making LSTM")
     # lstm, action_vects = generate_lstm(lstm_training)
+    print("-Generating Net")
+    model = generate_net()
 
-    # print("All Done... saving")
-    # net_dir = "nets"
-    # cur_file_path = "nets/"
-    # net_file_name_format = "lstm"
-    # file_num = 0
-    # while(exists(cur_file_path)):
-    #         file_num += 1
-    #         cur_file_path = net_dir + '/' + net_file_name_format + str(file_num)
+    print("-Training Net")
+    epochs = 20
+    batch_size = 30
+    ##print(state_vects.shape, q_values.shape)
+    model.fit(state_vects, q_values, batch_size = batch_size, epochs = epochs)
 
-    # lstm.save(cur_file_path)
+    print("-All Done... saving")
+    net_dir = "nets"
+    cur_file_path = "nets/"
+    net_file_name_format = "lstm"
+    file_num = 0
+    while(exists(cur_file_path)):
+        file_num += 1
+        cur_file_path = net_dir + '/' + net_file_name_format + str(file_num)
+
+    model.save(cur_file_path)
 
 
-    lstm = keras.models.load_model("nets/lstm1")
+    ##print("-Loading lstm model")
+    ##lstm = keras.models.load_model("nets/lstm1")
 
 
     #print("-Saving lstm dict")
     #save_dict("data/-lstm_dict.txt", lstm_dict) # needs fix
 
-    x_train, batch_size = pad_lstm_input(lstm_training[0])
-    input = [sentence_through_lstm(x, lstm, batch_size) for x in lstm_training[0]]
-    print(input[0].dtype)
-    print(input[0])
-    print('------------', len(input))
-    input = np.array(input).reshape(len(input), 50)
+    # x_train, batch_size = pad_lstm_input(lstm_training[0])
+    # input = [sentence_through_lstm(x, lstm, batch_size) for x in lstm_training[0]]
+    # print(input[0].dtype)
+    # print(input[0])
+    # print('------------', len(input))
+    # input = np.array(input).reshape(len(input), 50)
 
-    print(input.shape)
+    # print(input.shape)
     
     
 
     #loaded_dict = load_dict("data/-lstm_dict.txt")
 
     # Hyper Params (need adjust)
-    epochs = 20
-    batch_size = 32
-    layer_one_nodes = 32
-    layer_two_nodes = 16
-    learning_rate = 0.005
-    input_size = 50 #NOTE PLACEHOLDER?
-    output_size = 1
+    # epochs = 20
+    # batch_size = 32
+    # layer_one_nodes = 32
+    # layer_two_nodes = 16
+    # learning_rate = 0.005
+    # input_size = 50 #NOTE PLACEHOLDER?
+    # output_size = 1
 
-    # print("Making Q-Net")
-    q_net = Sequential()
-    q_net.add(keras.Input(shape=(50)))
-    q_net.add(layers.Dense(layer_one_nodes, activation = 'relu'))
-    q_net.add(layers.Dense(layer_two_nodes, activation = 'relu'))
-    q_net.add(layers.Dense(output_size, activation = 'sigmoid'))
-    q_net.compile(
-        loss='binary_crossentropy',
-        optimizer=Adam(learning_rate = learning_rate),
-        metrics=['accuracy'],   
-    )
+    # # print("Making Q-Net")
+    # q_net = Sequential()
+    # q_net.add(keras.Input(shape=(50)))
+    # q_net.add(layers.Dense(layer_one_nodes, activation = 'relu'))
+    # q_net.add(layers.Dense(layer_two_nodes, activation = 'relu'))
+    # q_net.add(layers.Dense(output_size, activation = 'sigmoid'))
+    # q_net.compile(
+    #     loss='binary_crossentropy',
+    #     optimizer=Adam(learning_rate = learning_rate),
+    #     metrics=['accuracy'],   
+    # )
     
     # print("Starting Training")
     # Train model
-    q_values = np.array(q_values).astype('float32')
-    print(q_values.dtype)
-    print(q_values[0])
 
-    q_net.fit(input, q_values, batch_size = batch_size, epochs = epochs)
+    # q_values = np.array(q_values).astype('float32')
+    # print(q_values.dtype)
+    # print(q_values[0])
 
-    print("All Done... saving")
-    net_dir = "nets"
-    cur_file_path = "nets/"
-    net_file_name_format = "qNet"
-    file_num = 0
-    while(exists(cur_file_path)):
-            file_num += 1
-            cur_file_path = net_dir + '/' + net_file_name_format + str(file_num)
+    # q_net.fit(input, q_values, batch_size = batch_size, epochs = epochs)
 
-    q_net.save(cur_file_path)
+    # print("All Done... saving")
+    # net_dir = "nets"
+    # cur_file_path = "nets/"
+    # net_file_name_format = "qNet"
+    # file_num = 0
+    # while(exists(cur_file_path)):
+    #         file_num += 1
+    #         cur_file_path = net_dir + '/' + net_file_name_format + str(file_num)
+
+    # q_net.save(cur_file_path)
 
 
     # model = keras.models.load_model("nets/qNet1")
