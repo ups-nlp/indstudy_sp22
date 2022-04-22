@@ -79,7 +79,7 @@ class DEPagent(Agent):
             for a_word in action_words:
                 if a_word in curr_obs:
                     weight_val += 1
-                    break
+                    break  # only lets it double the weighting - no more
 
             action_weights[i] = weight_val
             i += 1
@@ -137,8 +137,8 @@ class DEPagent(Agent):
 
             for a_word in action_words:
                 if a_word in curr_obs:
-                    weight_val += 1
-                    break
+                    weight_val += 1  # doubles the value every time there's a shared word
+                    break  # max out at a double
 
             action_weights[i] = weight_val
             i += 1
