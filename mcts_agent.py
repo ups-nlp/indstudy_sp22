@@ -9,8 +9,8 @@ from xmlrpc.client import Boolean
 from environment import *
 from mcts_node import Node
 from mcts_reward import *
-ACTION_BOUND = .001
-SIM_SCALE = .25
+ACTION_BOUND = .1
+SIM_SCALE = .2
 THRESHOLD = 2
 
 
@@ -19,11 +19,12 @@ class Foo:
 foo=Foo()
 
 def exit_handler():
-        print("finished process:"+str(os.getpid()))
+    x = 2
+    # print("finished process:"+str(os.getpid()))
 
 
 def workInitialize():
-        print("initialize:"+str(os.getpid()))
+        #print("initialize:"+str(os.getpid()))
 
         from multiprocessing.util import Finalize
         #create a Finalize object, the first parameter is an object referenced 

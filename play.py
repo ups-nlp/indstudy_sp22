@@ -105,4 +105,4 @@ if __name__ == "__main__":
     if args.verbosity == 0 or args.verbosity == 1:
         config.VERBOSITY = args.verbosity
 
-    play_game(ai_agent, args.game_file, args.num_moves)
+

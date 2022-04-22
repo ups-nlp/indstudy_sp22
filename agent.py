@@ -127,7 +127,7 @@ class MonteAgent(Agent):
         seconds_elapsed = 0
 
         # loose time limit for simulation phase
-        time_limit = 10
+        time_limit = 120
 
         # minimum number of nodes per simulation phase
         minimum = env.get_moves()*5
