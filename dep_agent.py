@@ -41,9 +41,6 @@ class DEPagent(Agent):
                           'northeast': 'southwest', 'southwest': 'southeast',
                           'go': 'go', 'jump': 'jump'}
 
-        # index of the current observation in the enviroment
-        self.OBSERVATION_INDEX = 8
-
         # Number of past action to check
         self.PAST_ACTIONS_CHECK = 3
 
@@ -65,6 +62,7 @@ class DEPagent(Agent):
 
         # create empty list of size num actions
         action_weights = [0] * num_actions
+        print("action weights" + str(action_weights))
         i = 0
 
         # Loop through actions and add weight to the indicies that line up w/ actions that have an action word in them
@@ -72,14 +70,18 @@ class DEPagent(Agent):
             weight_val = 1
             curr_action = valid_actions[i]
             action_words = curr_action.split(' ')
+
+            curr_obs = get_observation(env)
+
             for a_word in action_words:
-                if a_word in self.movements:
+                if a_word in curr_obs:
                     weight_val += 1
                     break
 
             action_weights[i] = weight_val
             i += 1
 
+        print("action weights" + str(action_weights))
         total_weight = 0
         for weight in action_weights:
             total_weight += weight
@@ -90,7 +92,7 @@ class DEPagent(Agent):
         i = 0
         while(i < num_actions):
             curr_weight += action_weights[i]
-            if(randomChoice < curr_weight):
+            if(randomChoice <= curr_weight):
                 chosen_action = valid_actions[i]
                 return chosen_action
             i += 1
@@ -99,8 +101,8 @@ class DEPagent(Agent):
             print("ERROR - NO VALID MOVE ACTIONS")
             return 'nva'
 
-        else:
-            return random.choice(valid_actions)
+        # else:
+            # return random.choice(valid_actions)
 
     def everything_else(self, env: FrotzEnv, valid_actions: list, history: list) -> str:
         """
@@ -144,21 +146,6 @@ class DEPagent(Agent):
         # get sorted actions: in order: mover, everything_else
         sorted_actions = self.sort_actions(valid_actions)
 
-        curr_state = env.get_state()
-        gameState = curr_state[self.OBSERVATION_INDEX].decode()
-
-        # Cleanup input
-        onlyTxt = re.sub('\n', ' ', gameState)
-        onlyTxt = re.sub('[,?!.:;\'\"]', '', onlyTxt)
-        onlyTxt = re.sub('\s+', ' ', onlyTxt)
-        onlyTxt = onlyTxt.lower()
-
-        # Remove the newline character
-        onlyTxt = onlyTxt[:len(onlyTxt)-1]
-
-        current_obs = observation = onlyTxt
-        #print("Observation: " + current_obs)
-
         chosen_module = self.decision_maker(sorted_actions, env, history)
 
         action_modules = [self.mover, self.everything_else]
@@ -172,10 +159,27 @@ class DEPagent(Agent):
         action = action_modules[chosen_module](
             env, sorted_actions[chosen_module], history)
 
+        current_obs = get_observation(env)
+
         if(current_obs == "with great effort you open the window far enough to allow entry"):
             if(VERBOSITY):
                 print("WINDOW OPEN GOING EAST")
             return "west"
+
+        # If the agent tries to jump, do literally any other move instead
+        if action == 'jump':
+            if(VERBOSITY):
+                print("NO!!!! TRIED TO JUMP - HOPEFULLY AVERTED")
+
+            # shuffle the list so you don't necessarily choose the same thing every time
+            random.shuffle(sorted_actions[0])
+            for move_action in sorted_actions[0]:
+                if move_action != 'jump':
+                    return move_action
+
+            if(len(sorted_actions[1])):
+                random.shuffle(sorted_actions[1])
+                return sorted_actions[1][0]
 
         return action
 
@@ -227,18 +231,7 @@ class DEPagent(Agent):
         @param env: the current gamestate
         @return list: A normalized vector representing the previous observation
         """
-        curr_state = env.get_state()
-        gameState = curr_state[self.OBSERVATION_INDEX].decode()
-
-        # Cleanup input
-        onlyTxt = re.sub('\n', ' ', gameState)
-        onlyTxt = re.sub('[,?!.:;\'\"]', '', onlyTxt)
-        onlyTxt = re.sub('\s+', ' ', onlyTxt)
-        onlyTxt = onlyTxt.lower()
-
-        # Remove the newline character
-        onlyTxt = onlyTxt[:len(onlyTxt)-1]
-        observation = onlyTxt
+        observation = get_observation(env)
 
         avg_vect = self.create_vect(observation)
 
@@ -265,9 +258,9 @@ class DEPagent(Agent):
                 norm_vect = self.vocab_vectors[id]
                 avg_vect = list(map(add, avg_vect, norm_vect))
                 num_words += 1
-            else:
-                if(VERBOSITY):
-                    print("Word not in the vocab: " + word)
+            # else:
+            #    if(VERBOSITY):
+            #        print("Word not in the vocab: " + word)
 
         words = [num_words] * vect_size
         avg_vect = list(map(truediv, avg_vect, words))
@@ -340,3 +333,23 @@ def embed_vocab() -> (list, dict):
     W_norm = (W.T / d).T
 
     return W_norm, word2id
+
+
+def get_observation(env: FrotzEnv) -> str:
+    curr_state = env.get_state()
+
+    observation_index = 8
+    gameState = curr_state[observation_index].decode()
+
+    # Cleanup input
+    onlyTxt = re.sub('\n', ' ', gameState)
+    onlyTxt = re.sub('[,?()!.:;\'\"]', '', onlyTxt)
+    onlyTxt = re.sub('\s+', ' ', onlyTxt)
+    onlyTxt = onlyTxt.lower()
+
+    # Remove the newline character
+    onlyTxt = onlyTxt[:len(onlyTxt)-1]
+
+    current_obs = onlyTxt
+
+    return current_obs
