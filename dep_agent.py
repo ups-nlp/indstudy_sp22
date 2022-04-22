@@ -60,9 +60,12 @@ class DEPagent(Agent):
         """
         num_actions = len(valid_actions)
 
+        if num_actions == 0:
+            print("ERROR - NO VALID MOVE ACTIONS")
+            return 'nva'
+
         # create empty list of size num actions
         action_weights = [0] * num_actions
-        print("action weights" + str(action_weights))
         i = 0
 
         # Loop through actions and add weight to the indicies that line up w/ actions that have an action word in them
@@ -97,10 +100,6 @@ class DEPagent(Agent):
                 return chosen_action
             i += 1
 
-        if num_actions == 0:
-            print("ERROR - NO VALID MOVE ACTIONS")
-            return 'nva'
-
         # else:
             # return random.choice(valid_actions)
 
@@ -117,16 +116,50 @@ class DEPagent(Agent):
         """
 
         num_actions = len(valid_actions)
-        if(VERBOSITY):
-            print("EE actions " + str(valid_actions))
-            print("Num EE actions: " + str(num_actions))
 
         if num_actions == 0:
             print("ERROR - NO VALID MOVE ACTIONS")
             return 'nva'
 
-        else:
-            return random.choice(valid_actions)
+        if(VERBOSITY):
+            print("EE actions " + str(valid_actions))
+            print("Num EE actions: " + str(num_actions))
+
+        action_weights = [0] * num_actions
+        i = 0
+
+        while(i < num_actions):
+            weight_val = 1
+            curr_action = valid_actions[i]
+            action_words = curr_action.split(' ')
+
+            curr_obs = get_observation(env)
+
+            for a_word in action_words:
+                if a_word in curr_obs:
+                    weight_val += 1
+                    break
+
+            action_weights[i] = weight_val
+            i += 1
+
+        print("ee weights" + str(action_weights))
+        total_weight = 0
+        for weight in action_weights:
+            total_weight += weight
+
+        randomChoice = random.randint(0, total_weight)
+
+        curr_weight = 0
+        i = 0
+        while(i < num_actions):
+            curr_weight += action_weights[i]
+            if(randomChoice <= curr_weight):
+                chosen_action = valid_actions[i]
+                return chosen_action
+            i += 1
+
+        # return random.choice(valid_actions)
 
     def take_action(self, env: FrotzEnv, history: list) -> str:
         """
