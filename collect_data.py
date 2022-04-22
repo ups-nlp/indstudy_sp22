@@ -17,14 +17,18 @@ while runs != 0:
         print(data_dir, "directory does not exist...")
         break
 
-    cur_file_path = data_dir + '/' + data_file_name_format + str(file_num) + ".txt"
-    if not exists(cur_file_path):
-        open(cur_file_path, "a").close()
-    else:
-        while(exists(cur_file_path)):
-            file_num += 1
-            cur_file_path = data_dir + '/' + data_file_name_format + str(file_num) + ".txt"
-        open(cur_file_path, "a").close()
+    # cur_file_path = data_dir + '/' + data_file_name_format + str(file_num) + ".txt"
+    
+    custom_name = "big_data.txt"
+    cur_file_path = data_dir + '/' + custom_name
+
+    # if not exists(cur_file_path):
+    #     open(cur_file_path, "a").close()
+    # else:
+    #     while(exists(cur_file_path)):
+    #         file_num += 1
+    #         cur_file_path = data_dir + '/' + data_file_name_format + str(file_num) + ".txt"
+    #     open(cur_file_path, "a").close()
     
     file_size = os.path.getsize(data_dir)
     file_size_gb = file_size / 1073741824.0

@@ -259,7 +259,7 @@ class CollectionAgent(Agent):
 
         files = os.listdir(self.data_dir)
 
-        file = open(self.data_dir + "/" + files[-1], "w") # w for overwrite a for append
+        file = open(self.data_dir + "/" + files[-1], 'a')#"w") # w for overwrite a for append
         
         file.writelines(data_ls)
         

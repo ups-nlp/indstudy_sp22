@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-from tensorflow.keras.layers import Embedding, Dense, LSTM, AveragePooling1D, Input, BatchNormalization, Dropout
+from tensorflow.keras.layers import Embedding, Dense, LSTM, AveragePooling1D, Input, BatchNormalization, Dropout, Masking
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.losses import BinaryCrossentropy 
 from tensorflow.keras.optimizers import Adam
@@ -38,7 +38,7 @@ def clean_text(text):
     text = text.replace('|', ' ')
 
     # Remove stop words
-    stop_words = ["and", "but", "or", "the", "a", "an", "to", "is"]
+    stop_words = ["and", "but", "or", "the", "a", "an", "to", "is", "as", "of", "seems", "with"]
     for word in text.split(' '):
         word = word.strip()
         if (not word in stop_words) and (word != ''):
@@ -74,13 +74,13 @@ def read_data(dir_name):
     return data
 
 
-def generate_glove_embeddings(sentences):
-    file = open("GloVe-master/text.txt", 'a')
-    file.writelines(sentences)
+# def generate_glove_embeddings(sentences):
+#     file = open("GloVe-master/text.txt", 'a')
+#     file.writelines(sentences)
 
-    os.system("cd GloVe-master/")
-    os.system("./demo.sh")
-    os.system("cd ..")
+#     os.system("cd GloVe-master/")
+#     os.system("./demo.sh")
+#     os.system("cd ..")
 
 # FROM AL CHAMBERS HW 3 BASICALLY
 def compile_embeddings():
@@ -122,6 +122,9 @@ def get_training_data(data, word_to_id, embedding_matrix):
     for datum in data:
         cur_state = datum[0]
         rand_act = datum[2]
+
+        if len(cur_state.split(' ')) > 100:
+            print(cur_state)
 
         combined_str = cur_state + ' ' + rand_act
 
@@ -230,8 +233,6 @@ def pad_lstm_input(x_train):
 
 def generate_net():
     # Hyper Params (need adjust)
-    epochs = 20
-    ##batch_size = 32
     layer_one_nodes = 32
     layer_two_nodes = 16
     learning_rate = 0.005
@@ -240,8 +241,9 @@ def generate_net():
     # print("Making Q-Net")
     model = Sequential()
 
-    model.add(LSTM(10, return_sequences=True))#, input_shape=(batch_size, 50)))
-    ## lstm.add(BatchNormalization())
+    model.add(Masking(mask_value = 0.0))
+
+    model.add(LSTM(10, return_sequences=True))
     model.add(Dropout(0.2))
     model.add(LSTM(10, return_sequences=True))
     model.add(Dropout(0.2))
@@ -249,11 +251,11 @@ def generate_net():
     model.add(AveragePooling1D())
 
     model.add(layers.Dense(layer_one_nodes, activation = 'relu'))
-    model.add(BatchNormalization())
+    ## model.add(BatchNormalization())
     model.add(layers.Dense(layer_two_nodes, activation = 'relu'))
-    model.add(BatchNormalization())
+    ## model.add(BatchNormalization())
 
-    model.add(layers.Dense(1, activation = 'sigmoid'))
+    model.add(layers.Dense(1)) #, activation = 'sigmoid'))
     
     model.compile(
         loss='binary_crossentropy',
@@ -263,58 +265,58 @@ def generate_net():
 
     return model
 
-def generate_lstm(training): ### FOR LSTM train on sentence vect label is the action
+# def generate_lstm(training): ### FOR LSTM train on sentence vect label is the action
 
-    x_train, y_train = training
+#     x_train, y_train = training
 
-    input_size = len(x_train)
+#     input_size = len(x_train)
 
-    ##print(type(x_train))
-    ##print(type(y_train))
+#     ##print(type(x_train))
+#     ##print(type(y_train))
 
-    ##print(x_train[0])
+#     ##print(x_train[0])
 
-    x_train, batch_size = pad_lstm_input(x_train)
+#     x_train, batch_size = pad_lstm_input(x_train)
     
-    ##print(x_train[0])
+#     ##print(x_train[0])
 
-    ##print('-------', input_size)
+#     ##print('-------', input_size)
 
     
-    x_train = np.array(padded_x_train)
-    y_train = np.array(y_train)
+#     x_train = np.array(padded_x_train)
+#     y_train = np.array(y_train)
 
-    print("--------------\n",x_train.shape,"\n--------------")
-    print("--------------\n",y_train.shape,"\n--------------")
+#     print("--------------\n",x_train.shape,"\n--------------")
+#     print("--------------\n",y_train.shape,"\n--------------")
 
-    ##print(x_train.shape)
+#     ##print(x_train.shape)
 
-    #x_train.reshape(input_size, batch_size, 50)
+#     #x_train.reshape(input_size, batch_size, 50)
 
-    learning_rate = 0.005
-    epochs = 20
+#     learning_rate = 0.005
+#     epochs = 20
 
-    lstm = Sequential()
+#     lstm = Sequential()
 
-    lstm.add(LSTM(10, input_shape=(batch_size, 50), return_sequences=True))
-    ## lstm.add(BatchNormalization())
-    lstm.add(AveragePooling1D())
+#     lstm.add(LSTM(10, input_shape=(batch_size, 50), return_sequences=True))
+#     ## lstm.add(BatchNormalization())
+#     lstm.add(AveragePooling1D())
 
-    # More layers + dropout? 20%?
+#     # More layers + dropout? 20%?
     
-    lstm.add(Dense(1))
+#     lstm.add(Dense(1))
 
-    lstm.compile(
-        loss='binary_crossentropy',
-        optimizer=Adam(learning_rate = learning_rate)  
-    )
+#     lstm.compile(
+#         loss='binary_crossentropy',
+#         optimizer=Adam(learning_rate = learning_rate)  
+#     )
 
-    # NEEDS FIT
-    lstm.fit(x_train, y_train, batch_size = batch_size, epochs = epochs)
+#     # NEEDS FIT
+#     lstm.fit(x_train, y_train, batch_size = batch_size, epochs = epochs)
 
-    ##print("--------------\n",y_train.shape,"\n--------------")
+#     ##print("--------------\n",y_train.shape,"\n--------------")
 
-    return lstm, y_train
+#     return lstm, y_train
 
 
 def sentence_through_lstm(sequence_vect, lstm, batch_size):
@@ -330,13 +332,35 @@ def sentence_through_lstm(sequence_vect, lstm, batch_size):
     return val
 
 
+def compile_corupus():
+    dir_name = "data"
+    files = os.listdir(dir_name)
+
+    write_str = ""
+    punctuation_to_remove = ['.', ':', '?', ',', ';', '"', "'", '|', '*', "'s"]
+
+    for file in files:
+        f = open(dir_name + '/' + file, 'r')
+
+        for line in f:
+            l = ' '.join(line.lower().split('$')[:3])
+
+            for punct in punctuation_to_remove:
+                l = l.replace(punct, '')
+
+            write_str += l
+
+    dest = open("GloVe-master/text.txt", 'w')
+    dest.write(write_str)
+
+
 ##################################################
 data = read_data("data")
 
-
-
 if not exists("GloVe-Master/text.txt"):
     # generate_glove_embeddings(sentences)
+    # NEED LOWERCASE NO PUNCT FROM ALL DATAFILES INTO text.txt in glove dir
+    compile_corupus()
     print("needs GLOVE Embeddings")
     
 else:
@@ -347,9 +371,10 @@ else:
     lstm_training, lstm_dict = get_training_data(data, word_to_id, embedding_matrix) ##, q_values = get_training_data(data, word_to_id, embedding_matrix)
 
     padded_state_vects, max_sen_len = pad_lstm_input(lstm_training[0])
+    print("---------------------------MAX LEN", max_sen_len)
 
-    state_vects = np.array(padded_state_vects).astype("float32")
-    q_values = np.array(lstm_training[1]).astype("float32")
+    state_vects = np.array(padded_state_vects, 'float32') ##.astype("float32")
+    q_values = np.array(lstm_training[1], 'float32') ##.astype("float32")
 
     # for i in state_vects:
     #     print(len(i))
@@ -365,7 +390,10 @@ else:
     epochs = 20
     batch_size = 30
     ##print(state_vects.shape, q_values.shape)
-    model.fit(state_vects, q_values, batch_size = batch_size, epochs = epochs)
+    print(state_vects.shape)
+    model.fit(state_vects, q_values, epochs = epochs) #, batch_size = batch_size)
+
+    print(model.summary())
 
     print("-All Done... saving")
     net_dir = "nets"
