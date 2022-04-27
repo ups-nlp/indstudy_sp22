@@ -78,7 +78,7 @@ class CollectionAgent(Agent):
 
         state_status = "Status: " + str(next_state_status)
         
-
+        ## CONDENSE STATEMENTS
         if next_state_status == -1:
             self.extra_states.append([cur_obs, next_obs, rand_act, cur_score, cur_score, state_status, cur_state])
             # cur_obs = self.data[self.revert_to_best(env)][0]
@@ -95,7 +95,7 @@ class CollectionAgent(Agent):
         self.count += 1
 
         if self.count == 100:
-            self.write_data()
+            ##self.write_data()
             print(self.total) #, cur_obs)
             self.count = 0
 
@@ -178,7 +178,7 @@ class CollectionAgent(Agent):
         
         env.set_state(cur_state)
 
-        return (next_score - cur_score, next_state_status, next_obs)
+        return (next_score - cur_score, next_state_status, next_obs) ## UNTUPLE
         
 
     def backpropogate(self, score_change):
