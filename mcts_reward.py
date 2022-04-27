@@ -72,6 +72,7 @@ class Reward:
         """
         raise NotImplementedError
 
+# Derived by the group -- didn't really work
 class SoftmaxReward(Reward):
     """Softmax reward returns values from 0 to .5 for the state. 
     This implementation assumes that every score between the loss state and the max score
@@ -164,6 +165,7 @@ class SoftmaxReward(Reward):
             num = child_sim_value
         return (e**(num))/(child_visited*denom)
 
+# Derived by the group -- didn't really work
 class Generalized_Softmax_Reward(Reward):
     """Generalized Softmax reward returns values from 0 to 1 for the state. 
     This implementation assumes that every score between the loss state and the max score
@@ -257,6 +259,7 @@ class Generalized_Softmax_Reward(Reward):
         except OverflowError:
             print("max size = ",sys.maxsize," num = ",num," denom = ",denom)
 
+# Baseline (Colin)
 class AdditiveReward(Reward):
     """ This Reward Policy returns values between 0 and 1 
     for the state inputted state.
@@ -335,6 +338,7 @@ class AdditiveReward(Reward):
             score = 1
         return child_sim_value/(child_visited*score)
 
+# Derived by the group (Anna)
 class DynamicReward(Reward):
     """Dynamic Reward  scales the reward returned in a simulation by the length of the simulation,
         so a reward reached earlier in the game will have a higher score than the same state

@@ -6,6 +6,7 @@ from math import sqrt
 import os
 import random
 import time
+import config
 from environment import *
 import mcts_agent
 from mcts_agent import exit_handler
@@ -57,7 +58,7 @@ class MonteAgent(Agent):
 
     def __init__(self, env: Environment, num_steps: int):
         # create root node with the initial state
-        self.root = Node(None, None, env.get_valid_actions())
+        self.root = MCTS_node(None, None, env.get_valid_actions())
 
         self.simulation = simulation_length()
 

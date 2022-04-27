@@ -6,28 +6,26 @@ from agent import Agent
 from agent import RandomAgent
 from agent import HumanAgent
 from agent import MonteAgent
+from dep_agent import DEPagent
 import config
 from environment import *
 
 
 
-def play_game(agent: Agent, game_file: str, num_steps: int):
-    """ The main method that instantiates an agent and plays the specified game"""
-
-    # Create the environment
-    env = JerichoEnvironment(game_file)
+def play_game(agent: Agent, env: Environment, num_steps: int):
+    """ The main method that plays the specified game"""    
 
     # The history is a list of (observation, action) tuples
     history = []
 
-    curr_obs, info = env.reset()    
+    curr_obs, info = env.reset()
     done = False
 
     if config.VERBOSITY > 0:
         print('=========================================')
         print("Initial Observation\n" + curr_obs)
 
-    prev_location = env.get_player_location() 
+    prev_location = env.get_player_location()
     num_location_changes = 0  # total number of times an action led to a change in location
     num_times_called = 0 # total number of iterations performed
     seconds = 0 # total time spent in take_action() over all iterations
@@ -44,7 +42,7 @@ def play_game(agent: Agent, game_file: str, num_steps: int):
         seconds += (end_time - start_time)
 
         # updating environment with selected action
-        next_obs, _, done, info = env.step(action_to_take)        
+        next_obs, _, done, info = env.step(action_to_take)
 
 
         history.append((curr_obs, action_to_take))
@@ -78,26 +76,37 @@ if __name__ == "__main__":
     # Uses a parser for the command line arguments:
     # num_moves -- The number of moves the agent should make
     # agent -- Right now this is just 'random' but will expand as we make other agents
-    # game_file -- The full path to the game file
+    # game -- The game to play (for a Z-master game, this should be the full path to the game file)
 
     parser = argparse.ArgumentParser(
         description='Runs an AI agent on a specified game')
 
     parser.add_argument(
         'num_moves', type=int, help="Number of moves for the agent to make. Enter '-1' for unlimited moves.")
-    parser.add_argument('agent', help='[random|human|mcts]')    
-    parser.add_argument('game_file', help='Full pathname for game')
+    parser.add_argument('agent', help='[random|human|mcts|dep]')
+    parser.add_argument('game', help='[path to game file|chamber|chamber4]')
     parser.add_argument('-v', '--verbosity', type=int,
                         help='[0|1] verbosity level')
     args = parser.parse_args()
 
-    # Right now all you can create is a RandomAgent. This will expand in the future
+    # Instantiate the game environment    
+    if args.game == "chamber":
+        env = ChamberEnvironment(None)
+    elif args.game == "chamber4":
+        env = Chambers4Environment(None)
+    else:
+        # args.game is the path name to a Z-master game
+        env = JerichoEnvironment(args.game)
+
+    # Instantiate the agent
     if args.agent == 'random':
         ai_agent = RandomAgent()
     elif args.agent == 'human':
-        ai_agent = HumanAgent()    
+        ai_agent = HumanAgent()
     elif args.agent == 'mcts':
-        ai_agent = MonteAgent(JerichoEnvironment(args.game_file), args.num_moves)
+        ai_agent = MonteAgent(env, args.num_moves)
+    elif args.agent == 'dep':
+        ai_agent = DEPagent()
     else:
         ai_agent = RandomAgent()
 
@@ -105,5 +114,5 @@ if __name__ == "__main__":
     if args.verbosity == 0 or args.verbosity == 1:
         config.VERBOSITY = args.verbosity
 
-    play_game(ai_agent, args.game_file,args.num_moves)
-
+    # Alright, go ahead and play the game
+    play_game(ai_agent, env, args.num_moves)
