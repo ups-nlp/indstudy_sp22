@@ -5,8 +5,11 @@ import config
 from agent import RandomAgent
 from agent import HumanAgent
 from agent import MonteAgent
-from environment import JerichoEnvironment
+from dep_agent import DEPagent
+from environment import *
 from play import play_game
+
+
 
 if __name__ == "__main__":
 
@@ -16,18 +19,30 @@ if __name__ == "__main__":
                         help='Number of times to run the agent on the specified game')
     parser.add_argument('num_moves', type=int,
                         help='Number of moves for agent to take per trial')
-    parser.add_argument('agent', help='[random|human|mcts]')
-    parser.add_argument('game_file', help='Full pathname to the game file')
+    parser.add_argument('agent', help='[random|human|mcts|dep]')
+    parser.add_argument('game', help='[path to game file|chamber|chamber4]')
     parser.add_argument('-v', '--verbosity', type=int,
                         help='[0|1] verbosity level')
     args = parser.parse_args()
 
+    # Instantiate the game environment    
+    if args.game == "chamber":
+        env = ChamberEnvironment(None)
+    elif args.game == "chamber4":
+        env = Chambers4Environment(None)
+    else:
+        # args.game is the path name to a Z-master game
+        env = JerichoEnvironment(args.game)
+
+    # Instantiate the agent
     if args.agent == 'random':
         ai_agent = RandomAgent()
     elif args.agent == 'human':
         ai_agent = HumanAgent()
     elif args.agent == 'mcts':
-        ai_agent = MonteAgent(JerichoEnvironment(args.game_file), args.num_moves)
+        ai_agent = MonteAgent(env, args.num_moves)
+    elif args.agent == 'dep':
+        ai_agent = DEPagent()
     else:
         ai_agent = RandomAgent()
 
@@ -39,11 +54,13 @@ if __name__ == "__main__":
     total_num_valid_actions = 0     # total number of valid actions aggregated over all trials
     total_num_location_changes = 0  # total number of location changes aggregated over all trials
     total_num_steps = 0             # total number of steps taken aggregated over all trials
+                                    # this may be less than num_steps * num_trials if the agent dies or wins
+                                    # before the num_steps is up
     total_time = 0                  # total seconds taken aggregated over all trials
 
     for i in range(args.num_trials):
         score, num_valid_actions, num_location_changes, num_steps, time = play_game(
-            ai_agent, args.game_file, args.num_moves)
+            ai_agent, env, args.num_moves)
 
         total_score += score
         total_num_valid_actions += num_valid_actions
@@ -64,7 +81,7 @@ if __name__ == "__main__":
     print(f'Number of moves per trial: {args.num_moves}')
     print()
     print(f'Total number of steps: {total_num_steps} across {args.num_trials} trials')
-    print(f'Max number of steps: {args.num_trials * args.num_moves}')
+    print(f'Max number of steps possible: {args.num_trials * args.num_moves}')
     print(f'Average number of steps per trial: {total_num_steps/args.num_trials}')
     print(f'Average score: {total_score/args.num_trials}')
     print(f'Average num valid steps: {total_num_valid_actions/args.num_trials}')
