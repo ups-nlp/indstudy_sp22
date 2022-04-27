@@ -9,9 +9,9 @@ from xmlrpc.client import Boolean
 from environment import *
 from mcts_node import Node
 from mcts_reward import *
-ACTION_BOUND = .1
-SIM_SCALE = .2
-THRESHOLD = 2
+ACTION_BOUND = .01
+SIM_SCALE = .1
+THRESHOLD = 1
 
 
 class Foo:
