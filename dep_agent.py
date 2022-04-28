@@ -33,16 +33,10 @@ class DEPagent(Agent):
         !!possibly weapons and enemies later!!
         """
 
-        # Movements and their opposites
-        self.movements = {'north': 'south', 'south': 'north',
-                          'east': 'west', 'west': 'east',
-                          'up': 'down', 'down': 'up',
-                          'northwest': 'southeast', 'southeast': 'northwest',
-                          'northeast': 'southwest', 'southwest': 'southeast',
-                          'go': 'go', 'jump': 'jump'}
-
-        # Number of past action to check
-        self.PAST_ACTIONS_CHECK = 3
+        # List of movements
+        self.movements = ['north', 'south', 'east', 'west',
+                          'northwest', 'northeast', 'southeast', 'southwest',
+                          'up', 'down', 'go', 'jump']
 
         self.vocab_vectors, self.word2id = embed_vocab()
 
