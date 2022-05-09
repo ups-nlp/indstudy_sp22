@@ -1,27 +1,19 @@
-from cmath import inf
-from hashlib import new
 import os
 from os.path import exists
 from telnetlib import SE
 
 import numpy as np
 
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 import tensorflow as tf
-from tensorflow import keras
-from torch import q_scale
+
 from tensorflow.keras import layers
 from tensorflow.keras.layers import Embedding, Dense, LSTM, AveragePooling1D, Input, BatchNormalization, Dropout, Masking, concatenate
 from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.losses import BinaryCrossentropy, Huber
 from tensorflow.keras.optimizers import Adam, RMSprop
-
-## IDK WHAT THIS IS LOL VVVV
-from tensorflow.compat.v1 import ConfigProto
-from tensorflow.compat.v1 import InteractiveSession
-config = ConfigProto()
-config.gpu_options.allow_growth = True
-session = InteractiveSession(config=config)
-## IDK WHAT THIS IS LOL ^^^^
+from tensorflow.keras.initializers import HeUniform
 
 
 #
@@ -54,6 +46,7 @@ def clean_text(text):
 
     ##print("---", new_text)
     return new_text.strip()
+
 
 #
 def read_data(dir_name):
@@ -100,13 +93,13 @@ def read_data(dir_name):
 
             ###
 
-            obs_len = len(clean_text(cur_obs).split(' '))
-            if obs_len > max_obs_len:
-                max_obs_len = obs_len
+            # obs_len = len(clean_text(cur_obs).split(' '))
+            # if obs_len > max_obs_len:
+            #     max_obs_len = obs_len
 
-            act_len = len(clean_text(rand_act).split(' '))
-            if act_len > max_act_len:
-                max_act_len = act_len
+            # act_len = len(clean_text(rand_act).split(' '))
+            # if act_len > max_act_len:
+            #     max_act_len = act_len
                 
     file.close()
 
@@ -122,14 +115,6 @@ def read_data(dir_name):
 
     return data, pad_len, largest_magnitude_q ##max_sen_len 
 
-
-# def generate_glove_embeddings(sentences):
-#     file = open("GloVe-master/text.txt", 'a')
-#     file.writelines(sentences)
-
-#     os.system("cd GloVe-master/")
-#     os.system("./demo.sh")
-#     os.system("cd ..")
 
 # FROM AL CHAMBERS HW 3 BASICALLY
 def compile_embeddings():
@@ -161,67 +146,8 @@ def compile_embeddings():
 
     return word2id, w
 
-def get_training_data(data, pad_len, q_scale, word_to_id, embedding_matrix):##max_obs_len, max_act_len, word_to_id, embedding_matrix): ##max_sen_len, word_to_id, embedding_matrix):
-    lstm_dict = {}
-
-    ##train_x = np.empty((len(data), max_sen_len, 50), "float32")
     
-    ###
 
-    obs_input = np.empty((len(data), pad_len, 50), "float32") #max_obs_len, 50), "float32")
-    act_input = np.empty((len(data), pad_len, 50), "float32") ##max_obs_len, 50), "float32")
-
-    ##smallest_q = 100
-    
-    
-    q_vals = np.empty(len(data), "float32")
-
-    for i in range(len(data)):
-        print(i, "/", len(data))
-
-        cur_state = data[i][0]
-        rand_act = data[i][2]
-
-
-        ##combined_str = cur_state + ' ' + rand_act
-
-        q_score = float(data[i][3]) / q_scale ## data[i][4]
-
-        ##q_score = float(format(q_score, ".4f"))
-
-        ##if smallest_q > q_score and q_score > 0:
-            ##smallest_q = q_score
-
-        # if not (combined_str in lstm_dict):
-        #     result = sentence_to_vect_sequence(combined_str, word_to_id, embedding_matrix) #sentence_to_vect(combined_str, word_to_id, embedding_matrix, lstm)
-           
-        #     lstm_dict[combined_str] = result
-     
-        # train_x[i] = pad_input(lstm_dict[combined_str], max_sen_len)
-        # q_vals[i] = q_score
-
-        ###
-
-        if not (cur_state in lstm_dict):
-            result = sentence_to_vect_sequence(cur_state, word_to_id, embedding_matrix)
-            lstm_dict[cur_state] = result
-        obs_input[i] = pad_input(lstm_dict[cur_state], pad_len)##max_obs_len)
-
-        if not (rand_act in lstm_dict):
-            result = sentence_to_vect_sequence(rand_act, word_to_id, embedding_matrix)
-            lstm_dict[rand_act] = result
-        q_vals[i] = q_score
-
-        ##print(rand_act, lstm_dict[rand_act])
-        ##print(rand_act)
-        act_input[i] = pad_input(lstm_dict[rand_act], pad_len)##max_obs_len)
-
-    ##print("0----------0", smallest_q)
-    return (obs_input, act_input, q_vals), lstm_dict ##(train_x, q_vals), lstm_dict ##(lstm_train_x, lstm_train_y), lstm_dict, q_vals
-    
-## MAJORLY NEEDS LOOKED AT 
-## ISSUE IS THAT I NEED TO PASS LSTM SEQUENCE OF WORD VECTORS (sentence) TO OUTPUT SENTENCE STATE VECTOR
-# NEEDS TO FIGURE OUT HOW TO GET OUTPUT TO FIT THOUGH WHAT THE HELL
 def sentence_to_vect_sequence(sentence, word_to_id, embedding_matrix):  
     ## sentence_vect = np.empty([1, 50, 1])
     word_ls = sentence.split(' ')
@@ -246,101 +172,147 @@ def sentence_to_vect_sequence(sentence, word_to_id, embedding_matrix):
     return np.array(word_vect_sequence)
 
 
-def clean_sent_to_input(sentence, lstm_dict):
-    if sentence in lstm_dict.keys():
-        return lstm_dict.keys()
-    
-    return None
+# def pad_input(x_train, max_len):
+#     ##print(x_train.shape)
+#     while(len(x_train) < max_len):
+#         ##x_train[i].append([0] * 50)
+#         x_train = np.append(x_train, np.array([[0.0] * 50]), 0)
 
-def pad_input(x_train, max_len):
-    ##print(x_train.shape)
-    while(len(x_train) < max_len):
-        ##x_train[i].append([0] * 50)
-        x_train = np.append(x_train, np.array([[0.0] * 50]), 0)
+#     ##print(x_train.shape)
+#     return x_train
 
-    ##print(x_train.shape)
-    return x_train
 
-def generate_net():
-    # Hyper Params (need adjust)
-    dense_nodes = 50
-    learning_rate = 0.0005
-    lstm_layer_dim = 50
-    ##output_size = 1
+def state_action_pair_to_input(state, actions, word_to_id, embedding_matrix):
+    processed_state = clean_text(state)
+    processed_actions = [clean_text(action) for action in actions]
 
-    # print("Making Q-Net")
-    model = Sequential()
+    max_act_len = max([len(act.split(' ')) for act in processed_actions])
+    pad_len = max(len(processed_state.split(' ')), max_act_len)
 
-    model.add(Masking(mask_value = 0.0))
+    processed_state = process_input([processed_state], pad_len, word_to_id, embedding_matrix)[0]
+    processed_actions = process_input(processed_actions, pad_len, word_to_id, embedding_matrix)
 
-    model.add(LSTM(lstm_layer_dim, return_sequences=True))
-    model.add(Dropout(0.2))
-    model.add(LSTM(lstm_layer_dim, return_sequences=True))
-    model.add(Dropout(0.2))
-    
-    model.add(layers.Dense(dense_nodes, activation = 'relu'))
+    return processed_state, processed_actions, processed_state.shape
 
-    model.add(AveragePooling1D())
 
-    model.add(layers.Dense(dense_nodes)) ##, activation = 'relu'))
-    model.add(BatchNormalization())
-    model.add(layers.Dense(dense_nodes)) ##, activation = 'relu'))
-    model.add(BatchNormalization())
+def agent_data_to_input(data, word_to_id, embedding_matrix):
+    #[[cur_obs, cur_score, act, next_obs, score_dif, next_state_status, next_acts, cur_state]] IN
+    #[[cur_obs, act, score_dif, next_state_status, next_obs, next_actions]] OUT
 
-    model.add(layers.Dense(1)) #, activation = 'sigmoid'))
-    
-    model.compile(
-        loss='huber', # 0.004
-        ##loss='mse',
-        ##loss='mean_squared_error', # 0.002
-        ##loss='mean_squared_logarithmic_error', # 0.001
-        ##loss='mean_absolute_error', 0.004
+    processed_data = []
+
+    largest_sen_len = 0
+
+    for i in range(len(data)):
+        cur_obs, cur_score, act, next_obs, score_dif, next_state_status, next_actions, _, act_num, num_actions = data[i]
+
+        ##print("0000000000000000", next_actions)
+                                                                #VVVVVVVVV prev was cur score
+        processed_datum = [clean_text(cur_obs), clean_text(act), cur_score, next_state_status, clean_text(next_obs), [clean_text(action) for action in next_actions], 0, act_num, num_actions]
+
+        # cur_obs_len = len(processed_datum[0].split(' '))
+        # if cur_obs_len > largest_sen_len:
+        #     largest_sen_len = cur_obs_len
+
+        # act_len = len(processed_datum[1].split(' '))
+        # if act_len > largest_sen_len:
+        #     largest_sen_len = act_len
+
+        # next_obs_len = len(processed_datum[4].split(' '))
+        # if next_obs_len > largest_sen_len:
+        #     largest_sen_len = next_obs_len
+
+        # act_lens = [len(action.split(' ')) for action in processed_datum[5]]
+        # if len(act_lens) != 0:
+        #     max_act_len = max(act_lens)
+        #     if  max_act_len > largest_sen_len:
+        #         largest_sen_len = max_act_len
+        ##else:
+            ##print("What is going on here bruh", next_obs, '|', processed_data[5])
+
+        processed_data.append(processed_datum)
+
+           
+    for i in range(len(processed_data)):
+        processed_datum = processed_data[i]
+
+        processed_datum[0] = process_input([processed_datum[0]], largest_sen_len, word_to_id, embedding_matrix)[0]
         
-        ##optimizer=Adam(learning_rate = learning_rate),
-        optimizer=RMSprop(learning_rate = learning_rate),
-        ##optimizer='sgd',
+        processed_datum[1] = process_input([processed_datum[1]], largest_sen_len, word_to_id, embedding_matrix)[0]
+        
+        processed_datum[4] = process_input([processed_datum[4]], largest_sen_len, word_to_id, embedding_matrix)[0]
+        
+        processed_datum[5] = process_input(processed_datum[5], largest_sen_len, word_to_id, embedding_matrix)
 
-        metrics=['accuracy'],   
-    )
+        processed_datum[6] = processed_datum[0].shape
 
-    return model
+    return processed_data
 
 
-def generate_branched_net(state_input_shape, action_input_shape):
+def process_input(inputs, pad_len, word_to_id, embedding_matrix):
+    processed_inputs = []
+    for input in inputs:
+        clean_input = input ##clean_text(input)
+
+        input_vects = sentence_to_vect_sequence(clean_input, word_to_id, embedding_matrix)
+
+        ##padded_input_vects = pad_input(input_vects, pad_len)
+
+        processed_inputs.append(input_vects)
+
+    return processed_inputs
+
+
+def generate_branched_net(): ##, action_input_shape):
+    ##print(state_input_shape)
+
     # Hyper Params (need adjust)
-    dense_nodes = 50
-    learning_rate = 0.0005
-    lstm_layer_dim = 10
+    ##dense_nodes = 64
+    learning_rate = 0.0001
+    ##lstm_layer_dim = 10
+    ##init = HeUniform()
     ##output_size = 1
 
-    # Branch 1 (observation)
-    state_input = Input(shape=state_input_shape)
-    state_branch = Masking(mask_value = 0.0) (state_input)
-    state_branch = LSTM(lstm_layer_dim, return_sequences=True) (state_branch)
-    ##state_branch = Dropout(0.2) (state_branch)
-    state_branch = LSTM(lstm_layer_dim, return_sequences=True) (state_branch)
+    state_input = Input(shape=(None, 50))
+    ##state_branch = Masking(mask_value = 0.0) (state_input)
+    state_branch = LSTM(10, return_sequences=True) (state_input) ##(state_branch)
     state_branch = Dropout(0.2) (state_branch)
+    state_branch = AveragePooling1D(pool_size = 2, padding = "same") (state_branch) ##
+    state_branch = LSTM(10, return_sequences=True) (state_branch)
+    state_branch = Dropout(0.2) (state_branch)
+    state_branch = AveragePooling1D(pool_size = 2, padding = "same") (state_branch) ##
+    state_branch = LSTM(10, return_sequences=False) (state_branch)
+    state_branch = Dropout(0.2) (state_branch)
+    state_branch = Dense(64, activation='relu') (state_branch)
+    state_branch = Dense(64, activation='relu') (state_branch)
     state_branch = Model(inputs=state_input, outputs=state_branch)
 
     # Branch 2 (action)
-    action_input = Input(shape=action_input_shape)
-    action_branch = Masking(mask_value = 0.0) (action_input)
-    action_branch = LSTM(lstm_layer_dim, return_sequences=True) (action_branch)
-    ##action_branch = Dropout(0.2) (action_branch)
-    action_branch = LSTM(lstm_layer_dim, return_sequences=True) (action_branch)
+    action_input = Input(shape=(None, 50))
+    ##action_branch = Masking(mask_value = 0.0) (action_input)
+    action_branch = LSTM(10, return_sequences=True) (action_input) ##(action_branch)
     action_branch = Dropout(0.2) (action_branch)
+    action_branch = AveragePooling1D(pool_size = 2, padding = "same") (action_branch) ##
+    action_branch = LSTM(10, return_sequences=True) (action_branch)
+    action_branch = Dropout(0.2) (action_branch)
+    action_branch = AveragePooling1D(pool_size = 2, padding = "same") (action_branch) ##
+    action_branch = LSTM(10, return_sequences=False) (action_branch)
+    action_branch = Dropout(0.2) (action_branch)
+    action_branch = Dense(64, activation='relu') (action_branch)
+    action_branch = Dense(64, activation='relu') (action_branch)
     action_branch = Model(inputs=action_input, outputs=action_branch)
-    
-    # Combined Branch
+
     merging_layer = concatenate([state_branch.output, action_branch.output])
 
-    combined_layers = AveragePooling1D() (merging_layer)
-    combined_layers = Dense(dense_nodes, activation='relu') (combined_layers)
-    combined_layers = Dense(dense_nodes, activation='relu') (combined_layers)
-    combined_layers = Dense(1, activation='linear') (combined_layers)
+    combined_layers = Dense(64, activation='relu') (merging_layer)
+    combined_layers = Dropout(0.2) (combined_layers) ##
+    combined_layers = Dense(32, activation='relu') (combined_layers)
+    combined_layers = Dense(32, activation='relu') (combined_layers)
+    combined_layers = Dense(16, activation='relu') (combined_layers)
+    combined_layers = Dense(1, activation='linear') (combined_layers) ##1, activation='linear') (combined_layers)
 
     model = Model(inputs=[state_branch.input, action_branch.input], outputs=combined_layers)
-    
+
     model.compile(
         loss='huber', # 0.004
         ##loss='mse',
@@ -348,18 +320,19 @@ def generate_branched_net(state_input_shape, action_input_shape):
         ##loss='mean_squared_logarithmic_error', # 0.001
         ##loss='mean_absolute_error', 0.004
         
-        ##optimizer=Adam(learning_rate = learning_rate),
+        ##optimizer=Adam(learning_rate = learning_rate, clipnorm=0.5),
         optimizer=RMSprop(learning_rate = learning_rate),
         ##optimizer='sgd',
 
-        metrics=['accuracy'],   
+        metrics=['mean_squared_error'],   
     )
 
+    ##print(model.summary())
     return model
 
 
-def compile_corupus():
-    dir_name = "data"
+def compile_corupus(dir_name):
+    ##dir_name = "data"
     files = os.listdir(dir_name)
 
     write_str = ""
@@ -394,168 +367,30 @@ def compile_corupus():
     dest.write(write_str)
 
 
-def load_train_inf(obs_shape, act_shape):
-    obs_train = np.loadtxt("data/-obs_train.txt").reshape(obs_shape)
-    act_train = np.loadtxt("data/-act_train.txt").reshape(act_shape)
-    q_train = np.loadtxt("data/-q_train.txt")
-
-    return (obs_train, act_train, q_train)
-
-
-def save_train_inf(training):
-    print("--Saving obs_train of shape", training[0].shape)
-    np.savetxt("data/-obs_train.txt", training[0].reshape(training[0].shape[0], -1))
-
-    print("--Saving act_train of shape", training[1].shape)
-    np.savetxt("data/-act_train.txt", training[1].reshape(training[0].shape[0], -1))
-
-    print("--Saving q_train of shape", training[2].shape)
-    np.savetxt("data/-q_train.txt", training[2])
 
 ##################################################
-##data, max_obs_len, max_act_len = read_data("data") ##max_sen_len = read_data("data")
-data, pad_len, q_scale_len = read_data("data")
 
-if not exists("GloVe-Master/text.txt"):
-    # generate_glove_embeddings(sentences)
-    # NEED LOWERCASE NO PUNCT FROM ALL DATAFILES INTO text.txt in glove dir
-    compile_corupus()
-    print("needs GLOVE Embeddings! Then re-run")
-elif(not exists("data/-obs_train.txt") or not exists("data/-act_train.txt") or not exists("data/-q_train.txt")):
-    print("-Compiling Embeddings")
-    word_to_id, embedding_matrix = compile_embeddings()
 
-    print("-Getting Training Data")
-    ##training, lstm_dict = get_training_data(data, max_obs_len, max_act_len, word_to_id, embedding_matrix) ##get_training_data(data, max_sen_len, word_to_id, embedding_matrix) ##, q_values = get_training_data(data, word_to_id, embedding_matrix)
-    training, lstm_dict = get_training_data(data, pad_len, q_scale_len, word_to_id, embedding_matrix)
-
-    print("-Saving Train Info")
-    save_train_inf(training)
-
-    print("--Training Data Generated! Re-run with shapes entered into code")
-
-else:
-    print("-Getting Training Info")
-    word_to_id, embedding_matrix = compile_embeddings()
-    training, lstm_dict = get_training_data(data, pad_len, q_scale_len, word_to_id, embedding_matrix)##max_obs_len, max_act_len, word_to_id, embedding_matrix)
-
-    # obs_shape = (114516, 70, 50)
-    # act_shape = (114516, 70, 50)
-    # training = load_train_inf(obs_shape, act_shape)
-
-    input_vects = [training[0], training[1]]
-    q_values = training[2] 
-
-    print("-Generating Net")
-    ##model = generate_net()
-    ###
-    print(training[0][0].shape, training[1][0].shape)
-    print(training[0][0])
-    print('-')
-    print(training[1][0])
-    print('-')
-    print(training[2][0])
-    print('-')
-    print(training[0][0][69][0] == 0.0)
-    model = generate_branched_net(training[0][0].shape, training[1][0].shape) ##(len(data), max_obs_len, 50), (len(data), max_act_len, 50))
-
-    print("-Training Net")
-    epochs = 120
-    batch_size = 400
-
-    ##print(state_vects.shape, q_values.shape)
-    
-    ##model.fit(state_vects, q_values, epochs = epochs, batch_size = batch_size)
-
-    ###
-
-    model.fit(input_vects, q_values, epochs = epochs, batch_size = batch_size)
+# data, pad_len, q_scale_len = read_data("data")
 
 
 
-    print(model.summary())
+# print("-Getting Training Info")
+# word_to_id, embedding_matrix = compile_embeddings()
+# training, lstm_dict = get_training_data(data, pad_len, q_scale_len, word_to_id, embedding_matrix)##max_obs_len, max_act_len, word_to_id, embedding_matrix)
 
-    print("-All Done... saving")
-    net_dir = "nets"
-    cur_file_path = "nets/"
-    net_file_name_format = "lstm"
-    file_num = 0
-    while(exists(cur_file_path)):
-        file_num += 1
-        cur_file_path = net_dir + '/' + net_file_name_format + str(file_num)
+# input_vects = [training[0], training[1]]
+# q_values = training[2] 
 
-    model.save(cur_file_path)
+# model = generate_branched_net(training[0][0].shape, training[1][0].shape) ##(len(data), max_obs_len, 50), (len(data), max_act_len, 50))
 
+# print("-Training Net")
+# epochs = 120
+# batch_size = 400
 
-    ##print("-Loading lstm model")
-    ##lstm = keras.models.load_model("nets/lstm1")
+# model.fit(input_vects, q_values, epochs = epochs, batch_size = batch_size)
 
-
-    #print("-Saving lstm dict")
-    #save_dict("data/-lstm_dict.txt", lstm_dict) # needs fix
-
-    # x_train, batch_size = pad_lstm_input(lstm_training[0])
-    # input = [sentence_through_lstm(x, lstm, batch_size) for x in lstm_training[0]]
-    # print(input[0].dtype)
-    # print(input[0])
-    # print('------------', len(input))
-    # input = np.array(input).reshape(len(input), 50)
-
-    # print(input.shape)
-    
-    
-
-    #loaded_dict = load_dict("data/-lstm_dict.txt")
-
-    # Hyper Params (need adjust)
-    # epochs = 20
-    # batch_size = 32
-    # layer_one_nodes = 32
-    # layer_two_nodes = 16
-    # learning_rate = 0.005
-    # input_size = 50 #NOTE PLACEHOLDER?
-    # output_size = 1
-
-    # # print("Making Q-Net")
-    # q_net = Sequential()
-    # q_net.add(keras.Input(shape=(50)))
-    # q_net.add(layers.Dense(layer_one_nodes, activation = 'relu'))
-    # q_net.add(layers.Dense(layer_two_nodes, activation = 'relu'))
-    # q_net.add(layers.Dense(output_size, activation = 'sigmoid'))
-    # q_net.compile(
-    #     loss='binary_crossentropy',
-    #     optimizer=Adam(learning_rate = learning_rate),
-    #     metrics=['accuracy'],   
-    # )
-    
-    # print("Starting Training")
-    # Train model
-
-    # q_values = np.array(q_values).astype('float32')
-    # print(q_values.dtype)
-    # print(q_values[0])
-
-    # q_net.fit(input, q_values, batch_size = batch_size, epochs = epochs)
-
-    # print("All Done... saving")
-    # net_dir = "nets"
-    # cur_file_path = "nets/"
-    # net_file_name_format = "qNet"
-    # file_num = 0
-    # while(exists(cur_file_path)):
-    #         file_num += 1
-    #         cur_file_path = net_dir + '/' + net_file_name_format + str(file_num)
-
-    # q_net.save(cur_file_path)
+# print(model.summary())
 
 
-    # model = keras.models.load_model("nets/qNet1")
 
-    # state = "behind house you are behind white house path leads into forest east in one corner of house there small window which open west"
-
-    # state_vect = np.array()
-
-    # predict = model.predict(state_vect)
-
-    # print(predict)
-    

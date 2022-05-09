@@ -2,14 +2,27 @@
 Agents for playing text-based games
 """
 
+from cmath import inf, nan, tau
 from math import sqrt
 import random
 import time
 import os
+from pygments import highlight
+
+
+from torch import get_rng_state
 from environment import *
 from mcts_agent import best_child, tree_policy, default_policy, backup, dynamic_sim_len
 from mcts_node import Node
 from mcts_reward import AdditiveReward
+
+from q_net import generate_branched_net
+from q_net import agent_data_to_input
+from q_net import compile_embeddings
+from q_net import state_action_pair_to_input
+from collections import deque
+
+import numpy as np
 
 
 class Agent:
@@ -20,6 +33,76 @@ class Agent:
         raise NotImplementedError
 
 
+class TestQNet(Agent):
+    """Interface for an Agent"""
+
+    def __init__(self, env: Environment):
+        loaded_weights = [arr for arr in np.load("nets/qNet.npy", allow_pickle=True)]
+
+        ##print(loaded_weights)
+
+        self.model = generate_branched_net() 
+        self.model.set_weights(loaded_weights)
+
+        ##print(self.model.get_weights())
+        
+        # current_weights = self.model.get_weights()
+        # for i in range(len(current_weights)):
+        #     for j in range(len(current_weights[i])):
+        #         print(type(loaded_weights[i][j]))
+        
+        self.word2id, self.id2word = compile_embeddings() # Get embeddings and dicts to translate
+        ##print("INITIALIZED BAYBEEE")
+        ##print(self.model.summary())
+
+    def take_action(self, env: Environment, history: list) -> str:
+        """Takes in the history and returns the next action to take"""
+        valid_actions = env.get_valid_actions()
+        ##print(env.step("look")[0])
+        state_vects, act_vects, input_shape = state_action_pair_to_input(env.step("look")[0], valid_actions, self.word2id, self.id2word)
+
+        ##self.adjust_model_size(input_shape)
+        best_act_index = []
+        best_act_q = -float(inf) 
+
+        for i in range(len(act_vects)):
+            ##print(np.array([state_vects]).shape)
+            ##print(np.array([act_vects[i]]).shape)
+            act_q = self.model.predict([np.array([state_vects]), np.array([act_vects[i]])])[0][0]
+
+            if act_q != act_q: # Needed?
+                act_q = -float(inf)
+
+            print("-Q:", act_q, "For valid action:", valid_actions[i])
+
+            if act_q > best_act_q:
+                best_act_q = act_q
+                best_act_index = [i]
+            elif act_q == best_act_q:
+                best_act_index.append(i)
+
+        best_act = valid_actions[random.choice(best_act_index)]
+        print(best_act)
+
+        print('\n')
+        return best_act
+
+    # def adjust_model_size(self, input_shape):
+    #     if input_shape == self.input_shape:
+    #         return
+
+    #     self.input_shape = input_shape
+
+    #     model = generate_branched_net(input_shape, 0)##input_shape)
+        
+    #     weights = self.model.get_weights()
+
+    #     model.set_weights(weights)
+
+    #     self.model = model
+        
+
+
 class RandomAgent(Agent):
     """Agent randomly selects an action from list of valid actions"""
 
@@ -28,6 +111,257 @@ class RandomAgent(Agent):
 
         valid_actions = env.get_valid_actions()
         return random.choice(valid_actions)
+
+
+class QTrainAgent(Agent):
+    """Agent Plays the game and trains the QNet"""
+    def __init__(self, env: Environment, save_net_dir, load_net = False):
+        ##self.data_dir = data_dir
+
+        # Q Learning vars
+        self.data = deque(maxlen=1000) # State: obs, next_obs, action, q value, score, win/loss/regular
+        self.gamma = 0.95 # discount for future scores
+        self.epsilon = 1.0 # explore exploit
+        self.epsilon_min = 0.1 # minimum value for epsilon
+        self.epsilon_decay = 0.99999 # fraction at which epsilon decays ex: new_epsilon = epsilon * epsilon_decay
+        self.tau = 0.125
+        
+        # Model vars
+        self.batch_size = 250
+
+        self.target_net = generate_branched_net() # predictions?
+        
+        self.main_net = generate_branched_net() # desired predictions
+
+        # if load_net:
+        #     self.main_net = load_model('data/qNet', compile=False)
+        #     self.main_net = load_model('data/qNet', compile=False)
+
+            ## self.epsilon = SOMETHING
+
+        self.word2id, self.id2word = compile_embeddings() # Get embeddings and dicts to translate 
+
+        self.save_net_dir = save_net_dir
+
+        # Game vars
+        self.trials = 0
+        self.moves = 0
+        self.start_state = env.get_state()
+        self.had_score_change = False
+        self.moves_since_last_point_change = 0
+        self.action_max = 10
+        self.distance_deduction_multiplier = 0.1
+        self.last_state = (None, None)
+
+        
+    def take_action(self, env: Environment, history: list) -> str:
+        """Takes in the history and returns the next action to take"""
+    
+        return self.next_move(env) #, valid_actions) # Return the action to take
+
+    def next_move(self, env):
+        cur_obs = env.step("look")[0]
+        actions = env.get_valid_actions()
+        next_act, act_num = self.evaluate_actions(cur_obs, actions) # Get the next action to take
+
+        next_status = self.test_act(env, cur_obs, next_act, act_num) # Test the next action and record score/status. Get f we just died and are now reset or not
+
+        if self.had_score_change and self.moves % 20 == 0: # No use training when all of the scores are 0 still
+            self.batch_sample_train()
+            self.update_main_weights()
+            
+
+        # If we died and just reset, just make this action 'look' 
+        if next_status == -1 or self.moves_since_last_point_change > 100:
+            self.trials += 1
+            print("Trial", self.trials, "Epsilon:", self.epsilon)
+            next_act = "look"
+            self.moves_since_last_point_change = 0
+            self.moves = 0
+            env.set_state(self.start_state)
+            cur_obs = None
+            actions = None
+        ##elif next_status == 1:
+            ##self.main_net.save(self.save_net_dir + "/qNet")
+
+        if self.trials % 1 == 0:
+            self.update_main_weights()
+            ##self.main_net.save_weights(self.save_net_dir + "/qNet.h5")
+            self.save_model_weights()
+
+        self.moves += 1
+
+        ##print("Trial:", self.trials, "Moves:", self.moves, "Epsilon:", self.epsilon)
+
+        self.last_state = (cur_obs, actions)
+
+        return next_act # Return the action to the game
+
+    def save_model_weights(self):
+        np.save("nets/qNet", np.array(self.main_net.get_weights())) 
+        ##print(self.main_net.get_weights())
+
+    #
+    def evaluate_actions(self, cur_obs, actions):
+        self.epsilon *= self.epsilon_decay
+
+        if self.epsilon < self.epsilon_min:
+            self.epsilon = self.epsilon_min
+
+        if np.random.random() < self.epsilon:
+            picked_action = np.random.choice(actions)
+            return picked_action, actions.index(picked_action) 
+
+        state_vects, action_vects, input_shape = state_action_pair_to_input(cur_obs, actions, self.word2id, self.id2word)
+        
+        ##self.adjust_model_size(self.target_net, input_shape, input_shape)
+
+        highest_q = -float('inf')
+
+        best_action_indices = []
+
+        for i in range(len(action_vects)):
+            q_val = self.target_net.predict([np.array([state_vects]), np.array([action_vects[i]])])[0][0]
+            ##print(q_val)
+            
+            if q_val > highest_q:
+                best_action_indices = [i]
+            elif q_val == highest_q:
+                best_action_indices.append(i)
+
+
+        ##print(q_vals)
+
+        # best_action_indices = []
+        # for i in range(len(actions)):
+        #     if highest_q < q_vals[i]:
+        #         best_action_indices = [i]
+        #     elif highest_q == q_vals[i]:
+        #         best_action_indices.append(i)
+
+    
+        act_index = np.random.choice(best_action_indices)
+        return actions[act_index], act_index 
+
+    #
+    def batch_sample_train(self):
+        # If we do not have enough data to train on just move on
+        if len(self.data) < self.batch_size:
+            return 
+
+        #
+        rand_data = random.sample(self.data, self.batch_size)
+
+        train_inf = agent_data_to_input(rand_data, self.word2id, self.id2word)
+
+        total_loss = 0
+        total_mse = 0
+
+        for inf in train_inf:
+            cur_state_vects, act_vect, reward, done, next_obs_vects, next_actions, input_shape, act_num, num_actions = inf
+
+            ##self.adjust_model_size(self.target_net, input_shape, num_actions)
+
+            target_q = 0  
+
+            if done:
+                ##print("-End state", reward)
+                target_q = reward
+            else:
+                ##highest_future_q = -float('inf')
+
+                highest_future_q = 0
+
+                q_vals = []
+
+                ##print('-Cur state reward is:', reward)
+                for act in next_actions:
+                    q_val = self.target_net.predict([np.array([next_obs_vects]), np.array([act])])[0][0]
+                    ##print(q_val)
+                    q_vals.append(q_val)
+                    ##print('--Potential future val:', q_val)
+
+                ##print()
+
+                highest_future_q = max(q_vals)
+
+                ##highest_future_q = max(highest_future_q, max_future_q)
+
+                target_q = reward + (highest_future_q * self.gamma)
+                ##print(target_q)
+
+            ##print(type(target_q))
+
+            ##print(np.array([cur_state_vects]).shape)
+            ##print(np.array([act_vect]).shape)
+
+            fit_hist = self.target_net.fit([np.array([cur_state_vects]), np.array([act_vect])], np.array([target_q]), epochs = 1, batch_size = 1, verbose = 0).history
+            total_loss += fit_hist['loss'][0]
+            total_mse += fit_hist['mean_squared_error'][0]
+            
+        print("-Avg Loss:", total_loss / self.batch_size, "Avg MSE:", total_mse / self.batch_size)
+
+
+
+    #
+    def update_main_weights(self):
+        target_weights = self.target_net.get_weights()
+        ##print(target_weights, "\n``````````````````````````````````````````````````````````````````````````````")
+        main_weights = self.main_net.get_weights()
+        
+        new_main_weights = []
+
+        for i in range(len(target_weights)):
+            augmented_weights = (target_weights[i] + main_weights[i]) / 2 ##(target_weights[i].astype('float64') * tau) + (main_weights[i].astype('float64') * (1 - tau))
+            ##print(augmented_weights)
+
+            adjusted_weights = target_weights[i]
+            new_main_weights.append(augmented_weights)
+
+        self.main_net.set_weights(new_main_weights)
+        ##print(new_main_weights)
+        
+    #
+    def test_act(self, env, cur_obs, act, act_num):
+
+        cur_state = env.get_state()
+        cur_score = env.get_score() + 10 ##+ (self.distance_deduction_multiplier * self.moves)
+
+        score_dif, next_state_status, next_obs, next_acts, next_score = self.check_next_state(env, act)
+
+        if score_dif == 0:
+            self.moves_since_last_point_change += 1
+        else:
+            self.moves_since_last_point_change == 0
+            
+            self.had_score_change = True
+
+        if (next_obs, next_acts) != self.last_state: # attempt to prevent looping
+            self.data.append([cur_obs, cur_score, act, next_obs, score_dif, next_state_status, next_acts, cur_state, act_num, len(env.get_valid_actions())])
+        else:
+            print("-dupe blocked")
+
+        return next_state_status
+
+    def check_next_state(self, env, action):
+        next_state_status = 0
+
+        cur_state = env.get_state()
+        cur_score = env.get_score()
+
+        next_obs = env.step(action)[0]
+        next_score = env.get_score()
+        next_actions = env.get_valid_actions()
+
+        if env.game_over():
+            next_state_status = -1
+        elif env.victory():
+            next_state_status = 1 
+        
+        env.set_state(cur_state)
+
+        return next_score - cur_score, next_state_status, next_obs, next_actions, next_score + 10 ##+ (self.distance_deduction_multiplier * (self.moves + 1))
+
 
 
 class CollectionAgent(Agent):
@@ -103,64 +437,6 @@ class CollectionAgent(Agent):
 
         return rand_act
 
-        # dead_next = False # Keep track if the next state will be the game end 
-        # win_next = False
-
-        # cur_obs, _, _, _ = env.step('look')
-
-        # cur_score = env.get_score() # Get the current score at this state
-        # cur_state = env.get_player_location() # Get the current state info
-
-        # rand_act = random.choice(valid_options) # Get a random valid action for the current state  
-
-        # cur_state = env.get_state() # Get the current state and save for switching back later
-
-        # next_obs, _, done, _ = env.step(rand_act) # Move into the next state for info from env
-        # if env.game_over(): # If we are about to perish 
-        #     dead_next = True
-        # elif env.victory():
-        #     win_next = True
-        
-        # next_score = env.get_score()
-
-        # score_diff = next_score - cur_score # Find out the score difference taking this action yields
-        
-        # env.set_state(cur_state) 
-
-        # self.backpropogate(score_diff) # Backpropogate down the score w/ decay
-
-        # if not dead_next:
-        #     self.data.append([cur_obs, next_obs, rand_act, next_score, next_score, "Reg", cur_state]) # Current obs, Next obs, Action, Potential future score total, Score at next state
-
-        #     if win_next: # If we are about to win write data
-        #         print("Victory")
-        #         self.data[-1][5] = "Win"
-        #         self.write_data()
-
-        # else:
-        #     print("Died")
-        #     self.extra_states.append([cur_obs, next_obs, rand_act, next_score, next_score, "Los", cur_state]) # Current obs, Next obs, Action, Potential future score total, Score at next state
-            
-            
-        #     self.revert_to_best(env)
-
-        #     #self.look_ahead(env)
-        #     rand_act = "look"
-
-        #     # valid_actions.remove(rand_act)
-        #     # if len(valid_actions) != 0: 
-        #     #     rand_act = self.look_ahead(env, valid_actions)
-        #     # else:
-        #     #     self.write_data()
-
-        # self.count += 1
-        # self.total += 1
-        # if self.count == 100:
-        #     self.count = 0
-        #     print("Step", self.total)
-
-        # #print(rand_act)
-        # return rand_act
 
     def check_next_state(self, env, action): # Returns tuple (score_diff, is_not_game_over, next_state, next_obs)
         next_state_status = 0

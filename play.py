@@ -2,11 +2,11 @@
 
 import argparse
 import time
-from agent import Agent
+from agent import Agent, TestQNet
 from agent import RandomAgent
 from agent import HumanAgent
 from agent import MonteAgent
-from agent import CollectionAgent
+from agent import QTrainAgent
 import config
 from environment import *
 
@@ -99,8 +99,10 @@ if __name__ == "__main__":
         ai_agent = HumanAgent()    
     elif args.agent == 'mcts':
         ai_agent = MonteAgent(JerichoEnvironment(args.game_file), args.num_moves)
-    elif args.agent == 'collector':
-        ai_agent = CollectionAgent(JerichoEnvironment(args.game_file), "data") # need num moves again actually just in case
+    elif args.agent == 'qnet':
+        ai_agent = QTrainAgent(JerichoEnvironment(args.game_file), "nets", False) # need num moves again actually just in case
+    elif args.agent =='testqnet':
+        ai_agent = TestQNet(JerichoEnvironment(args.game_file))
     else:
         ai_agent = RandomAgent()
 
