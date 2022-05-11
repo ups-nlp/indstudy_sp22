@@ -17,7 +17,7 @@ If you want to change the corpus you could do that by updating the get_walkthrou
 
 ---
 
-### Neural Netwwork
+### Neural Network
 As for the neural network, it can definately be adjusted by making changes to the keras_dm_nn.py file. Just make sure when you're saving the model in the NN folder you delete the old model before creating a new one. Also inside the keras_dm_nn.py file there is the old code for the implementations of adaboost and the svm commented out at the bottom which you can take a look at.
 
 ---
