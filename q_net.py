@@ -1,6 +1,6 @@
 import os
-from os.path import exists
-from telnetlib import SE
+##from os.path import exists
+##from telnetlib import SE
 
 import numpy as np
 
@@ -208,7 +208,8 @@ def agent_data_to_input(data, word_to_id, embedding_matrix):
 
         ##print("0000000000000000", next_actions)
                                                                 #VVVVVVVVV prev was cur score
-        processed_datum = [clean_text(cur_obs), clean_text(act), cur_score, next_state_status, clean_text(next_obs), [clean_text(action) for action in next_actions], 0, act_num, num_actions]
+        ##print(score_dif)
+        processed_datum = [clean_text(cur_obs), clean_text(act), score_dif, next_state_status, clean_text(next_obs), [clean_text(action) for action in next_actions], 0, act_num, num_actions]
 
         # cur_obs_len = len(processed_datum[0].split(' '))
         # if cur_obs_len > largest_sen_len:
@@ -268,48 +269,42 @@ def generate_branched_net(): ##, action_input_shape):
 
     # Hyper Params (need adjust)
     ##dense_nodes = 64
-    learning_rate = 0.0001
+    learning_rate = 0.001
     ##lstm_layer_dim = 10
     ##init = HeUniform()
     ##output_size = 1
 
     state_input = Input(shape=(None, 50))
-    ##state_branch = Masking(mask_value = 0.0) (state_input)
-    state_branch = LSTM(10, return_sequences=True) (state_input) ##(state_branch)
+    state_branch = LSTM(32, return_sequences=True) (state_input) ##(state_branch)
     state_branch = Dropout(0.2) (state_branch)
     state_branch = AveragePooling1D(pool_size = 2, padding = "same") (state_branch) ##
-    state_branch = LSTM(10, return_sequences=True) (state_branch)
+    state_branch = LSTM(16, return_sequences=True) (state_branch)
     state_branch = Dropout(0.2) (state_branch)
     state_branch = AveragePooling1D(pool_size = 2, padding = "same") (state_branch) ##
-    state_branch = LSTM(10, return_sequences=False) (state_branch)
-    state_branch = Dropout(0.2) (state_branch)
-    state_branch = Dense(64, activation='relu') (state_branch)
-    state_branch = Dense(64, activation='relu') (state_branch)
+    state_branch = LSTM(8, return_sequences=False) (state_branch)
     state_branch = Model(inputs=state_input, outputs=state_branch)
 
     # Branch 2 (action)
     action_input = Input(shape=(None, 50))
     ##action_branch = Masking(mask_value = 0.0) (action_input)
-    action_branch = LSTM(10, return_sequences=True) (action_input) ##(action_branch)
+    action_branch = LSTM(32, return_sequences=True) (action_input) ##(action_branch)
     action_branch = Dropout(0.2) (action_branch)
     action_branch = AveragePooling1D(pool_size = 2, padding = "same") (action_branch) ##
-    action_branch = LSTM(10, return_sequences=True) (action_branch)
+    action_branch = LSTM(16, return_sequences=True) (action_branch)
     action_branch = Dropout(0.2) (action_branch)
     action_branch = AveragePooling1D(pool_size = 2, padding = "same") (action_branch) ##
-    action_branch = LSTM(10, return_sequences=False) (action_branch)
-    action_branch = Dropout(0.2) (action_branch)
-    action_branch = Dense(64, activation='relu') (action_branch)
-    action_branch = Dense(64, activation='relu') (action_branch)
+    action_branch = LSTM(8, return_sequences=False) (action_branch)
     action_branch = Model(inputs=action_input, outputs=action_branch)
 
     merging_layer = concatenate([state_branch.output, action_branch.output])
 
-    combined_layers = Dense(64, activation='relu') (merging_layer)
-    combined_layers = Dropout(0.2) (combined_layers) ##
-    combined_layers = Dense(32, activation='relu') (combined_layers)
-    combined_layers = Dense(32, activation='relu') (combined_layers)
-    combined_layers = Dense(16, activation='relu') (combined_layers)
-    combined_layers = Dense(1, activation='linear') (combined_layers) ##1, activation='linear') (combined_layers)
+    # combined_layers = Dense(256, activation='relu') (merging_layer)
+    # combined_layers = Dropout(0.2) (combined_layers)
+    # combined_layers = Dense(256, activation='relu') (combined_layers)
+    # combined_layers = Dense(256, activation='relu') (combined_layers)
+    combined_layers = Dense(4, activation='relu') (combined_layers)
+    combined_layers = Dense(2, activation='relu') (merging_layer) #(combined_layers)
+    combined_layers = Dense(1, activation='linear') (combined_layers) 
 
     model = Model(inputs=[state_branch.input, action_branch.input], outputs=combined_layers)
 
@@ -320,8 +315,8 @@ def generate_branched_net(): ##, action_input_shape):
         ##loss='mean_squared_logarithmic_error', # 0.001
         ##loss='mean_absolute_error', 0.004
         
-        ##optimizer=Adam(learning_rate = learning_rate, clipnorm=0.5),
-        optimizer=RMSprop(learning_rate = learning_rate),
+        optimizer=Adam(learning_rate = learning_rate),
+        ##optimizer=RMSprop(learning_rate = learning_rate),
         ##optimizer='sgd',
 
         metrics=['mean_squared_error'],   

@@ -100,7 +100,7 @@ if __name__ == "__main__":
     elif args.agent == 'mcts':
         ai_agent = MonteAgent(JerichoEnvironment(args.game_file), args.num_moves)
     elif args.agent == 'qnet':
-        ai_agent = QTrainAgent(JerichoEnvironment(args.game_file), "nets", False) # need num moves again actually just in case
+        ai_agent = QTrainAgent(JerichoEnvironment(args.game_file), "nets", False) 
     elif args.agent =='testqnet':
         ai_agent = TestQNet(JerichoEnvironment(args.game_file))
     else:

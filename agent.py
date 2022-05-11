@@ -82,10 +82,10 @@ class TestQNet(Agent):
                 best_act_index.append(i)
 
         best_act = valid_actions[random.choice(best_act_index)]
-        print(best_act)
+        print("Best Estimated Action:", best_act)
 
-        print('\n')
-        return best_act
+        print("Enter Move:")
+        return input()
 
     # def adjust_model_size(self, input_shape):
     #     if input_shape == self.input_shape:
@@ -125,17 +125,18 @@ class QTrainAgent(Agent):
         self.epsilon_min = 0.1 # minimum value for epsilon
         self.epsilon_decay = 0.99999 # fraction at which epsilon decays ex: new_epsilon = epsilon * epsilon_decay
         self.tau = 0.125
+        self.steps = 0
         
         # Model vars
-        self.batch_size = 250
+        self.batch_size = 180
 
         self.target_net = generate_branched_net() # predictions?
         
         self.main_net = generate_branched_net() # desired predictions
 
-        # if load_net:
-        #     self.main_net = load_model('data/qNet', compile=False)
-        #     self.main_net = load_model('data/qNet', compile=False)
+        if load_net:
+            self.target_net.set_weights([arr for arr in np.load(save_net_dir + "/qNet.npy", allow_pickle=True)])
+            
 
             ## self.epsilon = SOMETHING
 
@@ -147,10 +148,9 @@ class QTrainAgent(Agent):
         self.trials = 0
         self.moves = 0
         self.start_state = env.get_state()
-        self.had_score_change = False
+        
         self.moves_since_last_point_change = 0
         self.action_max = 10
-        self.distance_deduction_multiplier = 0.1
         self.last_state = (None, None)
 
         
@@ -166,13 +166,13 @@ class QTrainAgent(Agent):
 
         next_status = self.test_act(env, cur_obs, next_act, act_num) # Test the next action and record score/status. Get f we just died and are now reset or not
 
-        if self.had_score_change and self.moves % 20 == 0: # No use training when all of the scores are 0 still
+        if self.steps % 60 == 0: # No use training when all of the scores are 0 still
             self.batch_sample_train()
             self.update_main_weights()
             
 
         # If we died and just reset, just make this action 'look' 
-        if next_status == -1 or self.moves_since_last_point_change > 100:
+        if next_status == -1 or self.moves_since_last_point_change > 100 or self.moves == 19:
             self.trials += 1
             print("Trial", self.trials, "Epsilon:", self.epsilon)
             next_act = "look"
@@ -184,12 +184,14 @@ class QTrainAgent(Agent):
         ##elif next_status == 1:
             ##self.main_net.save(self.save_net_dir + "/qNet")
 
-        if self.trials % 1 == 0:
+        if self.steps % 100 == 0:
+            print("-Updating and Saving...")
             self.update_main_weights()
             ##self.main_net.save_weights(self.save_net_dir + "/qNet.h5")
             self.save_model_weights()
 
         self.moves += 1
+        self.steps += 1
 
         ##print("Trial:", self.trials, "Moves:", self.moves, "Epsilon:", self.epsilon)
 
@@ -221,7 +223,7 @@ class QTrainAgent(Agent):
         best_action_indices = []
 
         for i in range(len(action_vects)):
-            q_val = self.target_net.predict([np.array([state_vects]), np.array([action_vects[i]])])[0][0]
+            q_val = self.main_net.predict([np.array([state_vects]), np.array([action_vects[i]])])[0][0]
             ##print(q_val)
             
             if q_val > highest_q:
@@ -257,8 +259,13 @@ class QTrainAgent(Agent):
         total_loss = 0
         total_mse = 0
 
-        for inf in train_inf:
+        for i in range(len(train_inf)):
+            inf = train_inf[i]
+
             cur_state_vects, act_vect, reward, done, next_obs_vects, next_actions, input_shape, act_num, num_actions = inf
+
+            if reward != 0:
+               print("\n##########\n", rand_data[i][0], rand_data[i][2], reward)
 
             ##self.adjust_model_size(self.target_net, input_shape, num_actions)
 
@@ -276,7 +283,7 @@ class QTrainAgent(Agent):
 
                 ##print('-Cur state reward is:', reward)
                 for act in next_actions:
-                    q_val = self.target_net.predict([np.array([next_obs_vects]), np.array([act])])[0][0]
+                    q_val = self.main_net.predict([np.array([next_obs_vects]), np.array([act])])[0][0]
                     ##print(q_val)
                     q_vals.append(q_val)
                     ##print('--Potential future val:', q_val)
@@ -284,6 +291,9 @@ class QTrainAgent(Agent):
                 ##print()
 
                 highest_future_q = max(q_vals)
+        
+                if reward != 0:
+                    print(highest_future_q * self.gamma)
 
                 ##highest_future_q = max(highest_future_q, max_future_q)
 
@@ -295,7 +305,14 @@ class QTrainAgent(Agent):
             ##print(np.array([cur_state_vects]).shape)
             ##print(np.array([act_vect]).shape)
 
+            ##if reward != 0:
+                ##print(target_q)
+
             fit_hist = self.target_net.fit([np.array([cur_state_vects]), np.array([act_vect])], np.array([target_q]), epochs = 1, batch_size = 1, verbose = 0).history
+
+            if reward != 0:
+                print(self.target_net.predict([np.array([cur_state_vects]), np.array([act_vect])]))
+
             total_loss += fit_hist['loss'][0]
             total_mse += fit_hist['mean_squared_error'][0]
             
@@ -308,15 +325,15 @@ class QTrainAgent(Agent):
         target_weights = self.target_net.get_weights()
         ##print(target_weights, "\n``````````````````````````````````````````````````````````````````````````````")
         main_weights = self.main_net.get_weights()
+        ##print(main_weights)
         
         new_main_weights = []
 
         for i in range(len(target_weights)):
-            augmented_weights = (target_weights[i] + main_weights[i]) / 2 ##(target_weights[i].astype('float64') * tau) + (main_weights[i].astype('float64') * (1 - tau))
-            ##print(augmented_weights)
-
-            adjusted_weights = target_weights[i]
-            new_main_weights.append(augmented_weights)
+            ##averaged_weights = (target_weights[i] + main_weights[i]) / 2
+            ##print(type(target_weights[i]))
+            ##print(adjusted_weights)
+            new_main_weights.append(np.add((target_weights[i] * self.tau), (main_weights[i] * (1 - self.tau))))
 
         self.main_net.set_weights(new_main_weights)
         ##print(new_main_weights)
@@ -333,8 +350,6 @@ class QTrainAgent(Agent):
             self.moves_since_last_point_change += 1
         else:
             self.moves_since_last_point_change == 0
-            
-            self.had_score_change = True
 
         if (next_obs, next_acts) != self.last_state: # attempt to prevent looping
             self.data.append([cur_obs, cur_score, act, next_obs, score_dif, next_state_status, next_acts, cur_state, act_num, len(env.get_valid_actions())])
@@ -360,7 +375,7 @@ class QTrainAgent(Agent):
         
         env.set_state(cur_state)
 
-        return next_score - cur_score, next_state_status, next_obs, next_actions, next_score + 10 ##+ (self.distance_deduction_multiplier * (self.moves + 1))
+        return next_score - cur_score, next_state_status, next_obs, next_actions, next_score ##+ (self.distance_deduction_multiplier * (self.moves + 1))
 
 
 
