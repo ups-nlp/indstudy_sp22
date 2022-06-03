@@ -5,10 +5,11 @@ Agents for playing text-based games
 from math import sqrt
 import random
 import time
+import config
 from environment import *
 from mcts_agent import best_child, tree_policy, default_policy, backup, dynamic_sim_len
-from mcts_node import MCTS_node
-from mcts_reward import BaselineReward
+from mcts_node import MCTS_node, Node
+from mcts_reward import AdditiveReward
 
 class Agent:
     """Interface for an Agent"""
@@ -51,28 +52,19 @@ class MonteAgent(Agent):
         self.explore_const = 1.0/sqrt(2)
 
         # The length of each monte carlo simulation
-        # NOTE: This is a place of departure
-        self.simulation = SimulationLength()
-        self.simulation_length = simulation.startMeOff()
-        #simulation.updateMe(root node, env, )
+        self.simulation_length = 15
 
         # Maximum number of nodes to generate in the tree each time a move is made
         self.max_nodes = 200
 
-        self.reward = BaselineReward(self.explore_const)
+        self.reward = AdditiveReward()
 
 
 
     def take_action(self, env: Environment, history: list) -> str:
-        """Runs the Upper Confidence Bounds for Tree (UCT) algorithm 
-        
-        Browne et al., A survey of monte carlo tree search algorithms. IEEE Trans. on 
-        Compt'l Intelligence and AI in Games, vol. 4, no. 10, March 2012.
+        """Takes in the history and returns the next action to take using the Monte Carlo Search Algorithm"""                
 
-        Algorithm 2 > UCTSearch() function
-        """
-
-        #current number of generated nodes
+        # number of iterations
         count = 0
 
         # time at sim start
@@ -82,46 +74,37 @@ class MonteAgent(Agent):
         seconds_elapsed = 0
 
         # loose time limit for simulation phase
-        time_limit = 59
-
-        # TODO: This is where Anna is adjusting the simulation length
-        # TODO: Divide it by teh number of children. Clamp it to 10
+        time_limit = 30
 
         #current state of the game. Return to this state each time generating a new node
         curr_state = env.get_state()
 
-        # TODO: an object to control the exit condition for the loop
-        # TODO: could this contain a shared variable
-        # TODO: [COLIN] seconds_elapsed < time_limit or count <= minimum
-        while seconds_elapsed < time_limit :
+        while(seconds_elapsed < time_limit):
             seconds_elapsed = time.time() - start_time
-
-            if(count % 10 == 0): 
-                print(count)
-
+           
             # Create a new node on the tree
             new_node = tree_policy(self.root, env, self.explore_const, self.reward)
-
             # Determine the simulated value of the new node
-            delta = default_policy(new_node, env)
-
+            delta = default_policy(new_node, env, self.simulation_length, self.reward)
             # Propogate the simulated value back up the tree
             backup(new_node, delta)
-
             # reset the state of the game when done with one simulation
             env.reset()
             env.set_state(curr_state)
             count += 1
 
 
-        print(env.get_valid_actions())
-        for child in self.root.children:
-            print(child.get_prev_action(), ", count:", child.visited, ", value:", child.sim_value, "normalized value:", self.reward.calculate_child_value(env, child, self.root))
+        if config.VERBOSITY > 0:
+            print('Number of iterations accomplished before time limit elapsed: ', count)
+            
+        if config.VERBOSITY > 0:
+            print(env.get_valid_actions())
+            for child in self.root.children:
+                print(child.get_prev_action(), ", count:", child.visited, ", value:", child.sim_value, "normalized value:", self.reward.select_action(env, child.sim_value, child.visited, None))
 
-        #TODO: Colin is still updatiing simulation length at bottom of method
         ## Pick the next action
-        self.root = best_child(self.root, env, self.reward)
+        self.root, score_dif = best_child(self.root, self.explore_const, env, self.reward, False)
+
         self.node_path.append(self.root)
 
-        print('Took action ', self.root.get_prev_action())
         return self.root.get_prev_action()
