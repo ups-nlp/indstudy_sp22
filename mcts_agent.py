@@ -2,12 +2,13 @@
 An implementation of the UCT algorithm for text-based games
 """
 from math import floor, inf
+import config
 from config import random
 from environment import *
 from mcts_node import MCTS_node
 from mcts_reward import *
 
-def tree_policy(root, env: Environment, explore_exploit_const, reward_policy):
+def tree_policy(root, env: Environment, reward_policy):
     """ Travel down the tree to the ideal node to expand on
 
     This function loops down the tree until it finds a
@@ -124,39 +125,28 @@ def default_policy(new_node, env):
     """
     #if node is already terminal, return 0    
     if(env.game_over()):
-        return 0
-
-    running_score = env.get_score()
+        return env.get_score()
+    
     count = 0
+
     # While the game is not over and we have not run out of moves, keep exploring
-    while (not env.game_over()) and (not env.victory()):
-        count += 1
-        # if we have reached the limit for exploration
-        #if(count > sim_length):
-            #return the reward received by reaching terminal state
-            #return reward_policy.simulation_limit(env)
-        #    return running_score
+    while (not env.game_over()) and (not env.victory()):        
 
         #Get the list of valid actions from this state
         actions = env.get_valid_actions()
 
-        # Take a random action from the list of available actions
-        before = env.get_score()
-        env.step(random.choice(actions))
-        after = env.get_score()
-        
-        # TODO: Colin wants to use this information to update his simulation length
-        # so he'll need to pass the simulation length object to this function and 
-        # he'll need a method like simulationLength.heresSomeData(count)
+        # Take a random action from the list of available actions        
+        env.step(random.choice(actions))        
 
-        
-        #if there was an increase in the score, add it to the running total
-        if((after-before) > 0):
-            running_score += (after-before)/count
+        count += 1    
+           
 
-    #return the reward received by reaching terminal state
-    #return reward_policy.simulation_terminal(env)
-    return running_score
+    if config.VERBOSITY > 0:
+        print('\t[DEFAULT POLICY] Number of iterations until reached terminal node: ', count)
+
+    return env.get_score()
+
+
 
 def backup(node, delta):
     """
@@ -174,99 +164,4 @@ def backup(node, delta):
         # Traverse up the tree
         node = node.get_parent()
 
-def dynamic_sim_len(max_nodes, sim_limit, diff) -> int:
-        """Given the current simulation depth limit and the difference between 
-        the picked and almost picked 'next action' return what the new sim depth and max nodes are.
-        
-        Keyword arguments:
-        max_nodes (int): The max number of nodes to generate before the agent makes a move
-        sim_limit (int): The max number of moves to make during a simulation before stopping
-        diff (float): The difference between the scores of the best action and the 2nd best action
 
-        Returns: 
-            int: The new max number of nodes to generate before the agent makes a move
-            int: The new max number of moves to make during a simulation before stopping
-        """        
-        if(diff < 0.001):
-            if(sim_limit < 1000):
-                sim_limit = sim_limit*1.25
-            max_nodes = max_nodes+10
-
-        elif(diff > .1):
-            if(sim_limit > 12):
-                sim_limit =  floor(sim_limit/1.25)
-            
-        
-        return max_nodes, sim_limit
-
-def node_explore(agent):
-    depth = 0
-
-    cur_node = agent.root
-
-    test_input = "-----"
-
-    chosen_path = agent.node_path
-
-    node_history = agent.node_path
-
-    while test_input != "":
-    
-        print("\n")
-
-        if(input == ""):
-            break
-
-        print("Current Depth:", depth)
-
-        for i in range(0, len(node_history)):
-            if depth == 0:
-                print(i, "-", node_history[i].get_prev_action())
-            else:
-                print(i, "-", node_history[i].get_prev_action())
-
-        print("\n")
-
-        test_input = input("Enter the number of the node you wish to explore. Press enter to stop, -1 to go up a layer")
-
-        print("\n")
-
-        if(int(test_input) >= 0 and int(test_input) < len(node_history)):
-            depth += 1
-            cur_node = node_history[int(test_input)]
-        
-            print("-------", cur_node.get_prev_action(), "-------")
-        
-            print("Sim-value:", cur_node.get_sim_value())
-        
-            print("Visited:", cur_node.get_visited())
-        
-            print("Unexplored Children:", cur_node.get_new_actions())
-        
-            print("Children:")
-        
-            node_history = cur_node.get_children()
-            for i in range(0, len(node_history)):
-                print(node_history[i].get_prev_action(), "with value", node_history[i].get_sim_value(), "visited", node_history[i].get_visited())
-        elif test_input == "-1":
-            depth -= 1
-            if depth == 0:
-                node_history = agent.node_path
-            else:
-                cur_node = cur_node.get_parent()
-                node_history = cur_node.get_children()
-
-            print("-------", cur_node.get_prev_action(), "-------")
-        
-            print("Sim-value:", cur_node.get_sim_value())
-        
-            print("Visited:", cur_node.get_visited())
-        
-            print("Unexplored Children:", cur_node.get_new_actions())
-        
-            print("Children:")
-
-            for i in range(0, len(node_history)):
-                was_taken = bool(node_history[i] in chosen_path)                
-
-                print(node_history[i].get_prev_action(), "with value", node_history[i].get_sim_value(), "visited", node_history[i].get_visited(), "was_chosen?", was_taken)

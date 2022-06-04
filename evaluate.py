@@ -18,6 +18,7 @@ if __name__ == "__main__":
                         help='Number of moves for agent to take per trial')
     parser.add_argument('agent', help='[random|human|mcts]')
     parser.add_argument('game_file', help='Full pathname to the game file')
+    parser.add_argument('-t' , '--mcts_time', type=int, help='Number of seconds to run MCTS algorithm before choosing an action')
     parser.add_argument('-v', '--verbosity', type=int,
                         help='[0|1] verbosity level')
     args = parser.parse_args()
@@ -27,7 +28,16 @@ if __name__ == "__main__":
     elif args.agent == 'human':
         ai_agent = HumanAgent()
     elif args.agent == 'mcts':
-        ai_agent = MonteAgent(JerichoEnvironment(args.game_file), args.num_moves)
+        if args.mcts_time is None:
+            print('Error: must set the mcts_time limit')
+            sys.exit()
+        else:
+            # Note: We are creating a JerichoEnvironment here as well as above in the play() method
+            # The JerichoEnvironment we are passing in to the MonteAgent is simply used to get a list
+            # of starting actions. Once the constructor is finished, this environment object is never
+            # used again. Going forward, we should think of a way to all use the same environment
+            # from the start onwards. 
+            ai_agent = MonteAgent(JerichoEnvironment(args.game_file), args.mcts_time)   
     else:
         ai_agent = RandomAgent()
 

@@ -1,6 +1,7 @@
 """Instantiates an AI agent to play the specified game"""
 
 import argparse
+import sys
 import time
 from agent import Agent
 from agent import RandomAgent
@@ -83,21 +84,34 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Runs an AI agent on a specified game')
 
+    # Positional arguments are required by default
     parser.add_argument(
         'num_moves', type=int, help="Number of moves for the agent to make. Enter '-1' for unlimited moves.")
     parser.add_argument('agent', help='[random|human|mcts]')    
     parser.add_argument('game_file', help='Full pathname for game')
+
+    # Optional arguments are...optional
+    parser.add_argument('-t' , '--mcts_time', type=int, help='Number of seconds to run MCTS algorithm before choosing an action')
     parser.add_argument('-v', '--verbosity', type=int,
                         help='[0|1] verbosity level')
     args = parser.parse_args()
 
-    # Right now all you can create is a RandomAgent. This will expand in the future
+    # Create the agent
     if args.agent == 'random':
         ai_agent = RandomAgent()
     elif args.agent == 'human':
         ai_agent = HumanAgent()    
     elif args.agent == 'mcts':
-        ai_agent = MonteAgent(JerichoEnvironment(args.game_file), args.num_moves)
+        if args.mcts_time is None:
+            print('Error: must set the mcts_time limit')
+            sys.exit()
+        else:
+            # Note: We are creating a JerichoEnvironment here as well as above in the play() method
+            # The JerichoEnvironment we are passing in to the MonteAgent is simply used to get a list
+            # of starting actions. Once the constructor is finished, this environment object is never
+            # used again. Going forward, we should think of a way to all use the same environment
+            # from the start onwards. 
+            ai_agent = MonteAgent(JerichoEnvironment(args.game_file), args.mcts_time)
     else:
         ai_agent = RandomAgent()
 
