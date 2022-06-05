@@ -21,6 +21,7 @@ def play_game(agent: Agent, game_file: str, num_steps: int):
     # The history is a list of (observation, action) tuples
     history = []
 
+    # Reset the environment
     curr_obs, info = env.reset()    
     done = False
 
@@ -32,6 +33,7 @@ def play_game(agent: Agent, game_file: str, num_steps: int):
     num_location_changes = 0  # total number of times an action led to a change in location
     num_times_called = 0 # total number of iterations performed
     seconds = 0 # total time spent in take_action() over all iterations
+
 
     while num_steps != 0 and not done:
 
@@ -64,7 +66,21 @@ def play_game(agent: Agent, game_file: str, num_steps: int):
             print('Game State:', next_obs.strip())
             print('Total Score', info['score'], 'Moves', info['moves'])
 
+        if num_times_called > 0 and num_times_called % 10 == 0:
+            print()
+            print('====== PARTIAL REPORT ======')
+            s = info['score']
+            m = info['moves']
+            print(f'Score= {s}')
+            print(f'Number of steps so far: {num_times_called}')
+            print(f'Of those {num_times_called} steps, how many were valid? {m}')
+            print(f'Of those {num_times_called} steps, how many changed your location? {num_location_changes}')
+            print(f'How long to call take_action() {num_times_called} times? {seconds}')
+            print(f'Average number of seconds spent in take_action() {seconds/num_times_called}')
+            print()
+
         num_steps -= 1
+
 
     if config.VERBOSITY > 1:
         print('\n\n============= HISTORY OF ACTIONS TAKEN =============')

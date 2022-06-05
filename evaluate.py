@@ -52,6 +52,7 @@ if __name__ == "__main__":
     total_time = 0                  # total seconds taken aggregated over all trials
 
     for i in range(args.num_trials):
+        print(f'Trial {i} of {args.num_trials}')
         score, num_valid_actions, num_location_changes, num_steps, time = play_game(
             ai_agent, args.game_file, args.num_moves)
 
@@ -60,7 +61,7 @@ if __name__ == "__main__":
         total_num_location_changes += num_location_changes
         total_num_steps += num_steps
         total_time += time
-
+                
         print(f'Trial {i+1}:')
         print(f'Score= {score}')
         print(f'Number of steps: {num_steps} out of a possible {args.num_moves}')
@@ -69,7 +70,9 @@ if __name__ == "__main__":
         print(f'How long to call take_action() {num_steps} times? {time}')
         print()
 
+
     print()
+    print('FINAL STATS:')
     print(f'Number of trials: {args.num_trials}')
     print(f'Number of moves per trial: {args.num_moves}')
     print()
