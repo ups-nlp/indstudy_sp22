@@ -60,8 +60,10 @@ def best_child(parent, env: Environment, reward_policy):
     """
 
     # check the pre-condition
-    if(not parent.is_expanded()):
-        raise Exception("best_child() called on parent node that has not been fully expanded")
+    if(not parent.is_expanded()):    
+        print("ALERT: best_child() called on parent node that has not been fully expanded")
+        print("Num children", parent.get_max_children())
+
 
     max_val = -inf
     bestLs = [None]

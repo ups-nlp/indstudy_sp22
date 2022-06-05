@@ -40,10 +40,10 @@ class BaselineReward(Reward):
         child_visited = child.get_visited()
         child_sim_reward = child.get_sim_value()
 
-        if child_visited == 0:
-            raise ZeroDivisionError("Child has been visited 0 times")
-        
-        return (child_sim_reward/child_visited) + self.exploration*sqrt((2*log(parent_visited))/child_visited)
+        if child_visited != 0:                  
+            return (child_sim_reward/child_visited) + self.exploration*sqrt((2*log(parent_visited))/child_visited)
+        else:
+            return sys.float_info.max * -1
 
 
 class NormalizedReward(Reward):
