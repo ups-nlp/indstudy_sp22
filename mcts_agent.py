@@ -141,8 +141,8 @@ def default_policy(new_node, env):
         count += 1    
            
 
-    if config.VERBOSITY > 0:
-        print('\t[DEFAULT POLICY] Number of iterations until reached terminal node: ', count)
+    #if config.VERBOSITY > 0:
+    #    print('\t[DEFAULT POLICY] Number of iterations until reached terminal node: ', count)
 
     return env.get_score()
 
