@@ -68,15 +68,15 @@ def play_game(agent: Agent, game_file: str, num_steps: int):
 
         if num_times_called > 0 and num_times_called % 10 == 0:
             print()
-            print('====== PARTIAL REPORT ======')
+            print('\t====== PARTIAL REPORT ======')
             s = info['score']
             m = info['moves']
-            print(f'Score= {s}')
-            print(f'Number of steps so far: {num_times_called}')
-            print(f'Of those {num_times_called} steps, how many were valid? {m}')
-            print(f'Of those {num_times_called} steps, how many changed your location? {num_location_changes}')
-            print(f'How long to call take_action() {num_times_called} times? {seconds}')
-            print(f'Average number of seconds spent in take_action() {seconds/num_times_called}')
+            print(f'\tScore= {s}')
+            print(f'\tNumber of steps so far: {num_times_called}')
+            print(f'\tOf those {num_times_called} steps, how many were valid? {m}')
+            print(f'\tOf those {num_times_called} steps, how many changed your location? {num_location_changes}')
+            print(f'\tHow long to call take_action() {num_times_called} times? {seconds}')
+            print(f'\tAverage number of seconds spent in take_action() {seconds/num_times_called}')
             print()
 
         num_steps -= 1
@@ -132,7 +132,7 @@ if __name__ == "__main__":
         ai_agent = RandomAgent()
 
     # Set the verbosity level
-    if args.verbosity == 0 or args.verbosity == 1:
+    if 0 <= args.verbosity and args.verbosity <= 2:        
         config.VERBOSITY = args.verbosity
 
     play_game(ai_agent, args.game_file, args.num_moves)

@@ -1,5 +1,5 @@
 
-from math import sqrt, log, e
+from math import sqrt, log, e, inf
 import sys
 from environment import *
 import numpy as np
@@ -43,7 +43,7 @@ class BaselineReward(Reward):
         if child_visited != 0:                  
             return (child_sim_reward/child_visited) + self.exploration*sqrt((2*log(parent_visited))/child_visited)
         else:
-            return sys.float_info.max * -1
+            return inf * -1
 
 
 class NormalizedReward(Reward):

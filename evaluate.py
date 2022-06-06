@@ -20,7 +20,7 @@ if __name__ == "__main__":
     parser.add_argument('game_file', help='Full pathname to the game file')
     parser.add_argument('-t' , '--mcts_time', type=int, help='Number of seconds to run MCTS algorithm before choosing an action')
     parser.add_argument('-v', '--verbosity', type=int,
-                        help='[0|1] verbosity level')
+                        help='[0|1|2] verbosity level')
     args = parser.parse_args()
 
     if args.agent == 'random':
@@ -41,8 +41,9 @@ if __name__ == "__main__":
     else:
         ai_agent = RandomAgent()
 
+
     # Set the verbosity level
-    if args.verbosity == 0 or args.verbosity == 1:
+    if 0 <= args.verbosity and args.verbosity <= 2:
         config.VERBOSITY = args.verbosity
 
     total_score = 0                 # total agent score aggregated over all trials
@@ -51,8 +52,19 @@ if __name__ == "__main__":
     total_num_steps = 0             # total number of steps taken aggregated over all trials
     total_time = 0                  # total seconds taken aggregated over all trials
 
+
+    print()
+    print('======================================')
+    print('Num Trials:', args.num_trials)
+    print('Moves per Trial:', args.num_moves)
+    print('Time Limit:', args.mcts_time, "seconds")
+    print('======================================')
+    print()
+    print()
+
+
     for i in range(args.num_trials):
-        print(f'Trial {i} of {args.num_trials}')
+        print(f'Trial {i+1} of {args.num_trials}')
         score, num_valid_actions, num_location_changes, num_steps, time = play_game(
             ai_agent, args.game_file, args.num_moves)
 
@@ -69,6 +81,12 @@ if __name__ == "__main__":
         print(f'Of those {num_steps} steps, how many changed your location? {num_location_changes}')
         print(f'How long to call take_action() {num_steps} times? {time}')
         print()
+
+
+        # The MCTS Agent needs to be recreated so the game tree is reset back
+        # to just the root node
+        if args.agent == 'mcts':
+            ai_agent = MonteAgent(JerichoEnvironment(args.game_file), args.mcts_time)   
 
 
     print()

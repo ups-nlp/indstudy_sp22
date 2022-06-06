@@ -23,11 +23,11 @@ def tree_policy(root, env: Environment, reward_policy):
     node = root
     while not node.is_terminal():
         #if parent is not fully expanded, expand it and return
-        if not node.is_expanded():
+        if not node.is_expanded():            
             return expand_node(node, env)
         #Otherwise, look at the parent's best child
         else:
-            # Select the best child of the current node to explore
+            # Select the best child of the current node to explore            
             child = best_child(node, env, reward_policy)
             node = child            
             env.step(node.get_prev_action())
@@ -59,11 +59,16 @@ def best_child(parent, env: Environment, reward_policy):
     Return: the best child to explore in an array with the difference in score between the first and second pick
     """
 
+    fullyExpanded = True
+
     # check the pre-condition
     if(not parent.is_expanded()):    
         print("ALERT: best_child() called on parent node that has not been fully expanded")
-        print("Num children", parent.get_max_children())
+        print("ALERT: Num children", parent.get_max_children())
+        fullyExpanded = False
 
+    if len(parent.get_children()) == 0:
+        exit("ALERT: This parent has 0 expanded children")
 
     max_val = -inf
     bestLs = [None]
@@ -84,8 +89,10 @@ def best_child(parent, env: Environment, reward_policy):
 
     chosen = random.choice(bestLs)
 
-    # Colin is stil computing the 2nd best but he's not using it programmatically (but wants to keep)
-    # Anna is not using the 2nd best anymore
+    if not fullyExpanded:
+        print(bestLs)
+        print(chosen)
+        
     return chosen
 
 def expand_node(parent, env):
@@ -116,6 +123,9 @@ def expand_node(parent, env):
     # Add the child to the parent
     parent.add_child(new_node)
 
+    if config.VERBOSITY > 1:
+        print('[EXPAND NODE] Parent', parent)
+        print('[EXPAND NODE] New Node', new_node)
     return new_node
   
 def default_policy(new_node, env):

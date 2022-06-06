@@ -70,15 +70,26 @@ class MonteAgent(Agent):
         #current state of the game. Return to this state each time generating a new node
         curr_state = env.get_state()
 
-        if config.VERBOSITY > 0:
+        if config.VERBOSITY > 1:
             print('[TAKE ACTION] Time limit: ', self.time_limit, ' seconds')
         
         while(seconds_elapsed < self.time_limit):
             seconds_elapsed = time.time() - start_time
            
+            if config.VERBOSITY > 1:
+               print('[TAKE ACTION] Root node is', str(self.root))
+               print('[TAKE ACTION] Env valid actions', env.get_valid_actions())
+               print('[TAKE ACTION] New actions', self.root.get_new_actions())
+
+
             # Create a new node on the tree
             new_node = tree_policy(self.root, env, self.reward)
             
+            if config.VERBOSITY > 1:
+                print('[TAKE ACTION] Chose a new node to expand', new_node.get_prev_action())
+                print('[TAKE ACTION] Printing out parent again', str(self.root))
+                print('[TAKE ACTION] Printing out selected child', str(new_node))
+
             # Determine the simulated value of the new node
             delta = default_policy(new_node, env)
             
@@ -90,7 +101,7 @@ class MonteAgent(Agent):
             count += 1
 
 
-        if config.VERBOSITY > 0:
+        if config.VERBOSITY > 1:
             print('[TAKE ACTION] Number of iterations accomplished before time limit elapsed: ', count)
             
         if config.VERBOSITY > 0:

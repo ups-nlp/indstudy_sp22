@@ -114,7 +114,6 @@ class MCTS_node(Node):
             boolean: true if the number of child is equal to the max number of children
         """
         return len(self.children) == self.max_children
-
     
     def get_prev_action(self):
         """ Returns the previous action """
@@ -163,8 +162,8 @@ class MCTS_node(Node):
         child_node_str += "]"
         
         if self.parent is None:
-            return f'Parent: None, prev_act: {self.prev_act}, sim_value: {self.sim_value}, visited: {self.visited}, max_children: {self.max_children}, new_actions:{self.new_actions}, children: {child_node_str}\n'
+            return f'[Parent: Null, prev_act: {self.prev_act}, sim_value: {self.sim_value}, visited: {self.visited}, max_children: {self.max_children}, new_actions:{self.new_actions}, children: {child_node_str}]\n'
         else:
-            return f'Parent: {self.parent.prev_act}, prev_act: {self.prev_act}, sim_value: {self.sim_value}, visited: {self.visited}, max_children: {self.max_children}, new_actions:{self.new_actions}, children: {child_node_str}\n'
+            return f'[Parent: {self.parent.prev_act}, prev_act: {self.prev_act}, sim_value: {self.sim_value}, visited: {self.visited}, max_children: {self.max_children}, new_actions:{self.new_actions}, children: {child_node_str}]\n'
         
         
