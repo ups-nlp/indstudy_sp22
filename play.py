@@ -132,7 +132,7 @@ if __name__ == "__main__":
         ai_agent = RandomAgent()
 
     # Set the verbosity level
-    if 0 <= args.verbosity and args.verbosity <= 2:        
+    if args.verbosity is not None and (0 <= args.verbosity and args.verbosity <= 2):        
         config.VERBOSITY = args.verbosity
 
     play_game(ai_agent, args.game_file, args.num_moves)
