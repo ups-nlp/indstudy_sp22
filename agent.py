@@ -50,7 +50,7 @@ class MonteAgent(Agent):
         self.node_path.append(self.root)
 
         # This constant balances tree exploration with exploitation of ideal nodes
-        explore_const = 1.0/sqrt(2)
+        explore_const = 5
         self.reward = BaselineReward(explore_const)
 
         self.time_limit = time_limit

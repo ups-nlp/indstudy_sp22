@@ -40,8 +40,10 @@ class BaselineReward(Reward):
         child_visited = child.get_visited()
         child_sim_reward = child.get_sim_value()
 
-        if child_visited != 0:                  
-            return (child_sim_reward/child_visited) + self.exploration*sqrt((2*log(parent_visited))/child_visited)
+        if child_visited != 0:
+            first_term = child_sim_reward/child_visited
+            second_term = sqrt((2*log(parent_visited))/child_visited)
+            return first_term + self.exploration*second_term
         else:
             return inf * -1
 
