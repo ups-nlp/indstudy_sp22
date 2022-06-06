@@ -22,28 +22,30 @@ class Transposition_Node:
     """
 
     def __init__(self, state, parent, prev_act, new_actions, transposition_table):
+
+        # Although it's okay for parent and prev_act to be None
+        # it is never okay for new_actions to be None
+        # If this happens, we replace it with an empty list
+        if new_actions is None:
+            new_actions = [] 
+
         self.parent = parent
         self.prev_act = prev_act
-         # the total number of children this state can have
-        self.max_children = len(new_actions)
-        # a list of the explored states from this node
         self.children = []
-        # a list of the unexplored actions at this node
-        self.new_actions = new_actions
-        self.state = state
+        self.max_children = len(new_actions)
+        self.new_actions = new_actions        
 
         if(transposition_table.get(state) is None):
             # Create a key-value pair for the new state
-            transposition_table[state] = State(state)
-        
+            transposition_table[state] = State(state)        
         self.state = transposition_table.get(state)
 
 
     def toString(self):
         if(self.parent is not None):
-            return self.state.toString()#+" with parent: "+self.parent.state.toString()
+            return self.state.toString() #+" with parent: "+self.parent.state.toString()
         else:
-            return self.state.toString()#+" with NONE parent!"
+            return self.state.toString() #+" with NONE parent!"
 
     def is_terminal(self):
         """ Returns true if the node is terminal
@@ -52,8 +54,8 @@ class Transposition_Node:
         """
         return self.max_children == 0
 
-
     def add_child(self, child):
+        """Add a child to the list of children"""
         self.children.append(child)
 
     def is_expanded(self):
@@ -61,7 +63,8 @@ class Transposition_Node:
         Returns:
             boolean: true if the number of child is equal to the max number of children
         """
-        return (len(self.children) >= self.max_children)
+        #return (len(self.children) >= self.max_children)
+        return len(self.children) == self.max_children
 
     
     def get_prev_action(self):
@@ -69,6 +72,19 @@ class Transposition_Node:
 
     def get_parent(self):
         return self.parent
+    
+    def get_max_children(self):
+        return self.max_children
+
+    def get_children(self):
+        return self.children
+
+    def get_new_actions(self):
+        return self.new_actions
+
+    def remove_action(self, action):
+        """ Returns an action from the list of unexplored actions """
+        self.new_actions.remove(action)
 
     # The below methods fetch the fields from the Node's State
 
@@ -80,15 +96,6 @@ class Transposition_Node:
 
     def get_visited(self):
         return self.state.visited
-
-    def get_max_children(self):
-        return self.max_children
-
-    def get_children(self):
-        return self.children
-
-    def get_new_actions(self):
-        return self.new_actions
 
     
     # The below methods updates the fields from the Node's State
@@ -106,22 +113,19 @@ class State:
     Each entry holds the following:
     sim_value -- the simulated value of the node
     visited -- the number of times this node has been visited
-    parents -- The set of parents leading to this state
-    max_children -- the total number of children this node could have
-    children -- a list of the explored states from this node
-    new_actions -- a list of the unexplored actions at this node
-
-    Keyword arguments:
-    parent -- a parent state taken to get to this node
-    new_actions -- a list of all the unexplored actions at this node
     """
 
     def __init__(self, state):
         # The simulated value for this state of the game
         self.sim_value = 0
+        
         # The number of times we have simulated this state of the game
         self.visited = 0
 
+        # QUESTION: Why is the state stored in the state? The state is a str that is a 
+        # key into the hashmap. When you use the state (i.e. the key) to index into the hashmap
+        # what is returned is this state object. Is there a reason we need to keep the key
+        # with the object (i.e. the value)?
         self.state = state
 
     def toString(self):

@@ -1,6 +1,7 @@
 """Instantiates an AI agent to play the specified game"""
 
 import argparse
+import sys
 import time
 from agent import Agent
 from agent import RandomAgent
@@ -20,6 +21,7 @@ def play_game(agent: Agent, game_file: str, num_steps: int):
     # The history is a list of (observation, action) tuples
     history = []
 
+    # Reset the environment
     curr_obs, info = env.reset()    
     done = False
 
@@ -31,6 +33,7 @@ def play_game(agent: Agent, game_file: str, num_steps: int):
     num_location_changes = 0  # total number of times an action led to a change in location
     num_times_called = 0 # total number of iterations performed
     seconds = 0 # total time spent in take_action() over all iterations
+
 
     while num_steps != 0 and not done:
 
@@ -63,7 +66,21 @@ def play_game(agent: Agent, game_file: str, num_steps: int):
             print('Game State:', next_obs.strip())
             print('Total Score', info['score'], 'Moves', info['moves'])
 
+        if num_times_called > 0 and num_times_called % 10 == 0:
+            print()
+            print('\t====== PARTIAL REPORT ======')
+            s = info['score']
+            m = info['moves']
+            print(f'\tScore= {s}')
+            print(f'\tNumber of steps so far: {num_times_called}')
+            print(f'\tOf those {num_times_called} steps, how many were valid? {m}')
+            print(f'\tOf those {num_times_called} steps, how many changed your location? {num_location_changes}')
+            print(f'\tHow long to call take_action() {num_times_called} times? {seconds}')
+            print(f'\tAverage number of seconds spent in take_action() {seconds/num_times_called}')
+            print()
+
         num_steps -= 1
+
 
     if config.VERBOSITY > 1:
         print('\n\n============= HISTORY OF ACTIONS TAKEN =============')
@@ -83,26 +100,39 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Runs an AI agent on a specified game')
 
+    # Positional arguments are required by default
     parser.add_argument(
         'num_moves', type=int, help="Number of moves for the agent to make. Enter '-1' for unlimited moves.")
     parser.add_argument('agent', help='[random|human|mcts]')    
     parser.add_argument('game_file', help='Full pathname for game')
+
+    # Optional arguments are...optional
+    parser.add_argument('-t' , '--mcts_time', type=int, help='Number of seconds to run MCTS algorithm before choosing an action')
     parser.add_argument('-v', '--verbosity', type=int,
                         help='[0|1] verbosity level')
     args = parser.parse_args()
 
-    # Right now all you can create is a RandomAgent. This will expand in the future
+    # Create the agent
     if args.agent == 'random':
         ai_agent = RandomAgent()
     elif args.agent == 'human':
         ai_agent = HumanAgent()    
     elif args.agent == 'mcts':
-        ai_agent = MonteAgent(JerichoEnvironment(args.game_file), args.num_moves)
+        if args.mcts_time is None:
+            print('Error: must set the mcts_time limit')
+            sys.exit()
+        else:
+            # Note: We are creating a JerichoEnvironment here as well as above in the play() method
+            # The JerichoEnvironment we are passing in to the MonteAgent is simply used to get a list
+            # of starting actions. Once the constructor is finished, this environment object is never
+            # used again. Going forward, we should think of a way to all use the same environment
+            # from the start onwards. 
+            ai_agent = MonteAgent(JerichoEnvironment(args.game_file), args.mcts_time)
     else:
         ai_agent = RandomAgent()
 
     # Set the verbosity level
-    if args.verbosity == 0 or args.verbosity == 1:
+    if args.verbosity is not None and (0 <= args.verbosity and args.verbosity <= 2):        
         config.VERBOSITY = args.verbosity
 
     play_game(ai_agent, args.game_file, args.num_moves)

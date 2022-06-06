@@ -18,8 +18,9 @@ if __name__ == "__main__":
                         help='Number of moves for agent to take per trial')
     parser.add_argument('agent', help='[random|human|mcts]')
     parser.add_argument('game_file', help='Full pathname to the game file')
+    parser.add_argument('-t' , '--mcts_time', type=int, help='Number of seconds to run MCTS algorithm before choosing an action')
     parser.add_argument('-v', '--verbosity', type=int,
-                        help='[0|1] verbosity level')
+                        help='[0|1|2] verbosity level')
     args = parser.parse_args()
 
     if args.agent == 'random':
@@ -27,12 +28,22 @@ if __name__ == "__main__":
     elif args.agent == 'human':
         ai_agent = HumanAgent()
     elif args.agent == 'mcts':
-        ai_agent = MonteAgent(JerichoEnvironment(args.game_file), args.num_moves)
+        if args.mcts_time is None:
+            print('Error: must set the mcts_time limit')
+            sys.exit()
+        else:
+            # Note: We are creating a JerichoEnvironment here as well as above in the play() method
+            # The JerichoEnvironment we are passing in to the MonteAgent is simply used to get a list
+            # of starting actions. Once the constructor is finished, this environment object is never
+            # used again. Going forward, we should think of a way to all use the same environment
+            # from the start onwards. 
+            ai_agent = MonteAgent(JerichoEnvironment(args.game_file), args.mcts_time)   
     else:
         ai_agent = RandomAgent()
 
+
     # Set the verbosity level
-    if args.verbosity == 0 or args.verbosity == 1:
+    if 0 <= args.verbosity and args.verbosity <= 2:
         config.VERBOSITY = args.verbosity
 
     total_score = 0                 # total agent score aggregated over all trials
@@ -41,7 +52,19 @@ if __name__ == "__main__":
     total_num_steps = 0             # total number of steps taken aggregated over all trials
     total_time = 0                  # total seconds taken aggregated over all trials
 
+
+    print()
+    print('======================================')
+    print('Num Trials:', args.num_trials)
+    print('Moves per Trial:', args.num_moves)
+    print('Time Limit:', args.mcts_time, "seconds")
+    print('======================================')
+    print()
+    print()
+
+
     for i in range(args.num_trials):
+        print(f'Trial {i+1} of {args.num_trials}')
         score, num_valid_actions, num_location_changes, num_steps, time = play_game(
             ai_agent, args.game_file, args.num_moves)
 
@@ -50,7 +73,7 @@ if __name__ == "__main__":
         total_num_location_changes += num_location_changes
         total_num_steps += num_steps
         total_time += time
-
+                
         print(f'Trial {i+1}:')
         print(f'Score= {score}')
         print(f'Number of steps: {num_steps} out of a possible {args.num_moves}')
@@ -59,7 +82,15 @@ if __name__ == "__main__":
         print(f'How long to call take_action() {num_steps} times? {time}')
         print()
 
+
+        # The MCTS Agent needs to be recreated so the game tree is reset back
+        # to just the root node
+        if args.agent == 'mcts':
+            ai_agent = MonteAgent(JerichoEnvironment(args.game_file), args.mcts_time)   
+
+
     print()
+    print('FINAL STATS:')
     print(f'Number of trials: {args.num_trials}')
     print(f'Number of moves per trial: {args.num_moves}')
     print()

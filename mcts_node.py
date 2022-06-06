@@ -73,6 +73,13 @@ class MCTS_node(Node):
     """
 
     def __init__(self, parent, prev_act, new_actions):
+
+        # Although it's okay for parent and prev_act to be None
+        # it is never okay for new_actions to be None
+        # If this happens, we replace it with an empty list
+        if new_actions is None:
+            new_actions = []         
+            
         self.parent = parent
         self.prev_act = prev_act
         self.children = []
@@ -128,6 +135,10 @@ class MCTS_node(Node):
         """ Returns the list of unexplored actions """
         return self.new_actions
 
+    def remove_action(self, action):
+        """ Returns an action from the list of unexplored actions """
+        self.new_actions.remove(action)
+
     def update_sim_value(self, delta):
         """ Updates the simulated value of this node by a specified amount """
         self.sim_value += delta
@@ -135,3 +146,14 @@ class MCTS_node(Node):
     def update_visited(self, delta):
         """ Updates the visit count of this node by a specified amount """
         self.visited += delta
+
+    def __str__(self):
+        child_node_str = "["
+        for child in self.children:
+            child_node_str += child.prev_act + ", "            
+        child_node_str += "]"
+        
+        if self.parent is None:
+            return f'[Parent: Null, prev_act: {self.prev_act}, sim_value: {self.sim_value}, visited: {self.visited}, max_children: {self.max_children}, new_actions:{self.new_actions}, children: {child_node_str}]\n'
+        else:
+            return f'[Parent: {self.parent.prev_act}, prev_act: {self.prev_act}, sim_value: {self.sim_value}, visited: {self.visited}, max_children: {self.max_children}, new_actions:{self.new_actions}, children: {child_node_str}]\n'

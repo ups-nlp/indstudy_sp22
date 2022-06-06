@@ -35,6 +35,7 @@ class HumanAgent(Agent):
 
     def take_action(self, env: Environment, history: list) -> str:
         """Takes in the history and returns the next action to take"""
+        print(env.get_valid_actions())
         print("Action: ")
         return input()
 
