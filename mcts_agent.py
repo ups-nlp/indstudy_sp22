@@ -148,10 +148,18 @@ def default_policy(new_node, env):
         actions = env.get_valid_actions()
 
         # Take a random action from the list of available actions        
-        env.step(random.choice(actions))        
+        chosen_action = random.choice(actions)
+        env.step(chosen_action)        
 
         count += 1    
-           
+
+        # I think we're getting stuck here sometimes
+        if count > 500:
+            print('DEFAULT POLICY:', count)
+            print('DEFAULT POLICY: action is ', chosen_action)
+            print('DEFAULT POLICY:', env.game_over())
+            print('DEFAULT POLICY:', env.victory())
+
 
     #if config.VERBOSITY > 0:
     #    print('\t[DEFAULT POLICY] Number of iterations until reached terminal node: ', count)
