@@ -346,9 +346,9 @@ def default_policy(new_node, env, simulation, reward_policy):
     while (not env.game_over()) and (not env.victory()):
         count += 1
         # if we have reached the limit for exploration
-        if(count > sim_length):
-            #return the reward received by reaching terminal state
-            return (running_score, score_states)
+        # if(count > sim_length):
+        #     #return the reward received by reaching terminal state
+        #     return (running_score, score_states)
 
         #Get the list of valid actions from this state
         actions = env.get_valid_actions()
