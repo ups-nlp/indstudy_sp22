@@ -20,19 +20,26 @@ def tree_policy(root, env: Environment, reward_policy):
     env -- Environment interface between the learning agent and the game
     Return: the ideal node to expand on
     """
+
     node = root
     while not node.is_terminal():
         #if parent is not fully expanded, expand it and return
         if not node.is_expanded():            
+            if config.VERBOSITY > 1:
+                print('TREE POLICY: Calling expand_node()')
             return expand_node(node, env)
         #Otherwise, look at the parent's best child
         else:
             # Select the best child of the current node to explore            
             child = best_child(node, env, reward_policy)
             node = child            
+            if config.VERBOSITY > 1:
+                print('TREE POLICY: best child found', node)
             env.step(node.get_prev_action())
 
     # The node is terminal, so return it
+    if config.VERBOSITY > 1:
+        print('TREE POLICY: Returning node:', node)
     return node
 
 def best_child(parent, env: Environment, reward_policy):
@@ -80,18 +87,22 @@ def best_child(parent, env: Environment, reward_policy):
         
         # if there is a tie for best child, randomly pick one        
         if (abs(child_value - max_val) < tolerance):
+            if config.VERBOSITY > 1:
+                print('BEST CHILD: Found a tie', bestLs[-1], 'with value', child_value)
             bestLs.append(child)
             
         #if it's value is greater than the best so far, it will be our best so far
         elif child_value > max_val:
+            if config.VERBOSITY > 1:
+                print('BEST CHILD: Found a clear winner', bestLs[-1], 'with value', child_value)
             bestLs = [child]
             max_val = child_value
 
     chosen = random.choice(bestLs)
 
     if not fullyExpanded:
-        print(bestLs)
-        print(chosen)
+        print('BEST CHILD: Wasnt fully expanded', bestLs)
+        print('BEST CHILD: Wasnt fully expanded', chosen)
         
     return chosen
 
@@ -176,6 +187,11 @@ def backup(node, delta):
     node -- the child node we simulated from
     delta -- the component of the reward vector associated with the current player at node v
     """
+
+    if config.VERBOSITY > 1:
+        print('[BACKUP]: beginning')
+
+    count = 0
     while node is not None:
         # Increment the number of times the node has
         # been visited and the simulated value of the node
@@ -183,5 +199,11 @@ def backup(node, delta):
         node.update_sim_value(delta)
         # Traverse up the tree
         node = node.get_parent()
+        count += 1
+
+        if count > 500:
+            print('[BACKUP]: Count is', count)
+            print(str(node))
+
 
 
