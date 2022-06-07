@@ -25,7 +25,7 @@ class RandomAgent(Agent):
     def take_action(self, env: Environment, history: list) -> str:
         """Takes in the history and returns the next action to take"""
 
-        valid_actions = env.get_valid_actions()
+        valid_actions = env.get_valid_actions(use_parallel=False)
         return random.choice(valid_actions)
 
 class HumanAgent(Agent):
@@ -33,7 +33,7 @@ class HumanAgent(Agent):
 
     def take_action(self, env: Environment, history: list) -> str:
         """Takes in the history and returns the next action to take"""
-        print(env.get_valid_actions())
+        print(env.get_valid_actions(use_parallel=False))
         print("Action: ")
         return input()
 
@@ -45,12 +45,12 @@ class MonteAgent(Agent):
 
     def __init__(self, env: Environment, time_limit: int):
         # create root node with the initial state
-        self.root = MCTS_node(None, None, env.get_valid_actions())
+        self.root = MCTS_node(None, None, env.get_valid_actions(use_parallel=False))
 
         self.node_path.append(self.root)
 
         # This constant balances tree exploration with exploitation of ideal nodes
-        explore_const = 5
+        explore_const = 1.0/sqrt(2)
         self.reward = BaselineReward(explore_const)
 
         self.time_limit = time_limit
@@ -79,7 +79,6 @@ class MonteAgent(Agent):
            
             if config.VERBOSITY > 1:
                print('[TAKE ACTION] Root node is', str(self.root))
-               print('[TAKE ACTION] Env valid actions', env.get_valid_actions())
                print('[TAKE ACTION] New actions', self.root.get_new_actions())
 
 
@@ -106,7 +105,6 @@ class MonteAgent(Agent):
             print('[TAKE ACTION] Number of iterations accomplished before time limit elapsed: ', count)
             
         if config.VERBOSITY > 0:
-            print(env.get_valid_actions())
             for child in self.root.children:
                 print(child.get_prev_action(), ", count:", child.visited, ", value:", child.sim_value, "normalized value:", self.reward.calculate_child_value(env, child, self.root))
 

@@ -43,17 +43,17 @@ class NodeTest(unittest.TestCase):
     def test_chamber_nodes(self):
 
         env = ChamberEnvironment(None)
-        root = MCTS_node(None, None, env.get_valid_actions())
+        root = MCTS_node(None, None, env.get_valid_actions(use_parallel=False))
 
         self.assertFalse(root.is_terminal())
         self.assertFalse(root.is_expanded())
-        self.assertEqual(root.get_max_children(), len(env.get_valid_actions()))
-        self.assertEqual(root.get_new_actions(), env.get_valid_actions())
+        self.assertEqual(root.get_max_children(), len(env.get_valid_actions(use_parallel=False)))
+        self.assertEqual(root.get_new_actions(), env.get_valid_actions(use_parallel=False))
 
 
     def test_chamber_expand_node(self):
         env = ChamberEnvironment(None)
-        root = MCTS_node(None, None, env.get_valid_actions())
+        root = MCTS_node(None, None, env.get_valid_actions(use_parallel=False))
 
         print('Initial parent:')
         print(root)

@@ -126,7 +126,7 @@ def expand_node(parent, env):
 
     # Step into the state of that child and get its possible actions
     env.step(action)
-    new_actions = env.get_valid_actions()
+    new_actions = env.get_valid_actions(use_parallel=False)
 
     # Create the child
     new_node = MCTS_node(parent, action, new_actions)
@@ -156,7 +156,7 @@ def default_policy(new_node, env):
     while (not env.game_over()) and (not env.victory()):        
 
         #Get the list of valid actions from this state
-        actions = env.get_valid_actions()
+        actions = env.get_valid_actions(use_parallel=False)
 
         # Take a random action from the list of available actions        
         chosen_action = random.choice(actions)
