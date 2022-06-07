@@ -97,6 +97,9 @@ class MCTS_node(Node):
     def get_sim_value(self):
         return self.sim_value
 
+    def get_subtree_size(self):
+        return self.subtree_size
+
     def changeLength(self, scalar):
         if scalar < 0:
             self.sim_length_scale = self.sim_length_scale*(1-self.SIM_SCALE)
@@ -142,6 +145,12 @@ class MCTS_node(Node):
     def get_children(self):
         """ Returns a list of all the children """
         return self.children
+
+    def get_children_actions(self):
+        children_acts = []
+        for chil in self.children:
+            children_acts.append(chil.get_prev_action())
+        return children_acts
     
     def get_child(self, action):
         """Return the child that results from taking the action"""
@@ -149,6 +158,10 @@ class MCTS_node(Node):
             if chil.get_prev_action() == action:
                 return chil
         return self
+    
+    def remove_child(self,child):
+        self.children.remove(child)
+        return self.children
 
     def get_new_actions(self):
         """ Returns the list of unexplored actions """

@@ -60,6 +60,9 @@ class Environment:
         """Returns a copy of the environment"""
         raise NotImplementedError
 
+    def close(self):
+        raise NotImplementedError
+
 
 class JerichoEnvironment(Environment):    
     """A wrapper around the FrotzEnvironment"""
@@ -119,6 +122,9 @@ class JerichoEnvironment(Environment):
     def copy(self):
         """Returns a copy of the environment"""
         return self.env.copy()
+
+    def close(self):
+        return self.env.close()
 
 
 

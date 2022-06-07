@@ -6,7 +6,7 @@ from agent import Agent
 from agent import RandomAgent
 from agent import HumanAgent
 from agent import MonteAgent
-from dep_agent import DEPagent
+# from dep_agent import DEPagent
 import config
 from environment import *
 
@@ -34,7 +34,7 @@ def play_game(agent: Agent, env: Environment, num_steps: int):
 
         # timing the call to take_action()
         start_time = time.time()
-        action_to_take = agent.take_action(env, history)
+        action_to_take, next_obs, _, done, info = agent.take_action(env, history, config.VERBOSITY)
         end_time = time.time()
 
         # updating statistics
@@ -42,7 +42,7 @@ def play_game(agent: Agent, env: Environment, num_steps: int):
         seconds += (end_time - start_time)
 
         # updating environment with selected action
-        next_obs, _, done, info = env.step(action_to_take)
+        #next_obs, _, done, info = env.step(action_to_take)
 
 
         history.append((curr_obs, action_to_take))
@@ -68,6 +68,9 @@ def play_game(agent: Agent, env: Environment, num_steps: int):
         for _, action in history:
             print(action)
 
+    
+    env.close()
+
     return (info['score'], info['moves'], num_location_changes, num_times_called, seconds)
 
 
@@ -85,10 +88,13 @@ if __name__ == "__main__":
         'num_moves', type=int, help="Number of moves for the agent to make. Enter '-1' for unlimited moves.")
     parser.add_argument('agent', help='[random|human|mcts|dep]')
     parser.add_argument('game', help='[path to game file|chamber|chamber4]')
+    parser.add_argument('num_seconds',help='number of seconds agent gets to make a move')
+    parser.add_argument('num_trees',help='number of trees to build with parallel mcts')
     parser.add_argument('-v', '--verbosity', type=int,
                         help='[0|1] verbosity level')
     args = parser.parse_args()
-
+    args.num_trees = int(args.num_trees)
+    args.num_seconds = int(args.num_seconds)
     # Instantiate the game environment    
     if args.game == "chamber":
         env = ChamberEnvironment(None)
@@ -104,9 +110,9 @@ if __name__ == "__main__":
     elif args.agent == 'human':
         ai_agent = HumanAgent()
     elif args.agent == 'mcts':
-        ai_agent = MonteAgent(env, args.num_moves)
-    elif args.agent == 'dep':
-        ai_agent = DEPagent()
+        ai_agent = MonteAgent(env, args.num_moves, args.num_seconds, args.num_trees)
+    # elif args.agent == 'dep':
+        # ai_agent = DEPagent()
     else:
         ai_agent = RandomAgent()
 

@@ -55,6 +55,7 @@ def take_action(queue_list, env: Environment, explore_exploit_const, reward_poli
 
 
     #get the dictionaries off of the multiprocessing queue
+    #print(env.get_valid_actions())
     score_dict = queue_list.get()
     count_dict = queue_list.get()
     root = queue_list.get()
@@ -84,7 +85,6 @@ def take_action(queue_list, env: Environment, explore_exploit_const, reward_poli
 
         #update the size of the tree
         update_tree(new_node)
-
         # Determine the simulated value of the new node
         adjust_scoring_states = 0
         delta, adjust_scoring_states = default_policy(new_node, env, simulation, reward_policy)
@@ -105,33 +105,61 @@ def take_action(queue_list, env: Environment, explore_exploit_const, reward_poli
         score_dict[action] = root.get_child(action).get_sim_value()
         count_dict[action] = new_count
 
-    print("TREE TOTAL RUNS = ",count," SIM LENGTH = ",simulation.get_length()," SCORING STATES = ",total_scoring_states)
-    if total_scoring_states < THRESHOLD and root.get_prev_action() is not None and count >= num_children*2:
-        print("incrementing sim scale")
-        simulation.adjust_sim_length(1+SIM_SCALE)
-        print("adjusted sim length: ",simulation.get_length())
+    print(score_dict)
+    print(count_dict)
+    #print("TREE TOTAL RUNS = ",count," SIM LENGTH = ",simulation.get_length()," SCORING STATES = ",total_scoring_states)
+    # if total_scoring_states < THRESHOLD and root.get_prev_action() is not None and count >= num_children*2:
+    #     # print("incrementing sim scale")
+    #     simulation.adjust_sim_length(1+SIM_SCALE)
+    #     # print("adjusted sim length: ",simulation.get_length())
 
-    elif calc_score_dif(root) <=ACTION_BOUND and root.get_prev_action() is not None and root.subtree_size >= num_children*2 and total_scoring_states > THRESHOLD:
-        print("decrementing sim score")
-        sim_length_scale = 1/num_children
-        #simulation_length = simulation_length*sim_length_scale
-        simulation.adjust_sim_length(sim_length_scale)
-        if simulation.get_length() < 10:
-            simulation.adjust_sim_length(1/sim_length_scale)
-        print("sim length:", simulation.get_length())
+    # elif calc_score_dif(root) <=ACTION_BOUND and root.get_prev_action() is not None and root.subtree_size >= num_children*2 and total_scoring_states > THRESHOLD:
+    #     # print("decrementing sim score")
+    #     sim_length_scale = 1/num_children
+    #     #simulation_length = simulation_length*sim_length_scale
+    #     simulation.adjust_sim_length(sim_length_scale)
+    #     if simulation.get_length() < 10:
+    #         simulation.adjust_sim_length(1/sim_length_scale)
+    #     # print("sim length:", simulation.get_length())
 
 
     #after leaving the action sequence, place the dictionaries back on the shared queue
     queue_list.put(score_dict)
     queue_list.put(count_dict)
-    queue_list.put(root)
     queue_list.put(simulation)
-   
-   #increment value of finished processes before returning
+    queue_list.put(root)
+    # #if the tree is small enough to be parsed, place the entire tree on the queue
+    # if root.get_subtree_size() <=9:
+        
+    # #otherwise, remove the largest child and put the tree on the queue in parts
+    # else:
+    #     print("parsing tree")
+    #     child = get_largest_child(root)
+    #     root.remove_child(child)
+    #     child.parent = None
+    #     queue_list.put(root)
+    #     queue_list.put(child)
+    #     print("put tree on queue")
+
+
     lock.acquire()
     procs_finished.value +=1
     lock.release()
-    return 
+    queue_list.close()
+    return    
+   
+   #increment value of finished processes before returning
+
+
+def get_largest_child(node):
+    max_size = 0
+    max_chil = None
+    for chil in node.get_children():
+        if chil.get_subtree_size() > max_size:
+            max_size = chil.get_subtree_size()
+            max_chil = chil
+    print("retirning largest chil")
+    return max_chil
 
 
 
@@ -336,6 +364,8 @@ def default_policy(new_node, env, simulation, reward_policy):
             running_score += (after-before)/(count)
 
     #return the reward received by reaching terminal state
+    if env.game_over():
+        return (running_score +10, score_states)
     return (running_score, score_states)
 
 def backup(node, delta):

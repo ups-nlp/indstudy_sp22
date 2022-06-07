@@ -4,6 +4,7 @@ Agents for playing text-based games
 
 from math import sqrt
 import os
+import sys
 import random
 import time
 import config
@@ -13,7 +14,7 @@ from mcts_agent import exit_handler
 from simulation_length import simulation_length
 #from mcts_agent import take_action, best_child, tree_policy, default_policy, backup
 #from mcts_agent import mcts
-from mcts_node import Node
+from mcts_node import MCTS_node
 from mcts_reward import AdditiveReward, DynamicReward
 import multiprocessing_on_dill as multiprocessing
 #from multiprocessing import Process,cpu_count
@@ -54,31 +55,32 @@ class HumanAgent(Agent):
 class MonteAgent(Agent):
     """"Monte Carlo Search Tree Player"""
 
-    node_path = []
 
-    def __init__(self, env: Environment, num_steps: int):
+    def __init__(self, env: Environment, num_steps: int, num_seconds: int, num_trees:int):
         # create root node with the initial state
         self.root = MCTS_node(None, None, env.get_valid_actions())
+        self.node_path = []
 
         self.simulation = simulation_length()
-
         self.node_path.append(self.root)
 
         # This constant balances tree exploration with exploitation of ideal nodes
         self.explore_const = 1.0/sqrt(2)
 
         #number of trees
-        self.max_tree_count = cpu_count()
-        self.tree_count = self.max_tree_count #1
+        self.max_tree_count = 8
+        self.tree_count = num_trees #self.max_tree_count #1
         if(self.tree_count > self.max_tree_count):
             self.tree_count = self.max_tree_count
+
+        self.time_limit = num_seconds
 
 
         #make trees
         #  the trees will continue to be built as the game continues
         self.tree_arr = [None]*self.tree_count
         for i in range(self.tree_count):
-            self.tree_arr[i] = Node(None,None, env.get_valid_actions())
+            self.tree_arr[i] = MCTS_node(None,None, env.get_valid_actions())
 
 
         #create multiple simulation objects for the trees
@@ -88,8 +90,7 @@ class MonteAgent(Agent):
             self.sim_list[i].initialize_agent(self.simulation.get_length())
 
 
-        #name the processes
-        #UNUSED
+        # #name the processes
         self.proc_names = [None]*self.tree_count
         for i in range(self.tree_count):
             self.proc_names[i] = "proc"+str(i)
@@ -112,14 +113,15 @@ class MonteAgent(Agent):
 
     
 
-    def take_action(self, env: Environment, history: list) -> str:
-
+    def take_action(self, env: Environment, history: list, verbosity) -> str:
+        # print("step")
 
         """Takes in the history and returns the next action to take"""
-        print("Action: ")
-        print("possible actions: ")
-        for act in env.get_valid_actions():
-            print("\t",act)
+        if verbosity >0:
+            print("Action: ")
+            print("possible actions: ")
+            for act in env.get_valid_actions():
+                print("\t",act)
  
         # time at sim start
         start_time = time.time()
@@ -128,7 +130,7 @@ class MonteAgent(Agent):
         seconds_elapsed = 0
 
         # loose time limit for simulation phase
-        time_limit = 60
+        # time_limit = 2
 
         # minimum number of nodes per simulation phase
         minimum = env.get_moves()*5
@@ -139,7 +141,7 @@ class MonteAgent(Agent):
         num_actions = len(env.get_valid_actions())
 
         #create manager
-        manager = multiprocessing.Manager()
+        # manager = multiprocessing.Manager()
 
 
 
@@ -184,7 +186,8 @@ class MonteAgent(Agent):
 
         #send off different trees with their dicts and environments
         if __name__=="agent":
-            print("spinning threads \n")
+            if verbosity >0:
+                print("spinning threads \n")
             procs = []
             for i in range(self.tree_count):
                 #spin off a new process to take_action and append to processes list
@@ -195,18 +198,20 @@ class MonteAgent(Agent):
                 proc.start()
 
         #set main to sleep until the time limit runs out. In this time, the processes are building their trees
-        time.sleep(time_limit)
-        print("ending timer")
+        time.sleep(self.time_limit)
+        if verbosity > 0:
+            print("ending timer")
 
         #when the timer runs out, set the timer value to 1 so the threads start to return
         with timer.get_lock():
             timer.value = 1
-        time.sleep(15)
+        time.sleep(3)
 
         #wait for all the processes to exit the while loop and restock the queues before joining
         while procs_finished.value < self.tree_count:
             time.sleep(1)
-        print("joining processes")
+        if verbosity > 0:
+            print("joining processes")
 
 
         #store the score dictionaries and count dictionaries from the processes
@@ -220,11 +225,17 @@ class MonteAgent(Agent):
 
             #grab the shared queue and place the dictionaries into the lists
             que = proc_queues[i]
+            if que.empty():
+                self.has_returned[i] = False
+                continue
+            
             tree_scores[i] = que.get()
             tree_counts[i] = que.get()
-            self.tree_arr[i] = que.get()
             self.sim_list[i] = que.get()
-            print("tree size for subtree: ",self.tree_arr[i].subtree_size)
+            self.tree_arr[i] = que.get()
+            self.env_arr[i].close()
+            if verbosity > 1:
+                print("tree size for subtree: ",self.tree_arr[i].subtree_size)
             proc.join(5)
             #if the process doesn't exit cleanly, update its has_returned value
             if proc.exitcode is None:
@@ -233,33 +244,52 @@ class MonteAgent(Agent):
                 self.has_returned[i] = False
             atexit.register(exit_handler)
 
-        
-        
+        #close all processes to clean resources
+        for i in range(self.tree_count):
+            if self.has_returned[i]:
+                proc = procs[i]
+                proc.terminate()
+
+
 
         #grab the best action, and the dictionaries that store the action and the counts 
         best_action, action_values, action_counts = self.best_shared_child(env, tree_scores, tree_counts)
+        
+        if best_action is None:
+            best_action = ""
         #best_action = "north"
         #for each action, print the calculated score and the total count
-        for act in env.get_valid_actions():
-            if act not in action_values.keys() or action_counts.get(act)==0:
-                print("act ",act,"not explored.")
-            else:
-                 print("ACT ",act,": score = ",action_values.get(act)/action_counts.get(act),", count = ",action_counts.get(act))
-        print("best child: ",best_action, "\n")
+        if verbosity > 0:
+            for act in env.get_valid_actions():
+                if act not in action_values.keys() or action_counts.get(act)==0:
+                    print("act ",act,"not explored.")
+                else:
+                    print("ACT ",act,": score = ",action_values.get(act)/action_counts.get(act),", count = ",action_counts.get(act))
+        if verbosity >0:
+            print("best child: ",best_action, "\n")
+
+        
+        if best_action is not None:
+            next_obs, _, done, info = env.step(best_action)
 
         for i in range(self.tree_count):
             #if the tree had to be forcibly joined
             if not self.has_returned:
                 continue
-            self.tree_arr[i] = self.tree_arr[i].get_child(best_action)
+            self.tree_arr[i] = self.return_child(self.tree_arr[i], best_action, env.get_valid_actions())
 
 
         self.node_path.append(self.root)
 
-        return best_action
+        return best_action, next_obs, _, done, info
 
 
 
+    def return_child(self,root,action, possible_actions):
+        if action not in root.get_children_actions():
+            new_node = MCTS_node(root,action, possible_actions)
+            root.add_child(new_node)
+        return root.get_child(action)
 
     def best_shared_child(self, env:Environment, tree_scores, tree_counts):
         """
