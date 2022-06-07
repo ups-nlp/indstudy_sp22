@@ -59,7 +59,7 @@ def take_action(queue_list, env: Environment, explore_exploit_const, reward_poli
     score_dict = queue_list.get()
     count_dict = queue_list.get()
     root = queue_list.get()
-    simulation = queue_list.get()
+    # simulation = queue_list.get()
     score_dict ={}
     count_dict = {}
     # root = tree
@@ -67,7 +67,7 @@ def take_action(queue_list, env: Environment, explore_exploit_const, reward_poli
     curr_state = env.get_state()
     count = 0
     action = None
-    sim_length_scale = 1
+    # sim_length_scale = 1
     num_children = len(env.get_valid_actions())
     total_scoring_states = 0
 
@@ -87,7 +87,7 @@ def take_action(queue_list, env: Environment, explore_exploit_const, reward_poli
         update_tree(new_node)
         # Determine the simulated value of the new node
         adjust_scoring_states = 0
-        delta, adjust_scoring_states = default_policy(new_node, env, simulation, reward_policy)
+        delta, adjust_scoring_states = default_policy(new_node, env, reward_policy)
 
         total_scoring_states += adjust_scoring_states
 
@@ -105,8 +105,8 @@ def take_action(queue_list, env: Environment, explore_exploit_const, reward_poli
         score_dict[action] = root.get_child(action).get_sim_value()
         count_dict[action] = new_count
 
-    print(score_dict)
-    print(count_dict)
+    # print(score_dict)
+    # print(count_dict)
     #print("TREE TOTAL RUNS = ",count," SIM LENGTH = ",simulation.get_length()," SCORING STATES = ",total_scoring_states)
     # if total_scoring_states < THRESHOLD and root.get_prev_action() is not None and count >= num_children*2:
     #     # print("incrementing sim scale")
@@ -126,7 +126,7 @@ def take_action(queue_list, env: Environment, explore_exploit_const, reward_poli
     #after leaving the action sequence, place the dictionaries back on the shared queue
     queue_list.put(score_dict)
     queue_list.put(count_dict)
-    queue_list.put(simulation)
+    # queue_list.put(simulation)
     queue_list.put(root)
     # #if the tree is small enough to be parsed, place the entire tree on the queue
     # if root.get_subtree_size() <=9:
@@ -158,7 +158,7 @@ def get_largest_child(node):
         if chil.get_subtree_size() > max_size:
             max_size = chil.get_subtree_size()
             max_chil = chil
-    print("retirning largest chil")
+    # print("retirning largest chil")
     return max_chil
 
 
@@ -326,7 +326,7 @@ def print_arr(arr):
         
 
 
-def default_policy(new_node, env, simulation, reward_policy):
+def default_policy(new_node, env,  reward_policy):
     """
     The default_policy represents a simulated exploration of the tree from
     the passed-in node to a terminal state.
@@ -338,7 +338,7 @@ def default_policy(new_node, env, simulation, reward_policy):
         #return 0
         return (10,0)
         #return env.get_score()
-    sim_length = simulation.get_length()
+    # sim_length = simulation.get_length()
     running_score = env.get_score()
     count = 0
     score_states = 0
@@ -456,7 +456,7 @@ def node_explore(agent):
         
             print("-------", cur_node.get_prev_action(), "-------")
         
-            print("Sim-value:", cur_node.get_sim_value())
+            # print("Sim-value:", cur_node.get_sim_value())
         
             print("Visited:", cur_node.get_visited())
         
@@ -477,7 +477,7 @@ def node_explore(agent):
 
             print("-------", cur_node.get_prev_action(), "-------")
         
-            print("Sim-value:", cur_node.get_sim_value())
+            # print("Sim-value:", cur_node.get_sim_value())
         
             print("Visited:", cur_node.get_visited())
         

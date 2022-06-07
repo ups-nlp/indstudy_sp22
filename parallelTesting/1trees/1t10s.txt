@@ -1,0 +1,1 @@
+Score	num moves	valid moves	location change	time taken25	49	49	38	696.9562108516693

@@ -61,7 +61,7 @@ class MonteAgent(Agent):
         self.root = MCTS_node(None, None, env.get_valid_actions())
         self.node_path = []
 
-        self.simulation = simulation_length()
+        # self.simulation = simulation_length()
         self.node_path.append(self.root)
 
         # This constant balances tree exploration with exploitation of ideal nodes
@@ -83,11 +83,11 @@ class MonteAgent(Agent):
             self.tree_arr[i] = MCTS_node(None,None, env.get_valid_actions())
 
 
-        #create multiple simulation objects for the trees
-        self.sim_list = [None]*self.tree_count
-        for i in range(self.tree_count):
-            self.sim_list[i] = simulation_length()
-            self.sim_list[i].initialize_agent(self.simulation.get_length())
+        # #create multiple simulation objects for the trees
+        # self.sim_list = [None]*self.tree_count
+        # for i in range(self.tree_count):
+        #     self.sim_list[i] = simulation_length()
+        #     self.sim_list[i].initialize_agent(self.simulation.get_length())
 
 
         # #name the processes
@@ -99,7 +99,7 @@ class MonteAgent(Agent):
 
 
         # The starting length of each monte carlo simulation
-        self.simulation.initialize_agent(10)
+        # self.simulation.initialize_agent(10)
 
         # Maximum number of nodes to generate in the tree each time a move is made
         self.max_nodes = 200
@@ -169,7 +169,7 @@ class MonteAgent(Agent):
             proc_queues[i].put({})
             proc_queues[i].put({})
             proc_queues[i].put(self.tree_arr[i])
-            proc_queues[i].put(self.sim_list[i])
+            # proc_queues[i].put(self.sim_list[i])
 
 
 
@@ -231,7 +231,7 @@ class MonteAgent(Agent):
             
             tree_scores[i] = que.get()
             tree_counts[i] = que.get()
-            self.sim_list[i] = que.get()
+            # self.sim_list[i] = que.get()
             self.tree_arr[i] = que.get()
             self.env_arr[i].close()
             if verbosity > 1:

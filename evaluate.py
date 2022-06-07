@@ -29,12 +29,12 @@ if __name__ == "__main__":
     ready = 0
     args.num_trees = int(args.num_trees)
     args.num_seconds = int(args.num_seconds)
-    if args.num_trees != 4 and args.num_trees != 8:
-        print("select [4|8] for number of trees")
+    if args.num_trees<1 or args.num_trees>8:
+        print("select [1|2|3|4|5|6|7|8] for number of trees")
         ready = 1
-    if args.num_seconds != 20 and args.num_seconds != 40 and args.num_seconds != 60:
+    if args.num_seconds != 10 and args.num_seconds != 30 and args.num_seconds != 45 and args.num_seconds != 60 and args.num_seconds != 90 and args.num_seconds != 120:
         print(args.num_seconds)
-        print("select [20|40|60] for number of seconds")
+        print("select [10|30|45|60|90|120] for number of seconds")
         ready = 1
 
     # Instantiate the game environment    
