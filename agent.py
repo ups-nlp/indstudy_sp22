@@ -32,8 +32,7 @@ class HumanAgent(Agent):
     """Allows a human player"""
 
     def take_action(self, env: Environment, history: list) -> str:
-        """Takes in the history and returns the next action to take"""
-        print(env.get_valid_actions(use_parallel=False))
+        """Takes in the history and returns the next action to take"""        
         print("Action: ")
         return input()
 
@@ -41,12 +40,12 @@ class HumanAgent(Agent):
 class MonteAgent(Agent):
     """"Monte Carlo Search Tree Player"""
 
-    node_path = []
 
     def __init__(self, env: Environment, time_limit: int):
         # create root node with the initial state
         self.root = MCTS_node(None, None, env.get_valid_actions(use_parallel=False))
-
+        self.node_path = []
+        
         self.node_path.append(self.root)
 
         # This constant balances tree exploration with exploitation of ideal nodes

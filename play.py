@@ -12,7 +12,7 @@ from environment import *
 
 
 
-def play_game(agent: Agent, game_file: str, num_steps: int):
+def play_game(agent: Agent, env: Environment, num_steps: int):
     """ The main method that instantiates an agent and plays the specified game"""
 
     # Create the environment
@@ -104,7 +104,7 @@ if __name__ == "__main__":
     parser.add_argument(
         'num_moves', type=int, help="Number of moves for the agent to make. Enter '-1' for unlimited moves.")
     parser.add_argument('agent', help='[random|human|mcts]')    
-    parser.add_argument('game_file', help='Full pathname for game')
+    parser.add_argument('game', help='[path to game file|chamber|chamber4]')
 
     # Optional arguments are...optional
     parser.add_argument('-t' , '--mcts_time', type=int, help='Number of seconds to run MCTS algorithm before choosing an action')
@@ -112,6 +112,15 @@ if __name__ == "__main__":
                         help='[0|1] verbosity level')
     args = parser.parse_args()
 
+    # Instantiate the game environment    
+    if args.game == "chamber":
+        env = ChamberEnvironment(None)
+    elif args.game == "chamber4":
+        env = Chambers4Environment(None)
+    else:
+        # args.game is the path name to a Z-master game
+        env = JerichoEnvironment(args.game)
+        
     # Create the agent
     if args.agent == 'random':
         ai_agent = RandomAgent()
@@ -135,4 +144,4 @@ if __name__ == "__main__":
     if args.verbosity is not None and (0 <= args.verbosity and args.verbosity <= 2):        
         config.VERBOSITY = args.verbosity
 
-    play_game(ai_agent, args.game_file, args.num_moves)
+    play_game(ai_agent, env, args.num_moves)

@@ -17,16 +17,56 @@ if __name__ == "__main__":
     parser.add_argument('num_moves', type=int,
                         help='Number of moves for agent to take per trial')
     parser.add_argument('agent', help='[random|human|mcts]')
-    parser.add_argument('game_file', help='Full pathname to the game file')
+    parser.add_argument('game', help='[path to game file|chamber|chamber4]')
     parser.add_argument('-t' , '--mcts_time', type=int, help='Number of seconds to run MCTS algorithm before choosing an action')
     parser.add_argument('-v', '--verbosity', type=int,
                         help='[0|1|2] verbosity level')
     args = parser.parse_args()
 
-    if args.agent == 'random':
-        ai_agent = RandomAgent()
-    elif args.agent == 'human':
-        ai_agent = HumanAgent()
+    
+
+    # Set the verbosity level
+    if 0 <= args.verbosity and args.verbosity <= 2:
+        config.VERBOSITY = args.verbosity
+
+    total_score = 0                 # total agent score aggregated over all trials
+    total_num_valid_actions = 0     # total number of valid actions aggregated over all trials
+    total_num_location_changes = 0  # total number of location changes aggregated over all trials
+    total_num_steps = 0             # total number of steps taken aggregated over all trials
+    total_time = 0                  # total seconds taken aggregated over all trials
+
+
+    # Open file for writing results
+    file_str = f'basicTesting/{args.num_trials}t{args.num_moves}m{args.num_seconds}s.txt'
+    data_file = open(file_str, "w")
+
+    print()
+    print('======================================')
+    print('Num Trials:', args.num_trials)
+    print('Moves per Trial:', args.num_moves)
+    print('Time Limit:', args.mcts_time, "seconds")
+    print('======================================')
+    print()
+    print()
+
+
+    for i in range(args.num_trials):
+        
+        # Instantiate the game environment 
+        if args.game == "chamber":
+            env = ChamberEnvironment(None)
+        elif args.game == "chamber4":
+            env = Chambers4Environment(None)
+        else:
+            # args.game is the path name to a Z-master game
+            env = JerichoEnvironment(args.game)
+
+
+        # Instantiate the agent
+        if args.agent == 'random':
+            ai_agent = RandomAgent()
+        elif args.agent == 'human':
+            ai_agent = HumanAgent()
     elif args.agent == 'mcts':
         if args.mcts_time is None:
             print('Error: must set the mcts_time limit')
@@ -41,29 +81,9 @@ if __name__ == "__main__":
     else:
         ai_agent = RandomAgent()
 
+        
+        
 
-    # Set the verbosity level
-    if 0 <= args.verbosity and args.verbosity <= 2:
-        config.VERBOSITY = args.verbosity
-
-    total_score = 0                 # total agent score aggregated over all trials
-    total_num_valid_actions = 0     # total number of valid actions aggregated over all trials
-    total_num_location_changes = 0  # total number of location changes aggregated over all trials
-    total_num_steps = 0             # total number of steps taken aggregated over all trials
-    total_time = 0                  # total seconds taken aggregated over all trials
-
-
-    print()
-    print('======================================')
-    print('Num Trials:', args.num_trials)
-    print('Moves per Trial:', args.num_moves)
-    print('Time Limit:', args.mcts_time, "seconds")
-    print('======================================')
-    print()
-    print()
-
-
-    for i in range(args.num_trials):
         print(f'Trial {i+1} of {args.num_trials}')
         score, num_valid_actions, num_location_changes, num_steps, time = play_game(
             ai_agent, args.game_file, args.num_moves)
@@ -74,6 +94,11 @@ if __name__ == "__main__":
         total_num_steps += num_steps
         total_time += time
                 
+        
+        # Write results to file
+        new_line = f'{score}\t{num_steps}\t{num_valid_actions}\t{num_location_changes}\t{time}\n'
+        data_file.write(new_line)
+
         print(f'Trial {i+1}:')
         print(f'Score= {score}')
         print(f'Number of steps: {num_steps} out of a possible {args.num_moves}')
@@ -89,6 +114,10 @@ if __name__ == "__main__":
             ai_agent = MonteAgent(JerichoEnvironment(args.game_file), args.mcts_time)   
 
 
+    # Close the file
+    data_file.close()
+
+    
     print()
     print('FINAL STATS:')
     print(f'Number of trials: {args.num_trials}')

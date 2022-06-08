@@ -164,16 +164,8 @@ def default_policy(new_node, env):
 
         count += 1    
 
-        # I think we're getting stuck here sometimes
-        if count > 500:
-            print('DEFAULT POLICY:', count)
-            print('DEFAULT POLICY: action is ', chosen_action)
-            print('DEFAULT POLICY:', env.game_over())
-            print('DEFAULT POLICY:', env.victory())
-
-
-    #if config.VERBOSITY > 0:
-    #    print('\t[DEFAULT POLICY] Number of iterations until reached terminal node: ', count)
+    if config.VERBOSITY > 1:
+       print('\t[DEFAULT POLICY] Number of iterations until reached terminal node: ', count)
 
     return env.get_score()
 
@@ -188,10 +180,6 @@ def backup(node, delta):
     delta -- the component of the reward vector associated with the current player at node v
     """
 
-    if config.VERBOSITY > 1:
-        print('[BACKUP]: beginning')
-
-    count = 0
     while node is not None:
         # Increment the number of times the node has
         # been visited and the simulated value of the node
@@ -199,11 +187,8 @@ def backup(node, delta):
         node.update_sim_value(delta)
         # Traverse up the tree
         node = node.get_parent()
-        count += 1
+        
 
-        if count > 500:
-            print('[BACKUP]: Count is', count)
-            print(str(node))
 
 
 
