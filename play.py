@@ -91,10 +91,11 @@ if __name__ == "__main__":
     parser.add_argument('num_seconds',help='number of seconds agent gets to make a move')
     parser.add_argument('num_trees',help='number of trees to build with parallel mcts')
     parser.add_argument('-v', '--verbosity', type=int,
-                        help='[0|1] verbosity level')
+                        help='[0|1|2] verbosity level')
     args = parser.parse_args()
     args.num_trees = int(args.num_trees)
     args.num_seconds = int(args.num_seconds)
+    
     # Instantiate the game environment    
     if args.game == "chamber":
         env = ChamberEnvironment(None)
@@ -117,7 +118,7 @@ if __name__ == "__main__":
         ai_agent = RandomAgent()
 
     # Set the verbosity level
-    if args.verbosity == 0 or args.verbosity == 1:
+    if args.verbosity is not None and (0 <= args.verbosity and args.verbosity <= 2):        
         config.VERBOSITY = args.verbosity
 
     # Alright, go ahead and play the game

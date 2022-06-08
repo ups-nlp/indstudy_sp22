@@ -76,7 +76,8 @@ def take_action(queue_list, env: Environment, explore_exploit_const, reward_poli
     #this tree
 
     #timer.value==0 and 
-    while(timer.value==0 and count < 20000):
+    #while(timer.value==0 and count < 20000):
+    while(timer.value == 0)
 
         count = count+1
 
@@ -307,10 +308,10 @@ def expand_node(parent, env:Environment):
     action = random.choice(actions)
 
     # Remove that action from the unexplored action list and update parent
-    actions.remove(action)
+    parent.remove_action(action)
     # Step into the state of that child and get its possible actions
     env.step(action)
-    new_actions = env.get_valid_actions()
+    new_actions = env.get_valid_actions(use_parallel=False)
     # Create the child
     new_node = MCTS_node(parent, action, new_actions)
 
@@ -351,7 +352,7 @@ def default_policy(new_node, env,  reward_policy):
         #     return (running_score, score_states)
 
         #Get the list of valid actions from this state
-        actions = env.get_valid_actions()
+        actions = env.get_valid_actions(use_parallel=False)
 
         # Take a random action from the list of available actions
         before = env.get_score()

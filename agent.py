@@ -40,7 +40,7 @@ class RandomAgent(Agent):
     def take_action(self, env: Environment, history: list) -> str:
         """Takes in the history and returns the next action to take"""
 
-        valid_actions = env.get_valid_actions()
+        valid_actions = env.get_valid_actions(use_parallel=False)
         return random.choice(valid_actions)
 
 class HumanAgent(Agent):
@@ -58,7 +58,7 @@ class MonteAgent(Agent):
 
     def __init__(self, env: Environment, num_steps: int, num_seconds: int, num_trees:int):
         # create root node with the initial state
-        self.root = MCTS_node(None, None, env.get_valid_actions())
+        self.root = MCTS_node(None, None, env.get_valid_actions(use_parallel=False))
         self.node_path = []
 
         # self.simulation = simulation_length()
@@ -80,7 +80,7 @@ class MonteAgent(Agent):
         #  the trees will continue to be built as the game continues
         self.tree_arr = [None]*self.tree_count
         for i in range(self.tree_count):
-            self.tree_arr[i] = MCTS_node(None,None, env.get_valid_actions())
+            self.tree_arr[i] = MCTS_node(None,None, env.get_valid_actions(use_parallel=False))
 
 
         # #create multiple simulation objects for the trees
@@ -102,7 +102,7 @@ class MonteAgent(Agent):
         # self.simulation.initialize_agent(10)
 
         # Maximum number of nodes to generate in the tree each time a move is made
-        self.max_nodes = 200
+        #self.max_nodes = 200
 
         #reward to use
         self.reward = DynamicReward()
@@ -133,12 +133,12 @@ class MonteAgent(Agent):
         # time_limit = 2
 
         # minimum number of nodes per simulation phase
-        minimum = env.get_moves()*5
+        # minimum = env.get_moves()*5
 
 
 
         #number of actions available from current spot
-        num_actions = len(env.get_valid_actions())
+        # num_actions = len(env.get_valid_actions())
 
         #create manager
         # manager = multiprocessing.Manager()
@@ -260,7 +260,7 @@ class MonteAgent(Agent):
         #best_action = "north"
         #for each action, print the calculated score and the total count
         if verbosity > 0:
-            for act in env.get_valid_actions():
+            for act in env.get_valid_actions(use_parallel=False):
                 if act not in action_values.keys() or action_counts.get(act)==0:
                     print("act ",act,"not explored.")
                 else:
@@ -276,7 +276,7 @@ class MonteAgent(Agent):
             #if the tree had to be forcibly joined
             if not self.has_returned:
                 continue
-            self.tree_arr[i] = self.return_child(self.tree_arr[i], best_action, env.get_valid_actions())
+            self.tree_arr[i] = self.return_child(self.tree_arr[i], best_action, env.get_valid_actions(use_parallel=False))
 
 
         self.node_path.append(self.root)

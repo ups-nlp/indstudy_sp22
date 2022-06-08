@@ -24,11 +24,12 @@ if __name__ == "__main__":
     parser.add_argument('num_seconds',help='number of seconds agent gets to make a move')
     parser.add_argument('num_trees',help='number of trees to build with parallel mcts')
     parser.add_argument('-v', '--verbosity', type=int,
-                        help='[0|1] verbosity level')
-    args = parser.parse_args()
-    ready = 0
+                        help='[0|1|2] verbosity level')
+    args = parser.parse_args()    
     args.num_trees = int(args.num_trees)
     args.num_seconds = int(args.num_seconds)
+
+    ready = 0
     if args.num_trees<1 or args.num_trees>8:
         print("select [1|2|3|4|5|6|7|8] for number of trees")
         ready = 1
@@ -37,11 +38,9 @@ if __name__ == "__main__":
         print("select [10|30|45|60|90|120] for number of seconds")
         ready = 1
 
-    # Instantiate the game environment    
  
-
     # Set the verbosity level
-    if args.verbosity == 0 or args.verbosity == 1:
+    if args.verbosity is not None and (0 <= args.verbosity and args.verbosity <= 2):
         config.VERBOSITY = args.verbosity
 
     total_score = 0                 # total agent score aggregated over all trials
@@ -53,15 +52,31 @@ if __name__ == "__main__":
     total_time = 0                  # total seconds taken aggregated over all trials
 
 
+    # Open file for writing results
+    file_str = f'parallelTesting/{args.num_trees}trees/{args.num_trees}t{args.num_seconds}s.txt'
+    data_file = open(file_str, "w")
+
+    print()
+    print('======================================')
+    print('Num Trials:', args.num_trials)
+    print('Moves per Trial:', args.num_moves)
+    print('Time Limit:', args.mcts_time, "seconds")
+    print('======================================')
+    print()
+    print()
+
     if ready == 0:
+           
         for i in range(args.num_trials):
+
+            # Instantiate the game environment 
             if args.game == "chamber":
-                    env = ChamberEnvironment(None)
+                env = ChamberEnvironment(None)
             elif args.game == "chamber4":
-                    env = Chambers4Environment(None)
+                env = Chambers4Environment(None)
             else:
-                    # args.game is the path name to a Z-master game
-                    env = JerichoEnvironment(args.game)
+                # args.game is the path name to a Z-master game
+                env = JerichoEnvironment(args.game)
 
             # Instantiate the agent
             if args.agent == 'random':
@@ -70,10 +85,11 @@ if __name__ == "__main__":
                 ai_agent = HumanAgent()
             elif args.agent == 'mcts':
                 ai_agent = MonteAgent(env, args.num_moves, args.num_seconds, args.num_trees)
-            # elif args.agent == 'dep':
-                # ai_agent = DEPagent()
             else:
                 ai_agent = RandomAgent()
+
+
+            print(f'Trial {i+1} of {args.num_trials}')
             score, num_valid_actions, num_location_changes, num_steps, time = play_game(
                 ai_agent, env, args.num_moves)
             env.close()
@@ -84,11 +100,10 @@ if __name__ == "__main__":
             total_num_steps += num_steps
             total_time += time
 
-            file_str = f'parallelTesting/{args.num_trees}trees/{args.num_trees}t{args.num_seconds}s.txt'
-            data_file = open(file_str,"a")
+            # Write results to file
             new_line = f'{score}\t{num_steps}\t{num_valid_actions}\t{num_location_changes}\t{time}\n'
             data_file.write(new_line)
-            data_file.close()
+            
             print(f'Trial {i+1}:')
             print(f'Score= {score}')
             print(f'Number of steps: {num_steps} out of a possible {args.num_moves}')
@@ -97,6 +112,10 @@ if __name__ == "__main__":
             print(f'How long to call take_action() {num_steps} times? {time}')
             print()
 
+        # Close the file
+        data_file.close()
+
+        
         print()
         print(f'Number of trials: {args.num_trials}')
         print(f'Number of moves per trial: {args.num_moves}')
