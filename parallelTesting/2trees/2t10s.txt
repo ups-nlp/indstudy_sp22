@@ -1,1 +1,1 @@
-Score	num moves	valid moves	location change	time taken
+10	10	10	7	185.49017024040222

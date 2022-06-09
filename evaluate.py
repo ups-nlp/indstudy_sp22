@@ -50,6 +50,7 @@ if __name__ == "__main__":
                                     # this may be less than num_steps * num_trials if the agent dies or wins
                                     # before the num_steps is up
     total_time = 0                  # total seconds taken aggregated over all trials
+    total_nodes = 0
 
 
     # Open file for writing results
@@ -60,7 +61,7 @@ if __name__ == "__main__":
     print('======================================')
     print('Num Trials:', args.num_trials)
     print('Moves per Trial:', args.num_moves)
-    print('Time Limit:', args.mcts_time, "seconds")
+    print('Time Limit:', args.num_seconds, "seconds")
     print('======================================')
     print()
     print()
@@ -90,8 +91,12 @@ if __name__ == "__main__":
 
 
             print(f'Trial {i+1} of {args.num_trials}')
-            score, num_valid_actions, num_location_changes, num_steps, time = play_game(
-                ai_agent, env, args.num_moves)
+            if args.agent != 'mcts':
+                score, num_valid_actions, num_location_changes, num_steps, time = play_game(
+                    ai_agent, env, args.num_moves)
+            if args.agent == 'mcts':
+                score, num_valid_actions, num_location_changes, num_steps, nodes_generated, time = play_game(
+                    ai_agent, env, args.num_moves)
             env.close()
 
             total_score += score
@@ -99,6 +104,8 @@ if __name__ == "__main__":
             total_num_location_changes += num_location_changes
             total_num_steps += num_steps
             total_time += time
+            if args.agent == 'mcts':
+                total_nodes += nodes_generated
 
             # Write results to file
             new_line = f'{score}\t{num_steps}\t{num_valid_actions}\t{num_location_changes}\t{time}\n'
@@ -110,6 +117,8 @@ if __name__ == "__main__":
             print(f'Of those {num_steps} steps, how many were valid? {num_valid_actions}')
             print(f'Of those {num_steps} steps, how many changed your location? {num_location_changes}')
             print(f'How long to call take_action() {num_steps} times? {time}')
+            if args.agent =='mcts':
+                print(f'How many total nodes generated? {nodes_generated}')
             print()
 
         # Close the file
@@ -128,3 +137,5 @@ if __name__ == "__main__":
         print(f'Average location changes: {total_num_location_changes/args.num_trials}')
         print(f'Total time taken calling take_action(): {total_time}')
         print(f'Avg. seconds for take_action(): {total_time/total_num_steps}')
+        if args.agent == 'mcts':
+            print(f'Total number of nodes generated: {total_nodes}')

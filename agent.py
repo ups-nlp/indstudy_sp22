@@ -58,9 +58,12 @@ class MonteAgent(Agent):
 
     def __init__(self, env: Environment, num_steps: int, num_seconds: int, num_trees:int):
         # create root node with the initial state
-        self.root = MCTS_node(None, None, env.get_valid_actions(use_parallel=False))
+        valid_actions = env.get_valid_actions()
+        self.root = MCTS_node(None, None, valid_actions)
         self.node_path = []
 
+        #will be incremented by each tree after each move in the game with the number of nodes that tree generated
+        self.nodes_generated = multiprocessing.Value("i",0)
         # self.simulation = simulation_length()
         self.node_path.append(self.root)
 
@@ -80,7 +83,7 @@ class MonteAgent(Agent):
         #  the trees will continue to be built as the game continues
         self.tree_arr = [None]*self.tree_count
         for i in range(self.tree_count):
-            self.tree_arr[i] = MCTS_node(None,None, env.get_valid_actions(use_parallel=False))
+            self.tree_arr[i] = MCTS_node(None,None, valid_actions)
 
 
         # #create multiple simulation objects for the trees
@@ -120,7 +123,8 @@ class MonteAgent(Agent):
         if verbosity >0:
             print("Action: ")
             print("possible actions: ")
-            for act in env.get_valid_actions():
+            valid_actions = env.get_valid_actions()
+            for act in valid_actions:
                 print("\t",act)
  
         # time at sim start
@@ -191,7 +195,7 @@ class MonteAgent(Agent):
             procs = []
             for i in range(self.tree_count):
                 #spin off a new process to take_action and append to processes list
-                proc = Process(name = self.proc_names[i], target = mcts_agent.take_action, args = (proc_queues[i],self.env_arr[i],self.explore_const,self.reward,timer,procs_finished,proc_lock,))
+                proc = Process(name = self.proc_names[i], target = mcts_agent.take_action, args = (proc_queues[i],self.env_arr[i],self.explore_const,self.reward,timer,procs_finished,self.nodes_generated,proc_lock,))
                 #proc = Process(name = self.proc_names[i], target = mcts_agent.take_action, args = (self.tree_arr[i],self.sim_list[i],self.env_arr[i],self.explore_const,self.reward,))
 
                 procs.append(proc)
@@ -234,7 +238,7 @@ class MonteAgent(Agent):
             # self.sim_list[i] = que.get()
             self.tree_arr[i] = que.get()
             self.env_arr[i].close()
-            if verbosity > 1:
+            if verbosity > 0:
                 print("tree size for subtree: ",self.tree_arr[i].subtree_size)
             proc.join(5)
             #if the process doesn't exit cleanly, update its has_returned value
@@ -259,8 +263,10 @@ class MonteAgent(Agent):
             best_action = ""
         #best_action = "north"
         #for each action, print the calculated score and the total count
+        valid_actions = env.get_valid_actions()
         if verbosity > 0:
-            for act in env.get_valid_actions(use_parallel=False):
+            
+            for act in valid_actions:
                 if act not in action_values.keys() or action_counts.get(act)==0:
                     print("act ",act,"not explored.")
                 else:
@@ -276,7 +282,7 @@ class MonteAgent(Agent):
             #if the tree had to be forcibly joined
             if not self.has_returned:
                 continue
-            self.tree_arr[i] = self.return_child(self.tree_arr[i], best_action, env.get_valid_actions(use_parallel=False))
+            self.tree_arr[i] = self.return_child(self.tree_arr[i], best_action, valid_actions)
 
 
         self.node_path.append(self.root)
@@ -311,7 +317,8 @@ class MonteAgent(Agent):
         action_count_dict = {}
 
         #initialize to 0 score, 0 count
-        for act in env.get_valid_actions():
+        valid_actions = env.get_valid_actions()
+        for act in valid_actions:
             action_score_dict[act] = 0
             action_count_dict[act] = 0
         
@@ -323,7 +330,7 @@ class MonteAgent(Agent):
             #grab the dictionaries for the tree
             score_dict = tree_scores[i]
             count_dict = tree_counts[i]
-            for act in env.get_valid_actions():
+            for act in valid_actions:
                 #if this action was not explored on this tree, continue
                 if act not in score_dict.keys():
                     continue
@@ -362,6 +369,12 @@ class MonteAgent(Agent):
                 max_score = score_dict[act]/count_dict[act]
                 max_act = act
         return max_act
+
+    def get_nodes_generated(self):
+        """
+        Return the number of nodes generated since the initialization of the agent
+        """
+        return self.nodes_generated.value
 
  
 

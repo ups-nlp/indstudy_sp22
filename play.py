@@ -63,6 +63,7 @@ def play_game(agent: Agent, env: Environment, num_steps: int):
 
         num_steps -= 1
 
+
     if config.VERBOSITY > 0:
         print('\n\n============= HISTORY OF ACTIONS TAKEN =============')
         for _, action in history:
@@ -71,7 +72,7 @@ def play_game(agent: Agent, env: Environment, num_steps: int):
     
     env.close()
 
-    return (info['score'], info['moves'], num_location_changes, num_times_called, seconds)
+    return (info['score'], info['moves'], num_location_changes, num_times_called, agent.get_nodes_generated(), seconds)
 
 
 if __name__ == "__main__":

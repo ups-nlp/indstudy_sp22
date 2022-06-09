@@ -33,7 +33,7 @@ def workInitialize():
 
         Finalize(foo, exit_handler, exitpriority=0)
 
-def take_action(queue_list, env: Environment, explore_exploit_const, reward_policy, timer, procs_finished, lock):
+def take_action(queue_list, env: Environment, explore_exploit_const, reward_policy, timer, procs_finished, nodes_generated, lock):
 #def take_action(tree, sim, env: Environment, explore_exploit_const, reward_policy):
 
     """
@@ -77,7 +77,7 @@ def take_action(queue_list, env: Environment, explore_exploit_const, reward_poli
 
     #timer.value==0 and 
     #while(timer.value==0 and count < 20000):
-    while(timer.value == 0)
+    while(timer.value == 0):
 
         count = count+1
 
@@ -144,6 +144,7 @@ def take_action(queue_list, env: Environment, explore_exploit_const, reward_poli
 
 
     lock.acquire()
+    nodes_generated.value += count
     procs_finished.value +=1
     lock.release()
     queue_list.close()
@@ -311,7 +312,7 @@ def expand_node(parent, env:Environment):
     parent.remove_action(action)
     # Step into the state of that child and get its possible actions
     env.step(action)
-    new_actions = env.get_valid_actions(use_parallel=False)
+    new_actions = env.get_valid_actions()
     # Create the child
     new_node = MCTS_node(parent, action, new_actions)
 
@@ -352,7 +353,7 @@ def default_policy(new_node, env,  reward_policy):
         #     return (running_score, score_states)
 
         #Get the list of valid actions from this state
-        actions = env.get_valid_actions(use_parallel=False)
+        actions = env.get_valid_actions()
 
         # Take a random action from the list of available actions
         before = env.get_score()

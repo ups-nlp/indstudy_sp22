@@ -113,6 +113,7 @@ class MCTS_node(Node):
 
     def update_subtree_size(self):
         self.subtree_size = self.subtree_size+1
+        return
 
     def add_child(self, child):
         """Add a child to the list of children"""
