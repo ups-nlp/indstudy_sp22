@@ -108,7 +108,7 @@ if __name__ == "__main__":
                 total_nodes += nodes_generated
 
             # Write results to file
-            new_line = f'{score}\t{num_steps}\t{num_valid_actions}\t{num_location_changes}\t{time}\n'
+            new_line = f'{score}\t{num_steps}\t{num_valid_actions}\t{num_location_changes}\t{total_nodes}\t{time}\n'
             data_file.write(new_line)
             
             print(f'Trial {i+1}:')
