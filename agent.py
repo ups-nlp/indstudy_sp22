@@ -25,7 +25,7 @@ class RandomAgent(Agent):
     def take_action(self, env: Environment, history: list) -> str:
         """Takes in the history and returns the next action to take"""
 
-        valid_actions = env.get_valid_actions(use_parallel=False)
+        valid_actions = env.get_valid_actions()
         return random.choice(valid_actions)
 
 class HumanAgent(Agent):
@@ -43,7 +43,7 @@ class MonteAgent(Agent):
 
     def __init__(self, env: Environment, time_limit: int):
         # create root node with the initial state
-        self.root = MCTS_node(None, None, env.get_valid_actions(use_parallel=False))
+        self.root = MCTS_node(None, None, env.get_valid_actions())
         self.node_path = []
         
         self.node_path.append(self.root)

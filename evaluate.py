@@ -37,7 +37,7 @@ if __name__ == "__main__":
 
 
     # Open file for writing results
-    file_str = f'basicTesting/{args.num_trials}t{args.num_moves}m{args.num_seconds}s.txt'
+    file_str = f'basicTesting/{args.num_trials}t{args.num_moves}m{args.mcts_time}s.txt'
     data_file = open(file_str, "w")
 
     print()
@@ -86,7 +86,7 @@ if __name__ == "__main__":
         
         print(f'Trial {i+1} of {args.num_trials}')
         score, num_valid_actions, num_location_changes, num_steps, time = play_game(
-            ai_agent, args.game_file, args.num_moves)
+            ai_agent, env, args.num_moves)
 
         total_score += score
         total_num_valid_actions += num_valid_actions

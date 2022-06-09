@@ -15,9 +15,6 @@ from environment import *
 def play_game(agent: Agent, env: Environment, num_steps: int):
     """ The main method that instantiates an agent and plays the specified game"""
 
-    # Create the environment
-    env = JerichoEnvironment(game_file)
-
     # The history is a list of (observation, action) tuples
     history = []
 
