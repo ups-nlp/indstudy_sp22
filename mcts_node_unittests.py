@@ -67,7 +67,6 @@ class NodeTest(unittest.TestCase):
         print('Updated parent:')
         print(root)
 
-
         print()
         print('New Child:')
         new_node = expand_node(root, env)
@@ -76,8 +75,6 @@ class NodeTest(unittest.TestCase):
         print()
         print('Updated parent:')
         print(root)
-
-
 
         print()
         print('New Child:')

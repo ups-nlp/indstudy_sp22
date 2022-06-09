@@ -33,6 +33,7 @@ class HumanAgent(Agent):
 
     def take_action(self, env: Environment, history: list) -> str:
         """Takes in the history and returns the next action to take"""        
+        print(env.get_valid_actions())
         print("Action: ")
         return input()
 
@@ -41,7 +42,7 @@ class MonteAgent(Agent):
     """"Monte Carlo Search Tree Player"""
 
 
-    def __init__(self, env: Environment, time_limit: int):
+    def __init__(self, env: Environment, time_limit: int, max_depth: int):
         # create root node with the initial state
         self.root = MCTS_node(None, None, env.get_valid_actions())
         self.node_path = []
@@ -52,7 +53,9 @@ class MonteAgent(Agent):
         explore_const = 1.0/sqrt(2)
         self.reward = BaselineReward(explore_const)
 
+        self.alpha = 0.8
         self.time_limit = time_limit
+        self.max_depth = max_depth
 
 
     def take_action(self, env: Environment, history: list) -> str:
@@ -90,7 +93,7 @@ class MonteAgent(Agent):
                 print('[TAKE ACTION] Printing out selected child', str(new_node))
 
             # Determine the simulated value of the new node
-            delta = default_policy(new_node, env)
+            delta = default_policy(new_node, env, self.max_depth, self.alpha)
             
             # Propogate the simulated value back up the tree
             backup(new_node, delta)

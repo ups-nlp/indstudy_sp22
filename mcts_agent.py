@@ -1,7 +1,7 @@
 """
 An implementation of the UCT algorithm for text-based games
 """
-from math import floor, inf
+from math import floor, inf, pow
 import config
 from config import random
 from environment import *
@@ -139,21 +139,22 @@ def expand_node(parent, env):
         print('[EXPAND NODE] New Node', new_node)
     return new_node
   
-def default_policy(new_node, env):
+def default_policy(new_node, env, max_depth, alpha):
     """
     The default_policy represents a simulated exploration of the tree from
     the passed-in node to a terminal state.
 
     Self-note: This method doesn't require the nodes to store their depth
     """
-    #if node is already terminal, return 0    
-    if(env.game_over()):
-        return env.get_score()
-    
+        
     count = 0
+    scores = [env.get_score()] 
+
+    if config.VERBOSITY > 1:
+        print('\tDEFAULT POLICY: initial score', scores[0])
 
     # While the game is not over and we have not run out of moves, keep exploring
-    while (not env.game_over()) and (not env.victory()):        
+    while (not env.game_over()) and (not env.victory()) and count < max_depth:        
 
         #Get the list of valid actions from this state
         actions = env.get_valid_actions()
@@ -161,13 +162,27 @@ def default_policy(new_node, env):
         # Take a random action from the list of available actions        
         chosen_action = random.choice(actions)
         env.step(chosen_action)        
+        
+        last_score = scores[-1]
+        new_score = env.get_score()
+        scores.append(last_score - new_score)
 
-        count += 1    
+        if config.VERBOSITY > 1:
+            print('\tDEFAULT POLICY: appended score', scores[-1])
+
+
+        count += 1   
+
+    discounted_score = 0
+    for (i, s) in enumerate(scores):
+        if s != 0:
+            discounted_score += s *  pow(alpha, i)
 
     if config.VERBOSITY > 1:
-       print('\t[DEFAULT POLICY] Number of iterations until reached terminal node: ', count)
+        print('\t[DEFAULT POLICY] Number of iterations until reached terminal node: ', count)
+        print('\t[DEFAULT POLICY] Final score', discounted_score)
 
-    return env.get_score()
+    return discounted_score
 
 
 
