@@ -50,18 +50,21 @@ if __name__ == "__main__":
     print()
 
 
-    # Instantiate the game environment -- the game does not change from trial to trial 
-    if args.game == "chamber":
-        env = ChamberEnvironment(None)
-    elif args.game == "chamber4":
-        env = Chambers4Environment(None)
-    else:
-        # args.game is the path name to a Z-master game
-        env = JerichoEnvironment(args.game)
+    
 
 
     # Run the trials
     for i in range(args.num_trials):               
+
+
+        # Instantiate the game environment -- the game does not change from trial to trial 
+        if args.game == "chamber":
+            env = ChamberEnvironment(None)
+        elif args.game == "chamber4":
+            env = Chambers4Environment(None)
+        else:
+            # args.game is the path name to a Z-master game
+            env = JerichoEnvironment(args.game)
 
         # Each trial requires a new agent to be instantiated
         if args.agent == 'random':
