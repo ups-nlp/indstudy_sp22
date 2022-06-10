@@ -7,7 +7,7 @@ import random
 import time
 from xml.etree.ElementTree import tostring
 from environment import *
-from mcts_agent import best_child, tree_policy, default_policy, backup, dynamic_sim_len
+from mcts_agent import best_child, tree_policy, default_policy, backup
 from transposition_table import Transposition_Node, get_world_state_hash
 from mcts_reward import BaselineReward
 import config
@@ -113,18 +113,15 @@ class MonteAgent(Agent):
             env.set_state(curr_state)
             count += 1
         
-        if(config.VERBOSITY > 0):
-            print("seconds_elapsed: ", seconds_elapsed, ", time_limit: ", time_limit)
-            print("count: ", count, ", minimum: ", minimum)
+        if(config.VERBOSITY > 1):
+            print("[TAKE ACTION] count: ", count)
+            print("[TAKE ACTION] seconds_elapsed: ", seconds_elapsed, ", time_limit: ", self.time_limit)            
             for child in self.root.get_children():
                 child_sim_value = child.get_sim_value()
                 child_visited = child.get_visited()
-                print(child.get_prev_action(), ", count:", child_visited, ", value:", child_sim_value, "normalized value:", self.reward.select_action(env, child_sim_value, child_visited, None))
+                print(child.get_prev_action(), ", count:", child_visited, ", value:", child_sim_value)
 
         ## Pick the next action
-        self.root, score_dif = best_child(self.root, self.explore_const, env, self.reward, False)
-
-        if(config.VERBOSITY > 0):
-            print("\n------------------ ", score_dif)#, self.max_nodes, self.simulation_length)
+        self.root = best_child(self.root, env, self.reward)
 
         return self.root.get_prev_action()

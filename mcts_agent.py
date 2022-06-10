@@ -8,7 +8,7 @@ from transposition_table import Transposition_Node, get_world_state_hash
 from mcts_reward import *
 import config
 
-def tree_policy(root, env: Environment, explore_exploit_const, reward_policy, transposition_table):
+def tree_policy(root, env: Environment, reward_policy, transposition_table):
     """ Travel down the tree to the ideal node to expand on
 
     This function loops down the tree until it finds a
@@ -33,7 +33,7 @@ def tree_policy(root, env: Environment, explore_exploit_const, reward_policy, tr
         #Otherwise, look at the parent's best child
         else:
             # Select the best child of the current node to explore
-            child = best_child(node, explore_exploit_const, env, reward_policy, True)
+            child = best_child(node, env, reward_policy)
 
             # add child to the path
             node = child
@@ -45,7 +45,7 @@ def tree_policy(root, env: Environment, explore_exploit_const, reward_policy, tr
     return node, path
 
 
-def best_child(parent, exploration, env: Environment, reward_policy, use_bound = True):
+def best_child(parent, env: Environment, reward_policy):
     """ Select and return the best child of the parent node to explore or the action to take
 
     pre: parent has been fully expanded
