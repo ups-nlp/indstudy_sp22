@@ -10,7 +10,7 @@ from environment import *
 from mcts_agent import best_child, tree_policy, default_policy, backup, dynamic_sim_len
 from mcts_node import Node
 from transposition_table import Transposition_Node, get_world_state_hash
-from mcts_reward import AdditiveReward
+from mcts_reward import BaselineReward
 import config
 
 class Agent:
@@ -43,39 +43,26 @@ class HumanAgent(Agent):
 class MonteAgent(Agent):
     """"Monte Carlo Search Tree Player"""
 
-    node_path = []
 
-    def __init__(self, env: Environment, num_steps: int):
-
-        
+    def __init__(self, env: Environment, time_limit: int):
+    
         # Create the transposition table hashmap
         self.transposition_table = {}
 
-        # create root node with the initial state
-        #self.root = Transposition_Node(None, None, env.get_valid_actions())
-        
-        state = get_world_state_hash(env.get_player_location(), env.get_valid_actions())
-        self.root = Transposition_Node(state, None, None, env.get_valid_actions(), self.transposition_table)
-
-        self.node_path.append(self.root)
+        # Create and store the root node        
+        valid_actions = env.get_valid_actions()
+        state = get_world_state_hash(env.get_player_location(), valid_actions)
+        self.root = Transposition_Node(state, None, None, valid_actions, self.transposition_table)
 
         # This constant balances tree exploration with exploitation of ideal nodes
         self.explore_const = 1.0/sqrt(2)
+        self.reward = BaselineReward(self.explore_const)
 
-        # The length of each monte carlo simulation
-        self.simulation_length = 8
-
-        self.reward = AdditiveReward()
+        self.time_limit = time_limit
 
 
     def take_action(self, env: Environment, history: list) -> str:
-        """Takes in the history and returns the next action to take"""
-        if(config.VERBOSITY > 0): 
-            print("Action: ")
-            print(env.get_valid_actions())
-        #
-        # Train the agent using the Monte Carlo Search Algorithm
-        #
+        """Takes in the history and returns the next action to take"""        
 
         #current number of generated nodes
         count = 0
@@ -85,25 +72,27 @@ class MonteAgent(Agent):
 
         # how many seconds have elapsed since sim start
         seconds_elapsed = 0
-
-        # loose time limit for simulation phase
-        time_limit = 90
-
-        # minimum number of nodes per simulation phase
-        minimum = len(env.get_valid_actions())*len(env.get_valid_actions())
-        if(config.VERBOSITY > 0):
-            print("count: ", count, ", minimum: ", minimum)
-
+        
         #current state of the game. Return to this state each time generating a new node
         curr_state = env.get_state()
-        #while(seconds_elapsed < time_limit or count <= minimum):
-        while(seconds_elapsed < time_limit):
-        #while(count < 100):
+
+        if config.VERBOSITY > 1:
+            print('[TAKE ACTION] Time limit: ', self.time_limit, ' seconds')
+
+    
+
+        while(seconds_elapsed < time_limit):        
             seconds_elapsed = time.time() - start_time
-            if(config.VERBOSITY > 0 and count % 50 == 0): 
-                    print("Count is ",count)
+            
+            if config.VERBOSITY > 1:
+                print("[TAKE ACTION] Count is ", count)
+                print('[TAKE ACTION] Root node is', str(self.root))
+                print('[TAKE ACTION] New actions', self.root.get_new_actions())
+            
+            
             # Create a new node on the tree
-            new_node, path = tree_policy(self.root, env, self.explore_const, self.reward, self.transposition_table)
+            new_node, path = tree_policy(self.root, env, self.reward, self.transposition_table)
+
             # Determine the simulated value of the new node
             delta = default_policy(new_node, env, self.simulation_length, self.reward)
             # Propogate the simulated value back up the tree
@@ -137,8 +126,6 @@ class MonteAgent(Agent):
 
         ## Pick the next action
         self.root, score_dif = best_child(self.root, self.explore_const, env, self.reward, False)
-
-        self.node_path.append(self.root)
 
         ## Dynamically adjust simulation length based on how sure we are 
         #self.max_nodes, self.simulation_length = dynamic_sim_len(self.max_nodes, self.simulation_length, score_dif)
