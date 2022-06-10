@@ -4,7 +4,6 @@ An implementation of the UCT algorithm for text-based games
 from math import floor, inf
 import random
 from environment import *
-from mcts_node import Node
 from transposition_table import Transposition_Node, get_world_state_hash
 from mcts_reward import *
 import config
@@ -126,7 +125,6 @@ def expand_node(parent, env, transposition_table):
     new_actions = env.get_valid_actions()
 
     # Create the child
-    # new_node = Node(parent, action, new_actions)
     state = get_world_state_hash(env.get_player_location(), new_actions)
     new_node = Transposition_Node(state, parent, action, new_actions, transposition_table)
 
@@ -136,49 +134,55 @@ def expand_node(parent, env, transposition_table):
     return new_node
 
 
-    # # if no new nodes were created, we are at a terminal state
-    # if new_node is None:
-    #     # set the parent to terminal and return the parent
-    #     parent.terminal = True
-    #     return parent
-
-    # else:
-    #     # update the env variable to the new node we are exploring
-    #     env.step(new_node.get_prev_action())
-    #     # Return a newly created node to-be-explored
-    #     return new_node
-
-def default_policy(new_node, env, sim_length, reward_policy):
+def default_policy(new_node, env, max_depth, alpha):
     """
     The default_policy represents a simulated exploration of the tree from
     the passed-in node to a terminal state.
 
     Self-note: This method doesn't require the nodes to store their depth
     """
-   
+    
+    count = 0    
+    scores = [env.get_score()] 
+
+    if config.VERBOSITY > 1:
+        print('\tDEFAULT POLICY: initial score', scores[0])
+
     # While the game is not over and we have not run out of moves, keep exploring
-    while (not env.game_over()) and (not env.victory()):
+    while (not env.game_over()) and (not env.victory()) and count < max_depth:        
 
         #Get the list of valid actions from this state
         actions = env.get_valid_actions()
 
-        # Take a random action from the list of available actions
-        action = random.choice(actions)
-        env.step(action)
+        # Take a random action from the list of available actions        
+        chosen_action = random.choice(actions)
+        env.step(chosen_action)        
+                
+        # Record the score
+        scores.append(env.get_score())        
+        count += 1   
+        if config.VERBOSITY > 1:
+            print('\tDEFAULT POLICY: action', chosen_action)
+            print('\tDEFAULT POLICY: score', scores[-1])
 
-    return env.get_score()
+    discounted_score = 0
+    for (i, s) in enumerate(scores):
+        if i == 0:
+            discounted_score = scores[0]
+        else:
+            diff = scores[i]-scores[i-1]
+            if config.VERBOSITY > 1:
+                print('\tDEFAULT POLICY: diff', diff)
+            if diff != 0:
+                discounted_score += diff *  pow(alpha, i)
+
+    if config.VERBOSITY > 1:
+        print('\t[DEFAULT POLICY] Number of iterations until reached terminal node: ', count)
+        print('\t[DEFAULT POLICY] Final score', discounted_score)
+
+    return discounted_score
 
 
-
-# TODO: I need to take some time to think about this. I think this is one of the
-# important parts of Colin's algorithm since. I'm going to pause here and go back
-# to the basic algorithm and implement discount rewarding for the default policy
-# I think for our EMNLP paper, I'm going to focus on comparing Anna's parallelized
-# version to the basic version with some additional discussion of modifications of the
-# simulation length. 
-#
-# In the future, I need to pick up here. Re-read Colin's related work and then 
-# carefully go through this method and understand how the path plays a role
 def backup(path, delta):
     """
     This function backpropogates the results of the Monte Carlo Simulation back up the tree
@@ -194,16 +198,13 @@ def backup(path, delta):
     for index in reversed(range(max_size)):
         # Increment the number of times the node has
         # been visited and the simulated value of the node
-        node = path[index]
+        node = path[index]        
         if(not updated_states.__contains__(node.get_state())):
             # Increment the count of the state
             node.update_visited(1)
-
-            # use decaying rewards?
-            # alpha = delta/2**(max_size - (index+1))
-            alpha = delta
+            
             # Update the score of the state
-            node.update_sim_value(alpha)
+            node.update_sim_value(delta)
 
             # Add the state to our list of updated states
             updated_states.append(node.get_state())

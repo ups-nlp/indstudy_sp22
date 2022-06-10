@@ -8,7 +8,6 @@ import time
 from xml.etree.ElementTree import tostring
 from environment import *
 from mcts_agent import best_child, tree_policy, default_policy, backup, dynamic_sim_len
-from mcts_node import Node
 from transposition_table import Transposition_Node, get_world_state_hash
 from mcts_reward import BaselineReward
 import config
@@ -44,7 +43,7 @@ class MonteAgent(Agent):
     """"Monte Carlo Search Tree Player"""
 
 
-    def __init__(self, env: Environment, time_limit: int):
+    def __init__(self, env: Environment, time_limit: int, max_depth: int):
     
         # Create the transposition table hashmap
         self.transposition_table = {}
@@ -59,6 +58,8 @@ class MonteAgent(Agent):
         self.reward = BaselineReward(self.explore_const)
 
         self.time_limit = time_limit
+        self.max_depth = max_depth
+        self.alpha = 0.8
 
 
     def take_action(self, env: Environment, history: list) -> str:
@@ -81,7 +82,7 @@ class MonteAgent(Agent):
 
     
 
-        while(seconds_elapsed < time_limit):        
+        while(seconds_elapsed < self.time_limit):        
             seconds_elapsed = time.time() - start_time
             
             if config.VERBOSITY > 1:
@@ -94,7 +95,8 @@ class MonteAgent(Agent):
             new_node, path = tree_policy(self.root, env, self.reward, self.transposition_table)
 
             # Determine the simulated value of the new node
-            delta = default_policy(new_node, env, self.simulation_length, self.reward)
+            delta = default_policy(new_node, env, self.max_depth, self.alpha)
+
             # Propogate the simulated value back up the tree
             if(config.VERBOSITY > 1):
                 print("delta value is ", delta)
@@ -103,19 +105,14 @@ class MonteAgent(Agent):
                     if(node is not None):
                         total = total + str(node.get_prev_action()) + "->"
                 print(total)
+
             backup(path,delta)
+
             # reset the state of the game when done with one simulation
             env.reset()
             env.set_state(curr_state)
             count += 1
-        """
-        print("Total count was: ", count)
-        print("\nPrinting out transposition table:")
-        for entry in self.transposition_table:
-            print(entry, " : ", self.transposition_table[entry].toString())
-        print("\nOptions for children:")
-
-        """
+        
         if(config.VERBOSITY > 0):
             print("seconds_elapsed: ", seconds_elapsed, ", time_limit: ", time_limit)
             print("count: ", count, ", minimum: ", minimum)
@@ -126,9 +123,6 @@ class MonteAgent(Agent):
 
         ## Pick the next action
         self.root, score_dif = best_child(self.root, self.explore_const, env, self.reward, False)
-
-        ## Dynamically adjust simulation length based on how sure we are 
-        #self.max_nodes, self.simulation_length = dynamic_sim_len(self.max_nodes, self.simulation_length, score_dif)
 
         if(config.VERBOSITY > 0):
             print("\n------------------ ", score_dif)#, self.max_nodes, self.simulation_length)
