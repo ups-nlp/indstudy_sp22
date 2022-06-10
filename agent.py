@@ -182,6 +182,10 @@ class MonteAgent(Agent):
         #set boolean that tells the trees to stop expanding when the time is up
         timer = multiprocessing.Value("i",0)
 
+        #set sim length and alpha value for discounted score policy
+        sim_length = 10
+        alpha = .5
+
         #counter that holds how many of the trees have returned
         procs_finished = multiprocessing.Value("i",0)
 
@@ -195,7 +199,7 @@ class MonteAgent(Agent):
             procs = []
             for i in range(self.tree_count):
                 #spin off a new process to take_action and append to processes list
-                proc = Process(name = self.proc_names[i], target = mcts_agent.take_action, args = (proc_queues[i],self.env_arr[i],self.explore_const,self.reward,timer,procs_finished,self.nodes_generated,proc_lock,))
+                proc = Process(name = self.proc_names[i], target = mcts_agent.take_action, args = (proc_queues[i],self.env_arr[i],self.explore_const,self.reward,timer,procs_finished,self.nodes_generated,sim_length, alpha, proc_lock,))
                 #proc = Process(name = self.proc_names[i], target = mcts_agent.take_action, args = (self.tree_arr[i],self.sim_list[i],self.env_arr[i],self.explore_const,self.reward,))
 
                 procs.append(proc)

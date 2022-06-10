@@ -33,7 +33,7 @@ def workInitialize():
 
         Finalize(foo, exit_handler, exitpriority=0)
 
-def take_action(queue_list, env: Environment, explore_exploit_const, reward_policy, timer, procs_finished, nodes_generated, lock):
+def take_action(queue_list, env: Environment, explore_exploit_const, reward_policy, timer, procs_finished, nodes_generated, simulation_length, alpha, lock):
 #def take_action(tree, sim, env: Environment, explore_exploit_const, reward_policy):
 
     """
@@ -88,7 +88,7 @@ def take_action(queue_list, env: Environment, explore_exploit_const, reward_poli
         update_tree(new_node)
         # Determine the simulated value of the new node
         adjust_scoring_states = 0
-        delta, adjust_scoring_states = default_policy(new_node, env, reward_policy)
+        delta, adjust_scoring_states = default_policy(new_node, env, simulation_length, alpha)
 
         total_scoring_states += adjust_scoring_states
 
@@ -150,7 +150,6 @@ def take_action(queue_list, env: Environment, explore_exploit_const, reward_poli
     queue_list.close()
     return    
    
-   #increment value of finished processes before returning
 
 
 def get_largest_child(node):
@@ -194,6 +193,7 @@ def calc_score_dif(node):
     #calculate the difference between the first and last element
     largest_diff = abs(child_val_list[len(child_val_list)-1]) - child_val_list[0]
     return largest_diff
+
 
 def update_tree(node):
     """
@@ -328,7 +328,7 @@ def print_arr(arr):
         
 
 
-def default_policy(new_node, env,  reward_policy):
+def default_policy(new_node, env,  simulation_length, alpha):
     """
     The default_policy represents a simulated exploration of the tree from
     the passed-in node to a terminal state.
@@ -338,37 +338,36 @@ def default_policy(new_node, env,  reward_policy):
     #if node is already terminal, return 0    
     if(env.game_over()):
         #return 0
-        return (10,0)
-        #return env.get_score()
-    # sim_length = simulation.get_length()
-    running_score = env.get_score()
+        return (env.get_score(),0)
+
+    scores = [env.get_score()]
     count = 0
     score_states = 0
     # While the game is not over and we have not run out of moves, keep exploring
-    while (not env.game_over()) and (not env.victory()):
+    while (not env.game_over()) and (not env.victory()) and count < simulation_length:
         count += 1
-        # if we have reached the limit for exploration
-        # if(count > sim_length):
-        #     #return the reward received by reaching terminal state
-        #     return (running_score, score_states)
 
         #Get the list of valid actions from this state
-        actions = env.get_valid_actions()
+
 
         # Take a random action from the list of available actions
-        before = env.get_score()
+        actions = env.get_valid_actions()
         env.step(random.choice(actions))
-        after = env.get_score()
         
         #if there was an increase in the score, add it to the running total
-        if((after-before) > 0):
-            score_states +=1
-            running_score += (after-before)/(count)
+        scores.append(env.get_score())
 
-    #return the reward received by reaching terminal state
-    if env.game_over():
-        return (running_score +10, score_states)
-    return (running_score, score_states)
+    discounted_score = 0
+    for (i,s) in enumerate(scores):
+        if i == 0:
+            discounted_score = scores[0]
+        else:
+            diff = scores[i] - scores[i-1]
+            if diff != 0:
+                discounted_score += diff*pow(alpha,i)
+                score_states += 1
+    return (discounted_score,score_states)
+
 
 def backup(node, delta):
     """
