@@ -107,6 +107,7 @@ class MonteAgent(Agent):
             print('[TAKE ACTION] Number of iterations accomplished before time limit elapsed: ', count)
             
         if config.VERBOSITY > 0:
+            print('Finished MCTS algorithm:')
             for child in self.root.children:
                 print(child.get_prev_action(), ", count:", child.visited, ", value:", child.sim_value, "normalized value:", self.reward.calculate_child_value(env, child, self.root))
 

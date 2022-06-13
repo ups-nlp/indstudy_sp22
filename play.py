@@ -33,6 +33,8 @@ def play_game(agent: Agent, env: Environment, num_steps: int):
 
 
     while num_steps != 0 and not done:
+        if config.VERBOSITY > 0:
+            print('\n\n=========================================')
 
         # timing the call to take_action()
         start_time = time.time()
@@ -58,7 +60,7 @@ def play_game(agent: Agent, env: Environment, num_steps: int):
         curr_obs = next_obs
 
         if config.VERBOSITY > 0:
-            print('\n\n=========================================')
+            print()
             print('Taking action: ', action_to_take)
             print('Game State:', next_obs.strip())
             print('Total Score', info['score'], 'Moves', info['moves'])
