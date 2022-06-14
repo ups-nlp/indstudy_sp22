@@ -88,12 +88,13 @@ class MonteAgent(Agent):
             new_node = tree_policy(self.root, env, self.reward)
             
             if config.VERBOSITY > 1:
-                print('[TAKE ACTION] Chose a new node to expand', new_node.get_prev_action())
+                print('[TAKE ACTION] Count:', count)
+                print('[TAKE ACTION] Chosen action', new_node.get_prev_action())
                 print('[TAKE ACTION] Printing out parent again', str(self.root))
                 print('[TAKE ACTION] Printing out selected child', str(new_node))
 
             # Determine the simulated value of the new node
-            delta = default_policy(new_node, env, self.max_depth, self.alpha, original=True)
+            delta = default_policy(new_node, env, self.max_depth, self.alpha)
             
             # Propogate the simulated value back up the tree
             backup(new_node, delta)
