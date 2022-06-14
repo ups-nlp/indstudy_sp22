@@ -26,7 +26,7 @@ def tree_policy(root, env: Environment, reward_policy):
         #if parent is not fully expanded, expand it and return
         if not node.is_expanded():            
             if config.VERBOSITY > 1:
-                print('TREE POLICY: Calling expand_node()')
+                print('\t[TREE POLICY]: Calling expand_node()')
             return expand_node(node, env)
         #Otherwise, look at the parent's best child
         else:
@@ -34,12 +34,12 @@ def tree_policy(root, env: Environment, reward_policy):
             child = best_child(node, env, reward_policy)
             node = child            
             if config.VERBOSITY > 1:
-                print('TREE POLICY: best child found', node)
+                print('\t[TREE POLICY]: best child found', node)
             env.step(node.get_prev_action())
 
     # The node is terminal, so return it
     if config.VERBOSITY > 1:
-        print('TREE POLICY: Returning node:', node)
+        print('\t[TREE POLICY]: Returning node:', node)
     return node
 
 def best_child(parent, env: Environment, reward_policy):
@@ -84,17 +84,20 @@ def best_child(parent, env: Environment, reward_policy):
     for child in parent.get_children():
 
         child_value = reward_policy.calculate_child_value(env, child, parent)
-        
+        if config.VERBOSITY > 1:
+            print('\t[BEST CHILD] child:', child.get_prev_action())
+            print('\t[BEST CHILD] value:', child_value)
+
         # if there is a tie for best child, randomly pick one        
         if (abs(child_value - max_val) < tolerance):
             if config.VERBOSITY > 1:
-                print('BEST CHILD: Found a tie', bestLs[-1], 'with value', child_value)
+                print('\tBEST CHILD: Found a tie')
             bestLs.append(child)
             
         #if it's value is greater than the best so far, it will be our best so far
         elif child_value > max_val:
             if config.VERBOSITY > 1:
-                print('BEST CHILD: Found a clear winner', bestLs[-1], 'with value', child_value)
+                print('\tBEST CHILD: Found a clear winner')
             bestLs = [child]
             max_val = child_value
 
@@ -104,6 +107,8 @@ def best_child(parent, env: Environment, reward_policy):
         print('BEST CHILD: Wasnt fully expanded', bestLs)
         print('BEST CHILD: Wasnt fully expanded', chosen)
         
+    if config.VERBOSITY > 1:
+        print('\t[BEST CHILD] Chose', chosen)
     return chosen
 
 def expand_node(parent, env):
@@ -117,6 +122,7 @@ def expand_node(parent, env):
     env -- Environment interface between the learning agent and the game
     Return: a child node to explore
     """
+
     # Get possible unexplored actions
     actions = parent.get_new_actions()
     action = random.choice(actions)
@@ -127,25 +133,25 @@ def expand_node(parent, env):
     # Step into the state of that child and get its possible actions
     env.step(action)
     new_actions = env.get_valid_actions()
+    score = env.get_score()
 
     # Create the child
-    new_node = MCTS_node(parent, action, new_actions)
+    new_node = MCTS_node(parent, action, new_actions, score)
 
     # Add the child to the parent
     parent.add_child(new_node)
 
     if config.VERBOSITY > 1:
-        print('[EXPAND NODE] Parent', parent)
-        print('[EXPAND NODE] New Node', new_node)
+        print('\t[EXPAND NODE] Selected child', new_node)
     return new_node
   
-def default_policy(new_node, env, max_depth, alpha, original = False):
+def default_policy(start_node, env, max_depth, alpha, original = False):
     """
     The default_policy represents a simulated exploration of the tree from
     the passed-in node to a terminal state.
 
-    original = True runs the original algorithm 
-    original = False runs the original algorithm with a max depth and discounted rewards    
+    original = True runs the original default policy 
+    original = False augments the original default policy with a max depth and discounted rewards    
     """        
     
     if original:
@@ -163,8 +169,24 @@ def default_policy(new_node, env, max_depth, alpha, original = False):
         return env.get_score()
 
     else:
+                
+        if env.game_over() or env.victory():
+            # Need to compute the score for this terminal action alone, not the cummulative score
+            our_score = start_node.get_score()
+            parent_score = start_node.get_parent().get_score()
+            diff = our_score - parent_score
+            if config.VERBOSITY > 1:
+                print('\t[DEFAULT POLICY]: At end of game')
+                print('\t[DEFAULT POLICY] Lost?', env.game_over())
+                print('\t[DEFAULT POLICY] Won?', env.victory())
+                print('\t[DEFAULT POLICY] our score', our_score)
+                print('\t[DEFAULT POLICY] parents score', parent_score)
+                print('\t[DEFAULT POLICY] returning a diff of', diff)
+            return diff
+
+
         count = 0
-        scores = [env.get_score()] 
+        scores = [env.get_score()] # The score of the start node
 
         if config.VERBOSITY > 1:
             print('\tDEFAULT POLICY: initial score', scores[0])
@@ -185,12 +207,13 @@ def default_policy(new_node, env, max_depth, alpha, original = False):
 
         discounted_score = 0
         for (i, s) in enumerate(scores):
-            if i == 0:
-                discounted_score = scores[0]
-            else:
+            if i > 0:                        
                 diff = scores[i] - scores[i-1]
                 if diff != 0:
-                    discounted_score += diff *  pow(alpha, i)
+                    discounted_score += diff *  pow(alpha, i-1)
+
+        if count == 0:            
+            exit('\t[DEFAULT POLICY] Made it past initial check for end of game but still didnt go inside while loop')
 
         if config.VERBOSITY > 1:
             print('\t[DEFAULT POLICY] Number of iterations until reached terminal node: ', count)

@@ -28,7 +28,8 @@ def play_game(agent: Agent, env: Environment, num_steps: int):
 
     prev_location = env.get_player_location() 
     num_location_changes = 0  # total number of times an action led to a change in location
-    num_times_called = 0 # total number of iterations performed
+    num_times_called = 0 # total number of times take_action() was called
+    num_iters = 0 # inside of take_action(), total number of MCTS iterations performed
     seconds = 0 # total time spent in take_action() over all iterations
 
 
@@ -38,16 +39,16 @@ def play_game(agent: Agent, env: Environment, num_steps: int):
 
         # timing the call to take_action()
         start_time = time.time()
-        action_to_take = agent.take_action(env, history)
+        action_to_take, iters = agent.take_action(env, history)
         end_time = time.time()
 
         # updating statistics
         num_times_called += 1
+        num_iters += iters
         seconds += (end_time - start_time)
 
         # updating environment with selected action
         next_obs, _, done, info = env.step(action_to_take)        
-
 
         history.append((curr_obs, action_to_take))
 
@@ -71,11 +72,13 @@ def play_game(agent: Agent, env: Environment, num_steps: int):
             s = info['score']
             m = info['moves']
             print(f'\tScore= {s}')
-            print(f'\tNumber of steps so far: {num_times_called}')
+            print(f'\tNumber of steps so far: {num_times_called}')            
             print(f'\tOf those {num_times_called} steps, how many were valid? {m}')
             print(f'\tOf those {num_times_called} steps, how many changed your location? {num_location_changes}')
             print(f'\tHow long to call take_action() {num_times_called} times? {seconds}')
             print(f'\tAverage number of seconds spent in take_action() {seconds/num_times_called}')
+            print(f'\tNumber of MCTS iterations performed overall? {num_iters}')
+            print(f'\tAverage number of MCTS iters per call to take_action()? {num_iters/num_times_called}')
             print()
 
         num_steps -= 1
@@ -86,7 +89,7 @@ def play_game(agent: Agent, env: Environment, num_steps: int):
         for _, action in history:
             print(action)
 
-    return (info['score'], info['moves'], num_location_changes, num_times_called, seconds)
+    return (info['score'], info['moves'], num_location_changes, num_times_called, seconds, num_iters)
 
 
 if __name__ == "__main__":

@@ -35,7 +35,7 @@ if __name__ == "__main__":
     total_num_location_changes = 0  # total number of location changes aggregated over all trials
     total_num_steps = 0             # total number of steps taken aggregated over all trials
     total_time = 0                  # total seconds taken aggregated over all trials
-
+    total_mcts_iters = 0            # total number of MCTS iterations performed over all trials
 
     # Open file for writing results
     file_str = f'basicTesting/{args.num_trials}t{args.num_moves}m{args.mcts_time}s{args.mcts_depth}d.txt'
@@ -93,7 +93,7 @@ if __name__ == "__main__":
         
         
         print(f'Trial {i+1} of {args.num_trials}')
-        score, num_valid_actions, num_location_changes, num_steps, time = play_game(
+        score, num_valid_actions, num_location_changes, num_steps, time, num_mcts_iters = play_game(
             ai_agent, env, args.num_moves)
 
         total_score += score
@@ -101,10 +101,11 @@ if __name__ == "__main__":
         total_num_location_changes += num_location_changes
         total_num_steps += num_steps
         total_time += time
+        total_mcts_iters += num_mcts_iters
                 
         
         # Write results to file
-        new_line = f'{score}\t{num_steps}\t{num_valid_actions}\t{num_location_changes}\t{time}\n'
+        new_line = f'{score}\t{num_steps}\t{num_valid_actions}\t{num_location_changes}\t{time}\t{num_mcts_iters}\n'
         data_file.write(new_line)
 
         print(f'Trial {i+1}:')
@@ -113,6 +114,7 @@ if __name__ == "__main__":
         print(f'Of those {num_steps} steps, how many were valid? {num_valid_actions}')
         print(f'Of those {num_steps} steps, how many changed your location? {num_location_changes}')
         print(f'How long to call take_action() {num_steps} times? {time}')
+        print(f'Number of MCTS iterations performed across all calls to take_action(): {num_mcts_iters}')
         print()
 
 
@@ -134,3 +136,4 @@ if __name__ == "__main__":
     print(f'Average location changes: {total_num_location_changes/args.num_trials}')
     print(f'Total time taken calling take_action(): {total_time}')
     print(f'Avg. seconds for take_action(): {total_time/total_num_steps}')
+    print(f'Avg. number of MCTS iters performed over all calls to take_action() over all trials {total_mcts_iters/total_num_steps}')

@@ -26,16 +26,15 @@ class RandomAgent(Agent):
         """Takes in the history and returns the next action to take"""
 
         valid_actions = env.get_valid_actions()
-        return random.choice(valid_actions)
+        return random.choice(valid_actions), -1
 
 class HumanAgent(Agent):
     """Allows a human player"""
 
     def take_action(self, env: Environment, history: list) -> str:
         """Takes in the history and returns the next action to take"""        
-        print(env.get_valid_actions())
         print("Action: ")
-        return input()
+        return input(), -1
 
 
 class MonteAgent(Agent):
@@ -44,7 +43,7 @@ class MonteAgent(Agent):
 
     def __init__(self, env: Environment, time_limit: int, max_depth: int):
         # create root node with the initial state
-        self.root = MCTS_node(None, None, env.get_valid_actions())
+        self.root = MCTS_node(None, None, env.get_valid_actions(), env.get_score())
         self.node_path = []
         
         self.node_path.append(self.root)
@@ -80,17 +79,16 @@ class MonteAgent(Agent):
             seconds_elapsed = time.time() - start_time
            
             if config.VERBOSITY > 1:
-               print('[TAKE ACTION] Root node is', str(self.root))
-               print('[TAKE ACTION] New actions', self.root.get_new_actions())
+                print('\n\n==================== Count', count, '======================')
+                print('[TAKE ACTION] Root node is', str(self.root))
+                print('[TAKE ACTION] Root actions are', self.root.get_new_actions())
 
 
             # Create a new node on the tree
             new_node = tree_policy(self.root, env, self.reward)
             
             if config.VERBOSITY > 1:
-                print('[TAKE ACTION] Count:', count)
                 print('[TAKE ACTION] Chosen action', new_node.get_prev_action())
-                print('[TAKE ACTION] Printing out parent again', str(self.root))
                 print('[TAKE ACTION] Printing out selected child', str(new_node))
 
             # Determine the simulated value of the new node
@@ -98,6 +96,7 @@ class MonteAgent(Agent):
             
             # Propogate the simulated value back up the tree
             backup(new_node, delta)
+            
             # reset the state of the game when done with one simulation
             env.reset()
             env.set_state(curr_state)
@@ -117,4 +116,4 @@ class MonteAgent(Agent):
 
         self.node_path.append(self.root)
 
-        return self.root.get_prev_action()
+        return self.root.get_prev_action(), count
