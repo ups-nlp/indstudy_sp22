@@ -29,7 +29,7 @@ def play_game(agent: Agent, env: Environment, num_steps: int):
     prev_location = env.get_player_location() 
     num_location_changes = 0  # total number of times an action led to a change in location
     num_times_called = 0 # total number of times take_action() was called
-    num_times_called = 0 # total number of iterations performed
+    num_iters = 0 # inside of take_action(), total number of MCTS iterations performed
     seconds = 0 # total time spent in take_action() over all iterations
 
 
