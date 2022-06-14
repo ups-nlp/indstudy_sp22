@@ -27,16 +27,15 @@ class RandomAgent(Agent):
         """Takes in the history and returns the next action to take"""
 
         valid_actions = env.get_valid_actions()
-        return random.choice(valid_actions)
+        return random.choice(valid_actions), -1
 
 class HumanAgent(Agent):
     """Allows a human player"""
 
     def take_action(self, env: Environment, history: list) -> str:
         """Takes in the history and returns the next action to take"""
-        print(env.get_valid_actions())
         print("Action: ")
-        return input()
+        return input(), -1
 
 
 class MonteAgent(Agent):
@@ -50,8 +49,9 @@ class MonteAgent(Agent):
 
         # Create and store the root node        
         valid_actions = env.get_valid_actions()
+        score = env.get_score()
         state = get_world_state_hash(env.get_player_location(), valid_actions)
-        self.root = Transposition_Node(state, None, None, valid_actions, self.transposition_table)
+        self.root = Transposition_Node(state, None, None, valid_actions, self.transposition_table, score)        
 
         # This constant balances tree exploration with exploitation of ideal nodes
         self.explore_const = 1.0/sqrt(2)
@@ -86,9 +86,9 @@ class MonteAgent(Agent):
             seconds_elapsed = time.time() - start_time
             
             if config.VERBOSITY > 1:
-                print("[TAKE ACTION] Count is ", count)
+                print('\n\n==================== Count', count, '======================')
                 print('[TAKE ACTION] Root node is', str(self.root))
-                print('[TAKE ACTION] New actions', self.root.get_new_actions())
+                print('[TAKE ACTION] Root actions are', self.root.get_new_actions())
             
             
             # Create a new node on the tree
@@ -114,8 +114,10 @@ class MonteAgent(Agent):
             count += 1
         
         if(config.VERBOSITY > 1):
-            print("[TAKE ACTION] count: ", count)
-            print("[TAKE ACTION] seconds_elapsed: ", seconds_elapsed, ", time_limit: ", self.time_limit)            
+            print('[TAKE ACTION] Number of iterations accomplished before time limit elapsed: ', count)
+
+        if config.VERBOSITY > 0:
+            print('Finished MCTS algorithm:')
             for child in self.root.get_children():
                 child_sim_value = child.get_sim_value()
                 child_visited = child.get_visited()
@@ -124,4 +126,4 @@ class MonteAgent(Agent):
         ## Pick the next action
         self.root = best_child(self.root, env, self.reward)
 
-        return self.root.get_prev_action()
+        return self.root.get_prev_action(), count

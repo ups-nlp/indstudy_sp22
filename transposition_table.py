@@ -21,7 +21,7 @@ class Transposition_Node:
     transposition_table -- the HashMap to the transposition table
     """
 
-    def __init__(self, state, parent, prev_act, new_actions, transposition_table):
+    def __init__(self, state, parent, prev_act, new_actions, transposition_table, score):
 
         # Although it's okay for parent and prev_act to be None
         # it is never okay for new_actions to be None
@@ -31,6 +31,7 @@ class Transposition_Node:
 
         self.parent = parent
         self.prev_act = prev_act
+        self.score = score
         self.children = []
         self.max_children = len(new_actions)
         self.new_actions = new_actions        
@@ -72,6 +73,9 @@ class Transposition_Node:
 
     def get_parent(self):
         return self.parent
+
+    def get_score(self):
+        return self.score
     
     def get_max_children(self):
         return self.max_children
