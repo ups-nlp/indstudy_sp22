@@ -169,27 +169,26 @@ def default_policy(start_node, env, max_depth, alpha, original = False):
         return env.get_score()
 
     else:
-                
+                        
         if env.game_over() or env.victory():
-            # Need to compute the score for this terminal action alone, not the cummulative score
-            our_score = start_node.get_score()
+            # Need to compute the score for this terminal action alone, not the cummulative score            
+            start_score = start_node.get_score()
             parent_score = start_node.get_parent().get_score()
-            diff = our_score - parent_score
+            diff = start_score - parent_score            
             if config.VERBOSITY > 1:
                 print('\t[DEFAULT POLICY]: At end of game')
                 print('\t[DEFAULT POLICY] Lost?', env.game_over())
                 print('\t[DEFAULT POLICY] Won?', env.victory())
-                print('\t[DEFAULT POLICY] our score', our_score)
+                print('\t[DEFAULT POLICY] our score', start_score)
                 print('\t[DEFAULT POLICY] parents score', parent_score)
                 print('\t[DEFAULT POLICY] returning a diff of', diff)
             return diff
 
 
         count = 0
-        scores = [env.get_score()] # The score of the start node
-
-        if config.VERBOSITY > 1:
-            print('\tDEFAULT POLICY: initial score', scores[0])
+        scores = []
+        scores.append(new_node.get_parent().get_score())
+        scores.append(new_node.get_score())
 
         # While the game is not over and we have not run out of moves, keep exploring
         while (not env.game_over()) and (not env.victory()) and count < max_depth:        
@@ -204,13 +203,16 @@ def default_policy(start_node, env, max_depth, alpha, original = False):
             # Record the score        
             scores.append(env.get_score())
             count += 1   
+            if config.VERBOSITY > 1:
+                print('\t[DEFAULT POLICY] chose action', chosen_action, 'with score', scores[-1])
+            
 
         discounted_score = 0
         for (i, s) in enumerate(scores):
-            if i > 0:                        
+            if i > 0:
                 diff = scores[i] - scores[i-1]
                 if diff != 0:
-                    discounted_score += diff *  pow(alpha, i-1)
+                    discounted_score += diff *  pow(alpha, i)
 
         if count == 0:            
             exit('\t[DEFAULT POLICY] Made it past initial check for end of game but still didnt go inside while loop')
