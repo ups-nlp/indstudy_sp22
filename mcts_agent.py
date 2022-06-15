@@ -145,7 +145,7 @@ def expand_node(parent, env):
         print('\t[EXPAND NODE] Selected child', new_node)
     return new_node
   
-def default_policy(start_node, env, max_depth, alpha, original = False):
+def default_policy(new_node, env, max_depth, alpha, original = False):
     """
     The default_policy represents a simulated exploration of the tree from
     the passed-in node to a terminal state.
@@ -169,12 +169,13 @@ def default_policy(start_node, env, max_depth, alpha, original = False):
         return env.get_score()
 
     else:
-                        
-        if env.game_over() or env.victory():
-            # Need to compute the score for this terminal action alone, not the cummulative score            
-            start_score = start_node.get_score()
-            parent_score = start_node.get_parent().get_score()
-            diff = start_score - parent_score            
+        
+        # Need to compute the score for this terminal action alone, not the cummulative score            
+        start_score = new_node.get_score()
+        parent_score = new_node.get_parent().get_score()
+        diff = start_score - parent_score    
+
+        if env.game_over() or env.victory():                    
             if config.VERBOSITY > 1:
                 print('\t[DEFAULT POLICY]: At end of game')
                 print('\t[DEFAULT POLICY] Lost?', env.game_over())
@@ -184,6 +185,8 @@ def default_policy(start_node, env, max_depth, alpha, original = False):
                 print('\t[DEFAULT POLICY] returning a diff of', diff)
             return diff
 
+        if config.VERBOSITY > 1:
+            print('\t[DEFAULT POLICY] initial score', diff)
 
         count = 0
         scores = []
@@ -212,7 +215,7 @@ def default_policy(start_node, env, max_depth, alpha, original = False):
             if i > 0:
                 diff = scores[i] - scores[i-1]
                 if diff != 0:
-                    discounted_score += diff *  pow(alpha, i)
+                    discounted_score += diff *  pow(alpha, i-1)
 
         if count == 0:            
             exit('\t[DEFAULT POLICY] Made it past initial check for end of game but still didnt go inside while loop')
