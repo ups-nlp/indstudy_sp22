@@ -2,6 +2,9 @@
 
 import argparse
 import config
+from os.path import exists
+from os.path import basename
+
 from agent import RandomAgent
 from agent import HumanAgent
 from agent import MonteAgent
@@ -24,7 +27,23 @@ if __name__ == "__main__":
                         help='[0|1|2] verbosity level')
     args = parser.parse_args()
 
+    # Get the name of the game
+    game = basename(args.game).split('.')[0]    
     
+    # Create file name for results file
+    file_str = ''
+    if args.agent == 'mcts':        
+        file_str = f'basicTesting/{game}_{args.agent}_{args.num_trials}t{args.num_moves}m{args.mcts_time}s{args.mcts_depth}d.txt'
+    else:
+        file_str = f'basicTesting/{game}_{args.agent}_{args.num_trials}t{args.num_moves}m.txt'
+    
+    # Open file
+    if exists(file_str):
+        exit(f'File {file_str} already exists!')
+    else:
+        print(f'Creating file: {file_str}')
+        data_file = open(file_str, "w", buffering=1)
+
 
     # Set the verbosity level
     if 0 <= args.verbosity and args.verbosity <= 2:
@@ -37,9 +56,6 @@ if __name__ == "__main__":
     total_time = 0                  # total seconds taken aggregated over all trials
     total_mcts_iters = 0            # total number of MCTS iterations performed over all trials
 
-    # Open file for writing results
-    file_str = f'basicTesting/{args.num_trials}t{args.num_moves}m{args.mcts_time}s{args.mcts_depth}d.txt'
-    data_file = open(file_str, "w", buffering=1)
 
     print()
     print('======================================')
