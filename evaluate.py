@@ -75,7 +75,7 @@ if __name__ == "__main__":
     for i in range(args.num_trials):               
 
 
-        # Instantiate the game environment -- the game does not change from trial to trial 
+        # Instantiate the game environment  
         if args.game == "chamber":
             env = ChamberEnvironment(None)
         elif args.game == "chamber4":
