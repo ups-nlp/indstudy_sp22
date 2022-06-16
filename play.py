@@ -33,7 +33,7 @@ def play_game(agent: Agent, env: Environment, num_steps: int):
     seconds = 0 # total time spent in take_action() over all iterations
     
     curr_score = env.get_score() # current score of the game
-    distance = # distance between scoring actions
+    distance = 0 # distance between scoring actions
     dist_btw_scores = [] # distance between scoring states
 
     while num_steps != 0 and not done:
