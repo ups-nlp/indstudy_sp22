@@ -140,69 +140,86 @@ def expand_node(parent, env, transposition_table):
     return new_node
 
 
-def default_policy(new_node, env, max_depth, alpha):
+def default_policy(new_node, env, max_depth, alpha, original = False):
     """
     The default_policy represents a simulated exploration of the tree from
     the passed-in node to a terminal state.
 
-    Self-note: This method doesn't require the nodes to store their depth
-    """
+    original = True runs the original default policy 
+    original = False augments the original default policy with a max depth and discounted rewards    
+    """        
     
-   # Need to compute the score for this terminal action alone, not the cummulative score            
-    start_score = new_node.get_score()
-    parent_score = new_node.get_parent().get_score()
-    diff = start_score - parent_score    
+    if original:
 
-    if env.game_over() or env.victory():                    
-        if config.VERBOSITY > 1:
-            print('\t[DEFAULT POLICY]: At end of game')
-            print('\t[DEFAULT POLICY] Lost?', env.game_over())
-            print('\t[DEFAULT POLICY] Won?', env.victory())
-            print('\t[DEFAULT POLICY] our score', start_score)
-            print('\t[DEFAULT POLICY] parents score', parent_score)
-            print('\t[DEFAULT POLICY] returning a diff of', diff)
-        return diff
+        # While the game is not over and we have not run out of moves, keep exploring
+        while not env.game_over() and not env.victory():        
 
-    if config.VERBOSITY > 1:
-        print('\t[DEFAULT POLICY] initial score', diff)
+            #Get the list of valid actions from this state
+            actions = env.get_valid_actions()
 
-    count = 0
-    scores = []
-    scores.append(new_node.get_parent().get_score())
-    scores.append(new_node.get_score())
-
-    # While the game is not over and we have not run out of moves, keep exploring
-    while (not env.game_over()) and (not env.victory()) and count < max_depth:        
-
-        #Get the list of valid actions from this state
-        actions = env.get_valid_actions()
-
-        # Take a random action from the list of available actions        
-        chosen_action = random.choice(actions)
-        env.step(chosen_action)        
+            # Take a random action from the list of available actions        
+            chosen_action = random.choice(actions)
+            env.step(chosen_action)        
             
-        # Record the score        
-        scores.append(env.get_score())
-        count += 1   
+        return env.get_score()
+
+    else:
+        
+        # Need to compute the score for this terminal action alone, not the cummulative score            
+        start_score = new_node.get_score()
+        parent_score = new_node.get_parent().get_score()
+        diff = start_score - parent_score    
+
+        if env.game_over() or env.victory():                    
+            if config.VERBOSITY > 1:
+                print('\t[DEFAULT POLICY]: At end of game')
+                print('\t[DEFAULT POLICY] Lost?', env.game_over())
+                print('\t[DEFAULT POLICY] Won?', env.victory())
+                print('\t[DEFAULT POLICY] our score', start_score)
+                print('\t[DEFAULT POLICY] parents score', parent_score)
+                print('\t[DEFAULT POLICY] returning a diff of', diff)
+            return diff
+
         if config.VERBOSITY > 1:
-            print('\t[DEFAULT POLICY] chose action', chosen_action, 'with score', scores[-1])
+            print('\t[DEFAULT POLICY] initial score', diff)
+
+        count = 0
+        scores = []
+        scores.append(new_node.get_parent().get_score())
+        scores.append(new_node.get_score())
+
+        # While the game is not over and we have not run out of moves, keep exploring
+        while (not env.game_over()) and (not env.victory()) and count < max_depth:        
+
+            #Get the list of valid actions from this state
+            actions = env.get_valid_actions()
+
+            # Take a random action from the list of available actions        
+            chosen_action = random.choice(actions)
+            env.step(chosen_action)        
+            
+            # Record the score        
+            scores.append(env.get_score())
+            count += 1   
+            if config.VERBOSITY > 1:
+                print('\t[DEFAULT POLICY] chose action', chosen_action, 'with score', scores[-1])
             
 
-    discounted_score = 0
-    for (i, s) in enumerate(scores):
-        if i > 0:
-            diff = scores[i] - scores[i-1]
-            if diff != 0:
-                discounted_score += diff *  pow(alpha, i-1)
+        discounted_score = 0
+        for (i, s) in enumerate(scores):
+            if i > 0:
+                diff = scores[i] - scores[i-1]
+                if diff != 0:
+                    discounted_score += diff *  pow(alpha, i-1)
 
-    if count == 0:            
-        exit('\t[DEFAULT POLICY] Made it past initial check for end of game but still didnt go inside while loop')
+        if count == 0:            
+            exit('\t[DEFAULT POLICY] Made it past initial check for end of game but still didnt go inside while loop')
 
-    if config.VERBOSITY > 1:
-        print('\t[DEFAULT POLICY] Number of iterations until reached terminal node: ', count)
-        print('\t[DEFAULT POLICY] Final score', discounted_score)
+        if config.VERBOSITY > 1:
+            print('\t[DEFAULT POLICY] Number of iterations until reached terminal node: ', count)
+            print('\t[DEFAULT POLICY] Final score', discounted_score)
 
-    return discounted_score
+        return discounted_score
 
 
 def backup(path, delta):
