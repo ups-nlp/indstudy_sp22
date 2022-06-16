@@ -39,8 +39,11 @@ if __name__ == "__main__":
     
     # Open file
     if exists(file_str):
-        exit(f'File {file_str} already exists!')
+        print()
+        print(f'File {file_str} already exists. Appending to the end...')
+        data_file = open(file_str, "a", buffering=1)
     else:
+        print()
         print(f'Creating file: {file_str}')
         data_file = open(file_str, "w", buffering=1)
 
@@ -49,14 +52,18 @@ if __name__ == "__main__":
     if 0 <= args.verbosity and args.verbosity <= 2:
         config.VERBOSITY = args.verbosity
 
+
+    # Initialize variables
     total_score = 0                 # total agent score aggregated over all trials
     total_num_valid_actions = 0     # total number of valid actions aggregated over all trials
     total_num_location_changes = 0  # total number of location changes aggregated over all trials
     total_num_steps = 0             # total number of steps taken aggregated over all trials
     total_time = 0                  # total seconds taken aggregated over all trials
     total_mcts_iters = 0            # total number of MCTS iterations performed over all trials
+    total_average_distance = 0      # average distance between scoring states summed over all trials
 
 
+    # Ready to go...
     print()
     print('======================================')
     print('Num Trials:', args.num_trials)
@@ -66,9 +73,6 @@ if __name__ == "__main__":
     print('======================================')
     print()
     print()
-
-
-    
 
 
     # Run the trials
@@ -109,7 +113,7 @@ if __name__ == "__main__":
         
         
         print(f'Trial {i+1} of {args.num_trials}')
-        score, num_valid_actions, num_location_changes, num_steps, time, num_mcts_iters = play_game(
+        score, num_valid_actions, num_location_changes, num_steps, time, num_mcts_iters, avg_distance = play_game(
             ai_agent, env, args.num_moves)
 
         total_score += score
@@ -118,10 +122,10 @@ if __name__ == "__main__":
         total_num_steps += num_steps
         total_time += time
         total_mcts_iters += num_mcts_iters
-                
+        total_average_distance += avg_distance
         
         # Write results to file
-        new_line = f'{score}\t{num_steps}\t{num_valid_actions}\t{num_location_changes}\t{time}\t{num_mcts_iters}\n'
+        new_line = f'{score}\t{num_steps}\t{num_valid_actions}\t{num_location_changes}\t{time}\t{num_mcts_iters}\t{avg_distance}\n'
         data_file.write(new_line)
 
         print(f'Trial {i+1}:')
@@ -131,6 +135,7 @@ if __name__ == "__main__":
         print(f'Of those {num_steps} steps, how many changed your location? {num_location_changes}')
         print(f'How long to call take_action() {num_steps} times? {time}')
         print(f'Number of MCTS iterations performed across all calls to take_action(): {num_mcts_iters}')
+        print(f'Average distance between scoring states: {avg_distance}')
         print()
 
 
@@ -153,3 +158,4 @@ if __name__ == "__main__":
     print(f'Total time taken calling take_action(): {total_time}')
     print(f'Avg. seconds for take_action(): {total_time/total_num_steps}')
     print(f'Avg. number of MCTS iters performed over all calls to take_action() over all trials {total_mcts_iters/total_num_steps}')
+    print(f'Avg. distance between scoring states: {avg_distance/args.num_trials}')

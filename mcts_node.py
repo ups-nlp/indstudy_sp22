@@ -2,6 +2,8 @@
 Node class for building the game tree
 """
 
+# TODO: Store env.game_over() for each node so we know if a node corresponds to a terminal state or not
+
 class Node:
     """Interface for an Node class"""
     def __init__(self, parent, prev_act, new_actions, score):

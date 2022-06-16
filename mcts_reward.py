@@ -40,6 +40,7 @@ class BaselineReward(Reward):
         child_visited = child.get_visited()
         child_sim_reward = child.get_sim_value()
 
+        # TODO: If the child is a terminal state (a loss), return negative infinity
         if child_visited != 0:
             first_term = child_sim_reward/child_visited
             second_term = sqrt((2*log(parent_visited))/child_visited)

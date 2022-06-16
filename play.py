@@ -31,7 +31,10 @@ def play_game(agent: Agent, env: Environment, num_steps: int):
     num_times_called = 0 # total number of times take_action() was called
     num_iters = 0 # inside of take_action(), total number of MCTS iterations performed
     seconds = 0 # total time spent in take_action() over all iterations
-
+    
+    curr_score = env.get_score() # current score of the game
+    distance = # distance between scoring actions
+    dist_btw_scores = [] # distance between scoring states
 
     while num_steps != 0 and not done:
         if config.VERBOSITY > 0:
@@ -49,7 +52,6 @@ def play_game(agent: Agent, env: Environment, num_steps: int):
 
         # updating environment with selected action
         next_obs, _, done, info = env.step(action_to_take)        
-
         history.append((curr_obs, action_to_take))
 
         # checking if the action taken caused a change in location
@@ -58,6 +60,16 @@ def play_game(agent: Agent, env: Environment, num_steps: int):
             num_location_changes += 1
         prev_location = curr_location
 
+        # checking if the action taken caused a change in score
+        next_score = env.get_score()
+        if next_score == curr_score:
+            distance += 1
+        else:
+            dist_btw_scores.append(distance)
+            distance = 0
+
+        # updating variables as needed
+        curr_score = next_score
         curr_obs = next_obs
 
         if config.VERBOSITY > 0:
@@ -89,7 +101,10 @@ def play_game(agent: Agent, env: Environment, num_steps: int):
         for _, action in history:
             print(action)
 
-    return (info['score'], info['moves'], num_location_changes, num_times_called, seconds, num_iters)
+    # Computing average distance between score changes
+    avg_dist = sum(dist_btw_scores)/len(dist_btw_scores)
+
+    return (info['score'], info['moves'], num_location_changes, num_times_called, seconds, num_iters, avg_dist)
 
 
 if __name__ == "__main__":

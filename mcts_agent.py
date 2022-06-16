@@ -134,6 +134,7 @@ def expand_node(parent, env):
     env.step(action)
     new_actions = env.get_valid_actions()
     score = env.get_score()
+    # ALSO FIGURE OUT IF THIS IS GAME OVER AND STORE THAT AS WELL
 
     # Create the child
     new_node = MCTS_node(parent, action, new_actions, score)
