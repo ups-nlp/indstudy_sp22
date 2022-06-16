@@ -102,7 +102,9 @@ def play_game(agent: Agent, env: Environment, num_steps: int):
             print(action)
 
     # Computing average distance between score changes
-    avg_dist = sum(dist_btw_scores)/len(dist_btw_scores)
+    avg_dist = 0
+    if len(dist_btw_scores) > 0:
+        avg_dist = sum(dist_btw_scores)/len(dist_btw_scores)
 
     return (info['score'], info['moves'], num_location_changes, num_times_called, seconds, num_iters, avg_dist)
 
