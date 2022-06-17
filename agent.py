@@ -111,6 +111,11 @@ class MonteAgent(Agent):
             # reset the state of the game when done with one simulation
             env.reset()
             env.set_state(curr_state)
+
+            if count > 100:
+                print('Count is exploding', count)
+                config.VERBOSITY = 2
+                
             count += 1
         
         if(config.VERBOSITY > 1):
