@@ -89,7 +89,7 @@ class MonteAgent(Agent):
                 print('\n\n==================== Count', count, '======================')
                 print('[TAKE ACTION] Root node is', str(self.root))
                 print('[TAKE ACTION] Root actions are', self.root.get_new_actions())
-            
+                print('[TAKE ACTION] Seconds elapsed ', seconds_elapsed, 'out of total of', self.time_limit)
             
             # Create a new node on the tree
             new_node, path = tree_policy(self.root, env, self.reward, self.transposition_table)
@@ -115,7 +115,7 @@ class MonteAgent(Agent):
             if count > 100:
                 print('Count is exploding', count)
                 config.VERBOSITY = 2
-                
+
             count += 1
         
         if(config.VERBOSITY > 1):
