@@ -2,6 +2,7 @@
 
 import argparse
 import config
+import sys
 from agent import RandomAgent
 from agent import HumanAgent
 from agent import MonteAgent
@@ -23,11 +24,13 @@ if __name__ == "__main__":
     parser.add_argument('game', help='[path to game file|chamber|chamber4]')
     parser.add_argument('num_seconds',help='number of seconds agent gets to make a move')
     parser.add_argument('num_trees',help='number of trees to build with parallel mcts')
+    parser.add_argument('max_depth',help ='maximum depth for the simulation length')
     parser.add_argument('-v', '--verbosity', type=int,
                         help='[0|1|2] verbosity level')
     args = parser.parse_args()    
     args.num_trees = int(args.num_trees)
     args.num_seconds = int(args.num_seconds)
+    args.max_depth = int(args.max_depth)
 
     ready = 0
     if args.num_trees<1 or args.num_trees>8:
@@ -36,6 +39,9 @@ if __name__ == "__main__":
     if args.num_seconds != 10 and args.num_seconds != 30 and args.num_seconds != 45 and args.num_seconds != 60 and args.num_seconds != 90 and args.num_seconds != 120:
         print(args.num_seconds)
         print("select [10|30|45|60|90|120] for number of seconds")
+        ready = 1
+    if args.max_depth !=10 and args.max_depth !=20 and args.max_depth !=30 and args.max_depth !=40 and args.max_depth !=50:
+        print("select [10|20|30|40|50] for max depth") 
         ready = 1
 
  
@@ -55,7 +61,9 @@ if __name__ == "__main__":
 
     # Open file for writing results
     file_str = f'parallelTesting/{args.num_trees}trees/{args.num_trees}t{args.num_seconds}s.txt'
-    data_file = open(file_str, "w")
+    print(file_str)
+    
+
 
     print()
     print('======================================')
@@ -85,7 +93,7 @@ if __name__ == "__main__":
             elif args.agent == 'human':
                 ai_agent = HumanAgent()
             elif args.agent == 'mcts':
-                ai_agent = MonteAgent(env, args.num_moves, args.num_seconds, args.num_trees)
+                ai_agent = MonteAgent(env, args.num_moves, args.num_seconds, args.num_trees, args.max_depth)
             else:
                 ai_agent = RandomAgent()
 
@@ -108,8 +116,12 @@ if __name__ == "__main__":
                 total_nodes += nodes_generated
 
             # Write results to file
+            data_file = open(file_str, "w")
             new_line = f'{score}\t{num_steps}\t{num_valid_actions}\t{num_location_changes}\t{total_nodes}\t{time}\n'
             data_file.write(new_line)
+            print(new_line)
+            # Close the file
+            data_file.close()
             
             print(f'Trial {i+1}:')
             print(f'Score= {score}')
@@ -121,8 +133,7 @@ if __name__ == "__main__":
                 print(f'How many total nodes generated? {nodes_generated}')
             print()
 
-        # Close the file
-        data_file.close()
+
 
         
         print()

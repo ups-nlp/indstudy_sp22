@@ -21,6 +21,7 @@ import multiprocessing_on_dill as multiprocessing
 from multiprocessing_on_dill import Process, cpu_count, Queue, Lock
 
 import atexit
+import sys
 #from pathos.pools import ParallelPool
 #import dill as pickle
 
@@ -56,14 +57,15 @@ class MonteAgent(Agent):
     """"Monte Carlo Search Tree Player"""
 
 
-    def __init__(self, env: Environment, num_steps: int, num_seconds: int, num_trees:int):
+    def __init__(self, env: Environment, num_steps: int, num_seconds: int, num_trees:int, sim_length:int):
         # create root node with the initial state
         valid_actions = env.get_valid_actions()
         self.root = MCTS_node(None, None, valid_actions)
         self.node_path = []
+        self.sim_length = sim_length
+       
 
-        #will be incremented by each tree after each move in the game with the number of nodes that tree generated
-        self.nodes_generated = multiprocessing.Value("i",0)
+
         # self.simulation = simulation_length()
         self.node_path.append(self.root)
 
@@ -133,6 +135,9 @@ class MonteAgent(Agent):
         # how many seconds have elapsed since sim start
         seconds_elapsed = 0
 
+        #will be incremented by each tree after each move in the game with the number of nodes that tree generated
+        self.nodes_generated = multiprocessing.Value("i",0)
+
         # loose time limit for simulation phase
         # time_limit = 2
 
@@ -182,9 +187,8 @@ class MonteAgent(Agent):
         #set boolean that tells the trees to stop expanding when the time is up
         timer = multiprocessing.Value("i",0)
 
-        #set sim length and alpha value for discounted score policy
-        sim_length = 10
-        alpha = .5
+        #set  alpha value for discounted score policy
+        alpha = .8
 
         #counter that holds how many of the trees have returned
         procs_finished = multiprocessing.Value("i",0)
@@ -199,7 +203,7 @@ class MonteAgent(Agent):
             procs = []
             for i in range(self.tree_count):
                 #spin off a new process to take_action and append to processes list
-                proc = Process(name = self.proc_names[i], target = mcts_agent.take_action, args = (proc_queues[i],self.env_arr[i],self.explore_const,self.reward,timer,procs_finished,self.nodes_generated,sim_length, alpha, proc_lock,))
+                proc = Process(name = self.proc_names[i], target = mcts_agent.take_action, args = (proc_queues[i],self.env_arr[i],self.explore_const,self.reward,timer,procs_finished,self.nodes_generated,self.sim_length, alpha, proc_lock,))
                 #proc = Process(name = self.proc_names[i], target = mcts_agent.take_action, args = (self.tree_arr[i],self.sim_list[i],self.env_arr[i],self.explore_const,self.reward,))
 
                 procs.append(proc)
@@ -291,7 +295,7 @@ class MonteAgent(Agent):
 
         self.node_path.append(self.root)
 
-        return best_action, next_obs, _, done, info
+        return best_action, next_obs, _, done, info, self.nodes_generated
 
 
 

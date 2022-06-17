@@ -45,6 +45,7 @@ def take_action(queue_list, env: Environment, explore_exploit_const, reward_poli
     env: game environment
     explore_exploit_const: constant that determines balance between exploring new path versus taking old path
     simulation_length: length of the simulation to run from each new node
+    alpha: value to discount score by as you walk through the simulation
     reward_policy: determines which reward policy to use
     timer: shared timer will set to false when the time is up, and this function will return
     procs_finished: shared integer that holds the number of processes that have returned from take_action
@@ -53,6 +54,7 @@ def take_action(queue_list, env: Environment, explore_exploit_const, reward_poli
 
     workInitialize()
 
+    #set random seed with time stamp + thread number
 
     #get the dictionaries off of the multiprocessing queue
     #print(env.get_valid_actions())
@@ -82,6 +84,7 @@ def take_action(queue_list, env: Environment, explore_exploit_const, reward_poli
         count = count+1
 
         #create a new node on the tree and store the action taken to get there
+
         new_node,action = tree_policy(root, env, explore_exploit_const, reward_policy)
 
         #update the size of the tree
@@ -304,6 +307,7 @@ def expand_node(parent, env:Environment):
     env -- Environment interface between the learning agent and the game
     Return: a child node to explore
     """
+    print(random.getstate())
     # Get possible unexplored actions
     actions = parent.new_actions 
     action = random.choice(actions)
@@ -314,7 +318,7 @@ def expand_node(parent, env:Environment):
     env.step(action)
     new_actions = env.get_valid_actions()
     # Create the child
-    new_node = MCTS_node(parent, action, new_actions)
+    new_node = MCTS_node(parent, action, new_actions, env.get_score())
 
     # Add the child to the parent
     parent.add_child(new_node)
@@ -338,7 +342,7 @@ def default_policy(new_node, env,  simulation_length, alpha):
     #if node is already terminal, return 0    
     if(env.game_over()):
         #return 0
-        return (env.get_score(),0)
+        return ((new_node.get_score() - new_node.get_parent.get_score()),0)
 
     scores = [env.get_score()]
     count = 0

@@ -29,13 +29,15 @@ def play_game(agent: Agent, env: Environment, num_steps: int):
     num_location_changes = 0  # total number of times an action led to a change in location
     num_times_called = 0 # total number of iterations performed
     seconds = 0 # total time spent in take_action() over all iterations
+    nodes_generated_list = []
 
     while num_steps != 0 and not done:
 
         # timing the call to take_action()
         start_time = time.time()
-        action_to_take, next_obs, _, done, info = agent.take_action(env, history, config.VERBOSITY)
+        action_to_take, next_obs, _, done, info, nodes_generated = agent.take_action(env, history, config.VERBOSITY)
         end_time = time.time()
+        nodes_generated_list.append(nodes_generated)
 
         # updating statistics
         num_times_called += 1
@@ -72,7 +74,7 @@ def play_game(agent: Agent, env: Environment, num_steps: int):
     
     env.close()
 
-    return (info['score'], info['moves'], num_location_changes, num_times_called, agent.get_nodes_generated(), seconds)
+    return (info['score'], info['moves'], num_location_changes, num_times_called, nodes_generated_list, seconds)
 
 
 if __name__ == "__main__":
