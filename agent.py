@@ -95,7 +95,7 @@ class MonteAgent(Agent):
             new_node, path = tree_policy(self.root, env, self.reward, self.transposition_table)
 
             # Determine the simulated value of the new node
-            delta = default_policy(new_node, env, self.max_depth, self.alpha, original=True)
+            delta = default_policy(new_node, env, self.max_depth, self.alpha)
 
             # Propogate the simulated value back up the tree
             if(config.VERBOSITY > 1):
