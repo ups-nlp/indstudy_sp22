@@ -114,7 +114,7 @@ if __name__ == "__main__":
         
         print(f'Trial {i+1} of {args.num_trials}')
         score, num_valid_actions, num_location_changes, num_steps, time, num_mcts_iters, avg_distance = play_game(
-            ai_agent, env, args.num_moves)
+            ai_agent, env, args.num_moves, file_str)
 
         total_score += score
         total_num_valid_actions += num_valid_actions

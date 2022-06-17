@@ -95,7 +95,7 @@ class MonteAgent(Agent):
             new_node, path = tree_policy(self.root, env, self.reward, self.transposition_table)
 
             # Determine the simulated value of the new node
-            delta = default_policy(new_node, env, self.max_depth, self.alpha)
+            delta = default_policy(new_node, env, self.max_depth, self.alpha, original=True)
 
             # Propogate the simulated value back up the tree
             if(config.VERBOSITY > 1):
@@ -123,7 +123,8 @@ class MonteAgent(Agent):
                 child_visited = child.get_visited()
                 print(child.get_prev_action(), ", count:", child_visited, ", value:", child_sim_value)
 
-        ## Pick the next action
+        # Pick the next action
         self.root = best_child(self.root, env, self.reward)
 
-        return self.root.get_prev_action(), count
+        # Returning the chosen action, number of nodes added to tree, and number of states 
+        return self.root.get_prev_action(), count, len(self.transposition_table)

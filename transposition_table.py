@@ -40,6 +40,7 @@ class Transposition_Node:
             # Create a key-value pair for the new state
             transposition_table[state] = State(state)        
         self.state = transposition_table.get(state)
+        self.state.increment_usage()
 
 
     def toString(self):
@@ -47,6 +48,18 @@ class Transposition_Node:
             return self.state.toString() #+" with parent: "+self.parent.state.toString()
         else:
             return self.state.toString() #+" with NONE parent!"
+
+    def __str__(self):
+        child_node_str = "["
+        for child in self.children:
+            child_node_str += child.prev_act + ", "            
+        child_node_str += "]"
+        
+        if self.parent is None:
+            return f'[Parent: Null, prev_act: {self.prev_act}, sim_value: {self.state.sim_value}, visited: {self.state.visited}, max_children: {self.max_children}, new_actions:{self.new_actions}, children: {child_node_str}]\n'
+        else:
+            return f'[Parent: {self.parent.prev_act}, prev_act: {self.prev_act}, sim_value: {self.state.sim_value}, visited: {self.state.visited}, max_children: {self.max_children}, new_actions:{self.new_actions}, children: {child_node_str}]\n'
+      
 
     def is_terminal(self):
         """ Returns true if the node is terminal
@@ -132,7 +145,16 @@ class State:
         # with the object (i.e. the value)?
         self.state = state
 
+        # Counts the number of nodes that map to this state
+        self.usage = 0
+
     def toString(self):
         return str(self.state)+" has been explored "+ str(self.visited) + " times and has a score of "+ str(self.sim_value)
+
+    def increment_usage(self):
+        self.usage += 1
+
+    def get_usage(self):
+        return self.usage
 
  

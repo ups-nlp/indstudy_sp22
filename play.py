@@ -3,6 +3,8 @@
 import argparse
 import sys
 import time
+from os.path import exists
+
 from agent import Agent
 from agent import RandomAgent
 from agent import HumanAgent
@@ -12,8 +14,19 @@ from environment import *
 
 
 
-def play_game(agent: Agent, env: Environment, num_steps: int):
+def play_game(agent: Agent, env: Environment, num_steps: int, file_str):
     """ The main method that instantiates an agent and plays the specified game"""
+
+
+    # =============== DELETE WHEN DONE ============================
+    file_str = file_str.split('.')[0] + '_states' + '.txt'
+    # Open file
+    if exists(file_str):        
+        data_file = open(file_str, "a", buffering=1)
+    else:
+        data_file = open(file_str, "w", buffering=1)
+    # ===========================================================
+
 
     # The history is a list of (observation, action) tuples
     history = []
@@ -42,12 +55,18 @@ def play_game(agent: Agent, env: Environment, num_steps: int):
 
         # timing the call to take_action()
         start_time = time.time()
-        action_to_take, iters = agent.take_action(env, history)
+        action_to_take, iters, num_states = agent.take_action(env, history)
         end_time = time.time()
+
+
+        # ================= DELETE WHEN DONE =====================
+        new_line = f'{iters}\t{num_states}\n'
+        data_file.write(new_line)
+        # ========================================================
 
         # updating statistics
         num_times_called += 1
-        num_iters += iters
+        num_iters += iters      # THIS IS ALSO THE TOTAL NUMBER OF NODES EVER CREATED
         seconds += (end_time - start_time)
 
         # updating environment with selected action
@@ -95,6 +114,9 @@ def play_game(agent: Agent, env: Environment, num_steps: int):
 
         num_steps -= 1
 
+
+    data_file.write('\n')
+    data_file.close()
 
     if config.VERBOSITY > 1:
         print('\n\n============= HISTORY OF ACTIONS TAKEN =============')
