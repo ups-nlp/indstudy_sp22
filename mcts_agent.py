@@ -26,6 +26,8 @@ def tree_policy(root, env: Environment, reward_policy, transposition_table):
 
         #if parent is not fully expanded, expand it and return
         if not node.is_expanded():
+            if config.VERBOSITY > 1:
+                print('\t[TREE POLICY]: Calling expand_node()')            
             new_node = expand_node(node, env, transposition_table)
             path.append(new_node)
             return new_node, path
@@ -39,9 +41,13 @@ def tree_policy(root, env: Environment, reward_policy, transposition_table):
             node = child
             path.append(node)
             # update the env variable
+            if config.VERBOSITY > 1:
+                print('\t[TREE POLICY]: best child found', node)            
             env.step(node.get_prev_action())
 
     # The node is terminal, so return it
+    if config.VERBOSITY > 1:
+        print('\t[TREE POLICY]: Returning node:', node)    
     return node, path
 
 
@@ -86,13 +92,20 @@ def best_child(parent, env: Environment, reward_policy):
     for child in parent.get_children():
         
         child_value = reward_policy.calculate_child_value(env, child, parent)
-        
+        if config.VERBOSITY > 1:
+            print('\t[BEST CHILD] child:', child.get_prev_action())
+            print('\t[BEST CHILD] value:', child_value)
+
         # if there is a tie for best child, randomly pick one        
         if abs(child_value - max_val) < tolerance:
+            if config.VERBOSITY > 1:
+                print('\tBEST CHILD: Found a tie')            
             bestLs.append(child)            
             
         #if it's value is greater than the best so far, it will be our best so far
         elif child_value > max_val:
+            if config.VERBOSITY > 1:
+                print('\tBEST CHILD: Found a clear winner')            
             bestLs = [child]
             max_val = child_value        
 
@@ -102,6 +115,8 @@ def best_child(parent, env: Environment, reward_policy):
         print('BEST CHILD: Wasnt fully expanded', bestLs)
         print('BEST CHILD: Wasnt fully expanded', chosen)
 
+    if config.VERBOSITY > 1:
+        print('\t[BEST CHILD] Chose', chosen)
     return chosen
 
 
@@ -137,6 +152,8 @@ def expand_node(parent, env, transposition_table):
     # Add the child to the parent
     parent.add_child(new_node)
 
+    if config.VERBOSITY > 1:
+        print('\t[EXPAND NODE] Selected child', new_node)
     return new_node
 
 
@@ -151,6 +168,8 @@ def default_policy(new_node, env, max_depth, alpha, original = False):
     
     if original:
 
+        count = 0
+
         # While the game is not over and we have not run out of moves, keep exploring
         while not env.game_over() and not env.victory():        
 
@@ -160,7 +179,12 @@ def default_policy(new_node, env, max_depth, alpha, original = False):
             # Take a random action from the list of available actions        
             chosen_action = random.choice(actions)
             env.step(chosen_action)        
-            
+            count += 1
+
+
+        if config.VERBOSITY > 1:
+            print('Original default policy took', count, ' iterations')            
+        
         return env.get_score()
 
     else:

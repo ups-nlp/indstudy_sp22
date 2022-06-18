@@ -82,8 +82,7 @@ class MonteAgent(Agent):
 
     
 
-        while(seconds_elapsed < self.time_limit):        
-            seconds_elapsed = time.time() - start_time
+        while(seconds_elapsed < self.time_limit):                    
             
             if config.VERBOSITY > 1:
                 print('\n\n==================== Count', count, '======================')
@@ -94,17 +93,19 @@ class MonteAgent(Agent):
             # Create a new node on the tree
             new_node, path = tree_policy(self.root, env, self.reward, self.transposition_table)
 
-            # Determine the simulated value of the new node
-            delta = default_policy(new_node, env, self.max_depth, self.alpha, original=True)
-
-            # Propogate the simulated value back up the tree
             if(config.VERBOSITY > 1):
-                print("delta value is ", delta)
                 total = ""
                 for node in path:
                     if(node is not None):
                         total = total + str(node.get_prev_action()) + "->"
                 print(total)
+
+            # Determine the simulated value of the new node
+            delta = default_policy(new_node, env, self.max_depth, self.alpha)
+
+            # Propogate the simulated value back up the tree
+            if(config.VERBOSITY > 1):
+                print("delta value is ", delta)
 
             backup(path,delta)
 
@@ -117,6 +118,10 @@ class MonteAgent(Agent):
                 config.VERBOSITY = 2
 
             count += 1
+            seconds_elapsed = time.time() - start_time
+
+
+
         
         if(config.VERBOSITY > 1):
             print('[TAKE ACTION] Number of iterations accomplished before time limit elapsed: ', count)
@@ -127,6 +132,10 @@ class MonteAgent(Agent):
                 child_sim_value = child.get_sim_value()
                 child_visited = child.get_visited()
                 print(child.get_prev_action(), ", count:", child_visited, ", value:", child_sim_value)
+
+
+
+
 
         # Pick the next action
         self.root = best_child(self.root, env, self.reward)
