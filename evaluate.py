@@ -45,7 +45,7 @@ if __name__ == "__main__":
     else:
         print()
         print(f'Creating file: {file_str}')
-        data_file = open(file_str, "w", buffering=1)
+        data_file = open(file_str, 'w+', buffering=1)
 
 
     # Set the verbosity level
