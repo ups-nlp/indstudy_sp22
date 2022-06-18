@@ -76,7 +76,6 @@ class MonteAgent(Agent):
             print('[TAKE ACTION] Time limit: ', self.time_limit, ' seconds')
         
         while(seconds_elapsed < self.time_limit):
-            seconds_elapsed = time.time() - start_time
            
             if config.VERBOSITY > 1:
                 print('\n\n==================== Count', count, '======================')
@@ -101,6 +100,8 @@ class MonteAgent(Agent):
             env.reset()
             env.set_state(curr_state)
             count += 1
+            seconds_elapsed = time.time() - start_time
+
 
 
         if config.VERBOSITY > 1:
