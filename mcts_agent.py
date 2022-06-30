@@ -152,7 +152,7 @@ def expand_node(parent, env, transposition_table):
     # Right now, the best we can do is to just filter out these actions
     valid_actions = []
     for a in new_actions:
-        if "put sack in" not in a:
+        if "put sack in" not in a and "put all in" not in a:
             valid_actions.append(a)
         else:
             print('Filtering action:', a)
@@ -196,7 +196,7 @@ def default_policy(new_node, env, max_depth, alpha, original = False):
             # Right now, the best we can do is to just filter out these actions
             valid_actions = []
             for a in actions:
-                if "put sack in" not in a:
+                if "put sack in" not in a and "put all in" not in a:
                     valid_actions.append(a)
                 else: 
                     print('Filtering action:', a)
@@ -253,7 +253,7 @@ def default_policy(new_node, env, max_depth, alpha, original = False):
             # Right now, the best we can do is to just filter out these actions
             valid_actions = []
             for a in actions:
-                if "put sack in" not in a:
+                if "put sack in" not in a and "put all in" not in a:
                     valid_actions.append(a)
                 else: 
                     print('Filtering action:', a)

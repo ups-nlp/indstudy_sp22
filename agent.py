@@ -2,7 +2,7 @@
 Agents for playing text-based games
 """
 
-from math import sqrt
+from math import sqrt, inf
 import random
 import time
 from xml.etree.ElementTree import tostring
@@ -27,7 +27,7 @@ class RandomAgent(Agent):
         """Takes in the history and returns the next action to take"""
 
         valid_actions = env.get_valid_actions()
-        return random.choice(valid_actions), -1
+        return random.choice(valid_actions), -1, -1
 
 class HumanAgent(Agent):
     """Allows a human player"""
@@ -35,14 +35,14 @@ class HumanAgent(Agent):
     def take_action(self, env: Environment, history: list) -> str:
         """Takes in the history and returns the next action to take"""
         print("Action: ")
-        return input(), -1
+        return input(), -1, -1
 
 
 class MonteAgent(Agent):
     """"Monte Carlo Search Tree Player"""
 
 
-    def __init__(self, env: Environment, time_limit: int, max_depth: int):
+    def __init__(self, env: Environment, time_limit: int, max_depth: int, explore_exploit: float):
     
         # Create the transposition table hashmap
         self.transposition_table = {}
@@ -54,7 +54,7 @@ class MonteAgent(Agent):
         self.root = Transposition_Node(state, None, None, valid_actions, self.transposition_table, score)        
 
         # This constant balances tree exploration with exploitation of ideal nodes
-        self.explore_const = 1.0/sqrt(2)
+        self.explore_const = explore_exploit
         self.reward = BaselineReward(self.explore_const)
 
         self.time_limit = time_limit
@@ -129,17 +129,35 @@ class MonteAgent(Agent):
 
         if config.VERBOSITY > 0:
             print('Finished MCTS algorithm:')
-            for child in self.root.get_children():
-                child_sim_value = child.get_sim_value()
-                child_visited = child.get_visited()
-                print(child.get_prev_action(), ", count:", child_visited, ", value:", child_sim_value)
+            # for child in self.root.get_children():
+            #     child_sim_value = child.get_sim_value()
+            #     child_visited = child.get_visited()
+            #     print(child.get_prev_action(), ", count:", child_visited, ", value:", child_sim_value)
 
 
+        # Pick the action with highest average score
+        # At this point, we do not factor in the number of times a node was chosen for expansion        
+        best_action = None
+        best_score = -inf        
+        for child in self.root.get_children():
+            if child.get_visited() == 0:
+                if config.VERBOSITY > 0:
+                    print(child.get_prev_action(), " count was 0")
+                continue
 
+            avg_score = child.get_sim_value()/child.get_visited()
+            if config.VERBOSITY > 0:
+                print(child.get_prev_action(), ", count:", child.get_visited(), ", value:", child.get_sim_value(), ", avg value:", avg_score)
 
+            if avg_score > best_score:
+                best_score = avg_score
+                best_action = child   
 
-        # Pick the next action
-        self.root = best_child(self.root, env, self.reward)
+        if best_action is None:
+            exit("ALERT: At end of take_action(). The root node has 0 expanded children")
+
+        self.root = best_action
+        #self.root = best_child(self.root, env, self.reward)
 
         # Returning the chosen action, number of nodes added to tree, and number of states 
         return self.root.get_prev_action(), count, len(self.transposition_table)
