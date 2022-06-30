@@ -114,10 +114,6 @@ class MonteAgent(Agent):
             env.reset()
             env.set_state(curr_state)
 
-            if count > 100:
-                print('Count is exploding', count)
-                config.VERBOSITY = 2
-
             count += 1
             seconds_elapsed = time.time() - start_time
 
