@@ -12,10 +12,11 @@ import re
 import random
 from operator import add
 from operator import truediv
+import config
 
 # Installed modules
 from jericho import FrotzEnv
-from config import VERBOSITY
+#from config import VERBOSITY
 
 import tensorflow as tf
 from tensorflow.keras import models
@@ -77,8 +78,8 @@ class DEPagent(Agent):
 
             action_weights[i] = weight_val
             i += 1
-
-        print("action weights" + str(action_weights))
+        if config.VERBOSITY > 0:
+            print("action weights" + str(action_weights))
         total_weight = 0
         for weight in action_weights:
             total_weight += weight
@@ -115,7 +116,7 @@ class DEPagent(Agent):
             print("ERROR - NO VALID MOVE ACTIONS")
             return 'nva'
 
-        if(VERBOSITY):
+        if config.VERBOSITY > 0:
             print("EE actions " + str(valid_actions))
             print("Num EE actions: " + str(num_actions))
 
@@ -125,19 +126,24 @@ class DEPagent(Agent):
         while(i < num_actions):
             weight_val = 1
             curr_action = valid_actions[i]
-            action_words = curr_action.split(' ')
+            if 'put down' not in curr_action:
+                weight_val = 0
+            else:
+                action_words = curr_action.split(' ')
 
-            curr_obs = get_observation(env)
+                curr_obs = get_observation(env)
 
-            for a_word in action_words:
-                if a_word in curr_obs:
-                    weight_val += 1  # doubles the value every time there's a shared word
-                    break  # max out at a double
+                for a_word in action_words:
+                    if a_word in curr_obs:
+                        weight_val += 1  # doubles the value every time there's a shared word
+                        break  # max out at a double
 
             action_weights[i] = weight_val
             i += 1
 
-        print("ee weights" + str(action_weights))
+        if config.VERBOSITY > 0:
+            print("ee weights" + str(action_weights))
+
         total_weight = 0
         for weight in action_weights:
             total_weight += weight
@@ -165,15 +171,21 @@ class DEPagent(Agent):
         @return action, A string with the action to take
         """
 
-        # Get a list of all valid actions from jericho
+        # Get a list of all valid actions from jericho and the current observation
         valid_actions = env.get_valid_actions()
-        if(VERBOSITY):
+        current_obs = get_observation(env)
+
+        if(config.VERBOSITY > 0):
             print("Valid actions " + str(valid_actions))
+
+        # CHANGE THIS AFTER SETTING VERBOSITY IT JUST MAKES AN EMPTY COMMAND TO RESET
+        if current_obs == 'maximum verbosity':
+            return ''
 
         # get sorted actions: in order: mover, everything_else
         sorted_actions = self.sort_actions(valid_actions)
 
-        chosen_module = self.decision_maker(sorted_actions, env, history)
+        chosen_module = self.decision_maker(env)
 
         action_modules = [self.mover, self.everything_else]
 
@@ -186,16 +198,23 @@ class DEPagent(Agent):
         action = action_modules[chosen_module](
             env, sorted_actions[chosen_module], history)
 
-        current_obs = get_observation(env)
+        """
+        print("Current obs: ")
+        print(current_obs)
+        print("\n")
+        """
+        if current_obs == 'copyright c 1981 1982 1983 infocom inc all rights reserved zork is a registered trademark of infocom inc revision 88 / serial number 840726 west of house you are standing in an open field west of a white house with a boarded front door there is a small mailbox here':
+            print("turning up verbosity")
+            return 'verbose'
 
         if(current_obs == "with great effort you open the window far enough to allow entry"):
-            if(VERBOSITY):
+            if(config.VERBOSITY > 0):
                 print("WINDOW OPEN GOING EAST")
             return "west"
 
         # If the agent tries to jump, do literally any other move instead
         if action == 'jump':
-            if(VERBOSITY):
+            if(config.VERBOSITY > 0):
                 print("NO!!!! TRIED TO JUMP - HOPEFULLY AVERTED")
 
             # shuffle the list so you don't necessarily choose the same thing every time
@@ -210,7 +229,7 @@ class DEPagent(Agent):
 
         return action
 
-    def decision_maker(self, sorted_actions: list, env: FrotzEnv, history: list) -> int:
+    def decision_maker(self, env: FrotzEnv) -> int:
         """
         Decide which choice to take.
 
@@ -238,16 +257,16 @@ class DEPagent(Agent):
 
         randVal = random.random()
 
-        if(VERBOSITY):
+        if(config.VERBOSITY > 0):
             print("Decisionmaker NN value is (1 EE, 0 Move): " + str(prediction))
             print("Random value is: " + str(randVal))
 
         if(prediction < randVal):
-            if(VERBOSITY):
+            if(config.VERBOSITY > 0):
                 print("MOVER MODULE")
             return 0
         else:
-            if(VERBOSITY):
+            if(config.VERBOSITY > 0):
                 print("EVERYTHING ELSE")
             return 1
 

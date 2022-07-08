@@ -11,7 +11,6 @@ import config
 from environment import *
 
 
-
 def play_game(agent: Agent, game_file: str, num_steps: int):
     """ The main method that instantiates an agent and plays the specified game"""
 
@@ -30,8 +29,8 @@ def play_game(agent: Agent, game_file: str, num_steps: int):
 
     prev_location = env.get_player_location()
     num_location_changes = 0  # total number of times an action led to a change in location
-    num_times_called = 0 # total number of iterations performed
-    seconds = 0 # total time spent in take_action() over all iterations
+    num_times_called = 0  # total number of iterations performed
+    seconds = 0  # total time spent in take_action() over all iterations
 
     while num_steps != 0 and not done:
 
@@ -46,7 +45,6 @@ def play_game(agent: Agent, game_file: str, num_steps: int):
 
         # updating environment with selected action
         next_obs, _, done, info = env.step(action_to_take)
-
 
         history.append((curr_obs, action_to_take))
 
@@ -70,6 +68,8 @@ def play_game(agent: Agent, game_file: str, num_steps: int):
         print('\n\n============= HISTORY OF ACTIONS TAKEN =============')
         for _, action in history:
             print(action)
+
+    env.close()
 
     return (info['score'], info['moves'], num_location_changes, num_times_called, seconds)
 
@@ -98,7 +98,8 @@ if __name__ == "__main__":
     elif args.agent == 'human':
         ai_agent = HumanAgent()
     elif args.agent == 'mcts':
-        ai_agent = MonteAgent(JerichoEnvironment(args.game_file), args.num_moves)
+        ai_agent = MonteAgent(JerichoEnvironment(
+            args.game_file), args.num_moves)
     elif args.agent == 'dep':
         ai_agent = DEPagent()
     else:

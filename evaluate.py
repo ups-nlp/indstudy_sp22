@@ -10,7 +10,6 @@ from environment import JerichoEnvironment
 from play import play_game
 
 
-
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Evaluates an agent')
@@ -30,7 +29,8 @@ if __name__ == "__main__":
     elif args.agent == 'human':
         ai_agent = HumanAgent()
     elif args.agent == 'mcts':
-        ai_agent = MonteAgent(JerichoEnvironment(args.game_file), args.num_moves)
+        ai_agent = MonteAgent(JerichoEnvironment(
+            args.game_file), args.num_moves)
     elif args.agent == 'dep':
         ai_agent = DEPagent()
     else:
@@ -41,11 +41,13 @@ if __name__ == "__main__":
         config.VERBOSITY = args.verbosity
 
     total_score = 0                 # total agent score aggregated over all trials
-    total_num_valid_actions = 0     # total number of valid actions aggregated over all trials
-    total_num_location_changes = 0  # total number of location changes aggregated over all trials
+    # total number of valid actions aggregated over all trials
+    total_num_valid_actions = 0
+    # total number of location changes aggregated over all trials
+    total_num_location_changes = 0
     total_num_steps = 0             # total number of steps taken aggregated over all trials
     total_time = 0                  # total seconds taken aggregated over all trials
-
+    all_scores = []                 # list of all scores
     for i in range(args.num_trials):
         score, num_valid_actions, num_location_changes, num_steps, time = play_game(
             ai_agent, args.game_file, args.num_moves)
@@ -55,12 +57,16 @@ if __name__ == "__main__":
         total_num_location_changes += num_location_changes
         total_num_steps += num_steps
         total_time += time
+        all_scores.append(score)
 
         print(f'Trial {i+1}:')
         print(f'Score= {score}')
-        print(f'Number of steps: {num_steps} out of a possible {args.num_moves}')
-        print(f'Of those {num_steps} steps, how many were valid? {num_valid_actions}')
-        print(f'Of those {num_steps} steps, how many changed your location? {num_location_changes}')
+        print(
+            f'Number of steps: {num_steps} out of a possible {args.num_moves}')
+        print(
+            f'Of those {num_steps} steps, how many were valid? {num_valid_actions}')
+        print(
+            f'Of those {num_steps} steps, how many changed your location? {num_location_changes}')
         print(f'How long to call take_action() {num_steps} times? {time}')
         print()
 
@@ -68,11 +74,16 @@ if __name__ == "__main__":
     print(f'Number of trials: {args.num_trials}')
     print(f'Number of moves per trial: {args.num_moves}')
     print()
-    print(f'Total number of steps: {total_num_steps} across {args.num_trials} trials')
+    print(
+        f'Total number of steps: {total_num_steps} across {args.num_trials} trials')
     print(f'Max number of steps: {args.num_trials * args.num_moves}')
-    print(f'Average number of steps per trial: {total_num_steps/args.num_trials}')
+    print(
+        f'Average number of steps per trial: {total_num_steps/args.num_trials}')
     print(f'Average score: {total_score/args.num_trials}')
-    print(f'Average num valid steps: {total_num_valid_actions/args.num_trials}')
-    print(f'Average location changes: {total_num_location_changes/args.num_trials}')
+    print(
+        f'Average num valid steps: {total_num_valid_actions/args.num_trials}')
+    print(
+        f'Average location changes: {total_num_location_changes/args.num_trials}')
     print(f'Total time taken calling take_action(): {total_time}')
     print(f'Avg. seconds for take_action(): {total_time/total_num_steps}')
+    print(f'All Scores: {all_scores}')

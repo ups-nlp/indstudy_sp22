@@ -5,6 +5,7 @@ An interface for a game environment
 from copy import deepcopy
 from jericho import FrotzEnv
 
+
 class Environment:
     """Interface for an Environment"""
 
@@ -46,27 +47,30 @@ class Environment:
 
     def get_state(self):
         """Returns the internal game state"""
-        raise NotImplementedError    
+        raise NotImplementedError
 
     def set_state(self, state):
         """Sets the internal game state to the specified state"""
-        raise NotImplementedError  
+        raise NotImplementedError
 
     def get_world_state_hash(self):
         """Get a hash of the current state of the game"""
         raise NotImplementedError
-    
+
     def copy(self):
         """Returns a copy of the environment"""
         raise NotImplementedError
 
 
-class JerichoEnvironment(Environment):    
+class JerichoEnvironment(Environment):
     """A wrapper around the FrotzEnvironment"""
 
     def __init__(self, path: str):
         self.env = FrotzEnv(path)
-    
+
+    def close(self):
+        return self.env.close()
+
     def step(self, action: str):
         """Takes an action and returns the next state, reward, and termination"""
         return self.env.step(action)
@@ -106,7 +110,6 @@ class JerichoEnvironment(Environment):
     def get_state(self):
         """Returns the internal game state"""
         return self.env.get_state()
-    
 
     def set_state(self, state):
         """Sets the internal game state to the specified state"""
@@ -121,10 +124,9 @@ class JerichoEnvironment(Environment):
         return self.env.copy()
 
 
-
-class ChamberEnvironment(Environment):    
+class ChamberEnvironment(Environment):
     """Implementes a simple game with only 1 location
-    
+
     The user is in a chamber with a door. To win, the user must open the door.
     All other actions have no effect. The reward is 1 divided by the number of moves
     it took to open the door. If the user has not won after the maximum number of
@@ -140,26 +142,25 @@ class ChamberEnvironment(Environment):
     actions = ["n", "e", "s", "w", "open", "fight", "look"]
 
     def __init__(self, path: str):
-        self.moves = []        
+        self.moves = []
         self.is_game_over = False
         self.is_victory = False
-        self.last_obs = None    # Final observation when the game ends 
+        self.last_obs = None    # Final observation when the game ends
         self.reward = 0         # Final reward when game ends
-        
-    
+
     def step(self, action: str):
         """Takes an action and returns the next state, reward, and termination"""
 
         # The game is over
         if self.is_game_over:
-            return (self.last_obs, self.reward, self.is_game_over, {'moves' : len(self.moves), 'score' : self.reward})
-     
+            return (self.last_obs, self.reward, self.is_game_over, {'moves': len(self.moves), 'score': self.reward})
+
         # Game is not over...process the player's action
-        response = self.__get_response_string(action) 
+        response = self.__get_response_string(action)
 
         # An invalid action (nothing about the state changes)
-        if action not in ChamberEnvironment.actions:            
-            return (response, 0, False, {'moves': len(self.moves), 'score' : 0})
+        if action not in ChamberEnvironment.actions:
+            return (response, 0, False, {'moves': len(self.moves), 'score': 0})
 
         # A valid action: record the action
         self.moves.append(action)
@@ -169,21 +170,19 @@ class ChamberEnvironment(Environment):
             self.is_game_over = True
             self.is_victory = True
             self.last_obs = ChamberEnvironment.winning_obs
-            self.reward = 1.0 / len(self.moves)            
-            return (self.last_obs, self.reward, self.is_game_over, {'moves': len(self.moves), 'score' : self.reward}) 
+            self.reward = 1.0 / len(self.moves)
+            return (self.last_obs, self.reward, self.is_game_over, {'moves': len(self.moves), 'score': self.reward})
 
         # Did they just lose (i.e. this is their last move and they didn't win)
-        if len(self.moves) == ChamberEnvironment.max_num_moves:                        
+        if len(self.moves) == ChamberEnvironment.max_num_moves:
             self.is_game_over = True
             self.is_victory = False
             self.last_obs = ChamberEnvironment.losing_obs
-            self.reward = -1            
-            return (self.last_obs, self.reward, self.is_game_over, {'moves': len(self.moves), 'score' : self.reward})
-                
-        # Otherwise, it's just a plain ole' turn of the game
-        return (response, 0, False, {'moves': len(self.moves), 'score' : 0})
+            self.reward = -1
+            return (self.last_obs, self.reward, self.is_game_over, {'moves': len(self.moves), 'score': self.reward})
 
-        
+        # Otherwise, it's just a plain ole' turn of the game
+        return (response, 0, False, {'moves': len(self.moves), 'score': 0})
 
     def get_valid_actions(self):
         """Attempts to generate a set of unique valid actions from the current game state"""
@@ -195,15 +194,15 @@ class ChamberEnvironment(Environment):
 
     def get_score(self):
         """Returns the integer current game score"""
-        
+
         # Game is over, it was a win
-        if self.is_game_over:            
+        if self.is_game_over:
             return self.reward
-        
+
         # Game is not yet over
-        else:            
+        else:
             return 0
-        
+
     def victory(self):
         """Returns true if game is over and the player has won"""
         return self.is_game_over and self.is_victory
@@ -218,11 +217,11 @@ class ChamberEnvironment(Environment):
 
     def reset(self):
         """Reset the environment"""
-        self.moves = []        
+        self.moves = []
         self.is_game_over = False
         self.is_victory = False
         self.last_obs = None
-        self.reward = 0         
+        self.reward = 0
         return (ChamberEnvironment.initial_obs, {'moves': 0, 'score': 0})
 
     def get_player_location(self):
@@ -231,9 +230,9 @@ class ChamberEnvironment(Environment):
 
     def get_state(self):
         """Returns the internal game state"""
-        state = {'moves' : self.moves, 'game_over': self.is_game_over, 'victory' : self.is_victory, 'last_obs' : self.last_obs, 'reward': self.reward}        
+        state = {'moves': self.moves, 'game_over': self.is_game_over,
+                 'victory': self.is_victory, 'last_obs': self.last_obs, 'reward': self.reward}
         return state
-    
 
     def set_state(self, state):
         """Sets the internal game state to the specified state"""
@@ -250,11 +249,11 @@ class ChamberEnvironment(Environment):
         self.is_victory = state['victory']
         self.last_obs = state['last_obs']
         self.reward = state['reward']
-        
+
     def get_world_state_hash(self):
         """Get a hash of the current state of the game"""
         return 1
-    
+
     def __get_response_string(self, action: str):
         if action == "n" or action == "e" or action == "s" or action == "w":
             return "You can't go that way"
