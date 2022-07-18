@@ -125,35 +125,34 @@ class MonteAgent(Agent):
 
         if config.VERBOSITY > 0:
             print('Finished MCTS algorithm:')
-            # for child in self.root.get_children():
-            #     child_sim_value = child.get_sim_value()
-            #     child_visited = child.get_visited()
-            #     print(child.get_prev_action(), ", count:", child_visited, ", value:", child_sim_value)
+            for child in self.root.get_children():
+                child_sim_value = child.get_sim_value()
+                child_visited = child.get_visited()
+                print(child.get_prev_action(), ", count:", child_visited, ", value:", child_sim_value, ", normalized value:", self.reward.calculate_child_value(env, child, self.root))
 
 
         # Pick the action with highest average score
         # At this point, we do not factor in the number of times a node was chosen for expansion        
-        best_action = None
-        best_score = -inf        
-        for child in self.root.get_children():
-            if child.get_visited() == 0:
-                if config.VERBOSITY > 0:
-                    print(child.get_prev_action(), " count was 0")
-                continue
+        # best_action = None
+        # best_score = -inf        
+        # for child in self.root.get_children():
+        #     if child.get_visited() == 0:
+        #         if config.VERBOSITY > 0:
+        #             print(child.get_prev_action(), " count was 0")
+        #         continue
 
-            avg_score = child.get_sim_value()/child.get_visited()
-            if config.VERBOSITY > 0:
-                print(child.get_prev_action(), ", count:", child.get_visited(), ", value:", child.get_sim_value(), ", avg value:", avg_score)
+        #     avg_score = child.get_sim_value()/child.get_visited()
+        #     if config.VERBOSITY > 0:
+        #         print(child.get_prev_action(), ", count:", child.get_visited(), ", value:", child.get_sim_value(), ", avg value:", avg_score)
 
-            if avg_score > best_score:
-                best_score = avg_score
-                best_action = child   
+        #     if avg_score > best_score:
+        #         best_score = avg_score
+        #         best_action = child   
+        # if best_action is None:
+        #     exit("ALERT: At end of take_action(). The root node has 0 expanded children")
 
-        if best_action is None:
-            exit("ALERT: At end of take_action(). The root node has 0 expanded children")
-
-        self.root = best_action
-        #self.root = best_child(self.root, env, self.reward)
+        # self.root = best_action
+        self.root = best_child(self.root, env, self.reward)
 
         # Returning the chosen action, number of nodes added to tree, and number of states 
         return self.root.get_prev_action(), count, len(self.transposition_table)

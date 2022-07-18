@@ -218,28 +218,11 @@ def default_policy(new_node, env, max_depth, alpha, original = False):
 
     else:
         
-        # Need to compute the score for this terminal action alone, not the cummulative score            
-        start_score = new_node.get_score()
-        parent_score = new_node.get_parent().get_score()
-        diff = start_score - parent_score    
-
-        if env.game_over() or env.victory():                    
-            if config.VERBOSITY > 1:
-                print('\t[DEFAULT POLICY]: At end of game')
-                print('\t[DEFAULT POLICY] Lost?', env.game_over())
-                print('\t[DEFAULT POLICY] Won?', env.victory())
-                print('\t[DEFAULT POLICY] our score', start_score)
-                print('\t[DEFAULT POLICY] parents score', parent_score)
-                print('\t[DEFAULT POLICY] returning a diff of', diff)
-            return diff
-
-        if config.VERBOSITY > 1:
-            print('\t[DEFAULT POLICY] initial score', diff)
+        #
+        # Uses a simulation length but no discounted rewards
+        #
 
         count = 0
-        scores = []
-        scores.append(new_node.get_parent().get_score())
-        scores.append(new_node.get_score())
 
         # While the game is not over and we have not run out of moves, keep exploring
         while (not env.game_over()) and (not env.victory()) and count < max_depth:        
@@ -264,27 +247,20 @@ def default_policy(new_node, env, max_depth, alpha, original = False):
             env.step(chosen_action)        
             
             # Record the score        
-            scores.append(env.get_score())
             count += 1   
             if config.VERBOSITY > 1:
-                print('\t[DEFAULT POLICY] chose action', chosen_action, 'with score', scores[-1])
-            
+                print('\t[DEFAULT POLICY] chose action', chosen_action)
 
-        discounted_score = 0
-        for (i, s) in enumerate(scores):
-            if i > 0:
-                diff = scores[i] - scores[i-1]
-                if diff != 0:
-                    discounted_score += diff *  pow(alpha, i-1)
+        final_score = env.get_score()            
 
         if count == 0:            
-            exit('\t[DEFAULT POLICY] Made it past initial check for end of game but still didnt go inside while loop')
+            print('\t[DEFAULT POLICY] Started at a terminal node', new_node.get_prev_action())
 
         if config.VERBOSITY > 1:
             print('\t[DEFAULT POLICY] Number of iterations until reached terminal node: ', count)
-            print('\t[DEFAULT POLICY] Final score', discounted_score)
+            print('\t[DEFAULT POLICY] Returning final cummulative score', final_score)
 
-        return discounted_score
+        return final_score
 
 
 def backup(path, delta):
