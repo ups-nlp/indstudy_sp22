@@ -229,6 +229,22 @@ def default_policy(new_node, env, max_depth, alpha, original = False):
 
             #Get the list of valid actions from this state
             actions = env.get_valid_actions()
+            
+
+            #=============== IN DETECTIVE, A CERTAIN GAME STATE HAS NO ASSOCIATED ACTIONS ================
+            if len(actions) == 0:
+                print('[DEFAULT POLICY] Actions list is empty')
+                #next_obs, _, done, info = env.step('look')
+                #print(next_obs)
+                print('[DEFAULT POLICY] Adding actions: north, east, south, west, shoot gun, take gun')
+                actions.append('north')
+                actions.append('east')
+                actions.append('south')
+                actions.append('west')
+                actions.append('shoot gun')
+                actions.append('take gun')
+            #=============== IN DETECTIVE, A CERTAIN GAME STATE HAS NO ASSOCIATED ACTIONS ================
+
 
             #=============== TO PREVENT EMULATOR FROM HANGING ================
             # The code is hanging on any action of the form: "put sack in"
@@ -244,6 +260,7 @@ def default_policy(new_node, env, max_depth, alpha, original = False):
 
             # Take a random action from the list of available actions        
             chosen_action = random.choice(valid_actions)
+            
             env.step(chosen_action)        
             
             # Record the score        
