@@ -270,10 +270,10 @@ def default_policy(new_node, env, max_depth, alpha, original=False):
         if count == 0:
             print('\t[DEFAULT POLICY] Started at a terminal node',
                   new_node.get_prev_action())
-            curr = new_node
-            while curr.get_parent() is not None:
-                curr = curr.get_parent()
-                print('\t\t', curr.get_prev_action())
+            #curr = new_node
+            # while curr.get_parent() is not None:
+            #    curr = curr.get_parent()
+            #    print('\t\t', curr.get_prev_action())
 
         if config.VERBOSITY > 1:
             print(
