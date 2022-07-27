@@ -2,9 +2,11 @@
 Node class for building the game tree
 """
 
+# TODO: Store env.game_over() for each node so we know if a node corresponds to a terminal state or not
+
 class Node:
     """Interface for an Node class"""
-    def __init__(self, parent, prev_act, new_actions):
+    def __init__(self, parent, prev_act, new_actions, score):
         raise NotImplementedError
 
     def is_terminal(self):
@@ -25,6 +27,10 @@ class Node:
 
     def get_parent(self):
         """ Returns the parent Node """
+        raise NotImplementedError
+
+    def get_score(self):
+        """ Returns the score of the game at this Node"""
         raise NotImplementedError
 
     def get_sim_value(self):
@@ -55,11 +61,17 @@ class Node:
         """ Updates the visit count of this node by a specified amount """
         raise NotImplementedError
 
+    def __str__(self):
+        """Returns a string representation of the node"""
+        raise NotImplementedError
+
+
 class MCTS_node(Node):
     """
     This Node class represents a state of the game. Each node holds the following:
-    parent -- it's parent node
+    parent -- its parent node
     prev_act -- the previous action taken to get to this node
+    score -- the score of the game at this node
     children -- a list of the children of this node
     sim_value -- the simulated value of the node
     visited -- the number of times this node has been visited
@@ -72,8 +84,16 @@ class MCTS_node(Node):
     new_actions -- a list of all the unexplored actions at this node
     """
 
-    def __init__(self, parent, prev_act, new_actions):
+    def __init__(self, parent, prev_act, new_actions, score):
+        
+        # Although it's okay for parent and prev_act to be None
+        # it is never okay for new_actions to be None
+        # If this happens, we replace it with an empty list
+        if new_actions is None:
+            new_actions = [] 
+
         self.parent = parent
+        self.score = score
         self.prev_act = prev_act
         self.children = []
         self.sim_value = 0
@@ -98,7 +118,6 @@ class MCTS_node(Node):
             boolean: true if the number of child is equal to the max number of children
         """
         return len(self.children) == self.max_children
-
     
     def get_prev_action(self):
         """ Returns the previous action """
@@ -107,6 +126,10 @@ class MCTS_node(Node):
     def get_parent(self):
         """ Returns the parent Node """
         return self.parent
+
+    def get_score(self):
+        """ Returns the score of the game at this Node"""
+        return self.score
 
     def get_sim_value(self):
         """ Returns the simulated value of the Node """
@@ -135,3 +158,16 @@ class MCTS_node(Node):
     def update_visited(self, delta):
         """ Updates the visit count of this node by a specified amount """
         self.visited += delta
+
+    def __str__(self):
+        child_node_str = "["
+        for child in self.children:
+            child_node_str += child.prev_act + ", "            
+        child_node_str += "]"
+        
+        if self.parent is None:
+            return f'[Parent: Null, prev_act: {self.prev_act}, sim_value: {self.sim_value}, visited: {self.visited}, max_children: {self.max_children}, new_actions:{self.new_actions}, children: {child_node_str}]\n'
+        else:
+            return f'[Parent: {self.parent.prev_act}, prev_act: {self.prev_act}, sim_value: {self.sim_value}, visited: {self.visited}, max_children: {self.max_children}, new_actions:{self.new_actions}, children: {child_node_str}]\n'
+        
+        
