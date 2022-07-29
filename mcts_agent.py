@@ -8,6 +8,7 @@ from environment import *
 from mcts_node import MCTS_node
 from mcts_reward import *
 
+
 def tree_policy(root, env: Environment, reward_policy):
     """ Travel down the tree to the ideal node to expand on
 
@@ -23,16 +24,16 @@ def tree_policy(root, env: Environment, reward_policy):
 
     node = root
     while not node.is_terminal():
-        #if parent is not fully expanded, expand it and return
-        if not node.is_expanded():            
+        # if parent is not fully expanded, expand it and return
+        if not node.is_expanded():
             if config.VERBOSITY > 1:
                 print('\t[TREE POLICY]: Calling expand_node()')
             return expand_node(node, env)
-        #Otherwise, look at the parent's best child
+        # Otherwise, look at the parent's best child
         else:
-            # Select the best child of the current node to explore            
+            # Select the best child of the current node to explore
             child = best_child(node, env, reward_policy)
-            node = child            
+            node = child
             if config.VERBOSITY > 1:
                 print('\t[TREE POLICY]: best child found', node)
             env.step(node.get_prev_action())
@@ -41,6 +42,7 @@ def tree_policy(root, env: Environment, reward_policy):
     if config.VERBOSITY > 1:
         print('\t[TREE POLICY]: Returning node:', node)
     return node
+
 
 def best_child(parent, env: Environment, reward_policy):
     """ Select and return the best child of the parent node to explore or the action to take
@@ -51,7 +53,7 @@ def best_child(parent, env: Environment, reward_policy):
     Q(v)/N(v) + e * sqrt(2ln[N(parent)]/N(v))
 
     where 
-    
+
     Q(v)      = The sum of the backed up rewards for the child v
     N(v)      = The total visit count for the child v
     e         = A user-chosen constant that trades off btw. exploration and exploitation
@@ -69,7 +71,7 @@ def best_child(parent, env: Environment, reward_policy):
     fullyExpanded = True
 
     # check the pre-condition
-    if(not parent.is_expanded()):    
+    if(not parent.is_expanded()):
         print("ALERT: best_child() called on parent node that has not been fully expanded")
         print("ALERT: Num children", parent.get_max_children())
         fullyExpanded = False
@@ -88,13 +90,13 @@ def best_child(parent, env: Environment, reward_policy):
             print('\t[BEST CHILD] child:', child.get_prev_action())
             print('\t[BEST CHILD] value:', child_value)
 
-        # if there is a tie for best child, randomly pick one        
+        # if there is a tie for best child, randomly pick one
         if (abs(child_value - max_val) < tolerance):
             if config.VERBOSITY > 1:
                 print('\tBEST CHILD: Found a tie')
             bestLs.append(child)
-            
-        #if it's value is greater than the best so far, it will be our best so far
+
+        # if it's value is greater than the best so far, it will be our best so far
         elif child_value > max_val:
             if config.VERBOSITY > 1:
                 print('\tBEST CHILD: Found a clear winner')
@@ -106,10 +108,11 @@ def best_child(parent, env: Environment, reward_policy):
     if not fullyExpanded:
         print('BEST CHILD: Wasnt fully expanded', bestLs)
         print('BEST CHILD: Wasnt fully expanded', chosen)
-        
+
     if config.VERBOSITY > 1:
         print('\t[BEST CHILD] Chose', chosen)
     return chosen
+
 
 def expand_node(parent, env):
     """
@@ -136,19 +139,17 @@ def expand_node(parent, env):
     score = env.get_score()
     # ALSO FIGURE OUT IF THIS IS GAME OVER AND STORE THAT AS WELL
 
-
-    #=============== TO PREVENT EMULATOR FROM HANGING ================
+    # =============== TO PREVENT EMULATOR FROM HANGING ================
     # The code is hanging on any action of the form: "put sack in"
     # See https://github.com/microsoft/jericho/issues/53
     # Right now, the best we can do is to just filter out these actions
     valid_actions = []
     for a in new_actions:
-        if "put sack in" not in a:
+        if "put sack in" not in a and "put all in" not in a:
             valid_actions.append(a)
         else:
             print('Filtering action:', a)
-    #=============== TO PREVENT EMULATOR FROM HANGING ================
-
+    # =============== TO PREVENT EMULATOR FROM HANGING ================
 
     # Create the child
     new_node = MCTS_node(parent, action, valid_actions, score)
@@ -159,112 +160,113 @@ def expand_node(parent, env):
     if config.VERBOSITY > 1:
         print('\t[EXPAND NODE] Selected child', new_node)
     return new_node
-  
-def default_policy(new_node, env, max_depth, alpha, original = False):
+
+
+def default_policy(new_node, env, max_depth, alpha, original=False):
     """
     The default_policy represents a simulated exploration of the tree from
     the passed-in node to a terminal state.
 
     original = True runs the original default policy 
     original = False augments the original default policy with a max depth and discounted rewards    
-    """        
-    
+    """
+
     if original:
 
-        # While the game is not over and we have not run out of moves, keep exploring
-        while not env.game_over() and not env.victory():        
+        count = 0
 
-            #Get the list of valid actions from this state
+        # While the game is not over and we have not run out of moves, keep exploring
+        while not env.game_over() and not env.victory():
+
+            # Get the list of valid actions from this state
             actions = env.get_valid_actions()
 
-            #=============== TO PREVENT EMULATOR FROM HANGING ================
+            # =============== TO PREVENT EMULATOR FROM HANGING ================
             # The code is hanging on any action of the form: "put sack in"
             # See https://github.com/microsoft/jericho/issues/53
             # Right now, the best we can do is to just filter out these actions
             valid_actions = []
             for a in actions:
-                if "put sack in" not in a:
+                if "put sack in" not in a and "put all in" not in a:
                     valid_actions.append(a)
-                else: 
+                else:
                     print('Filtering action:', a)
-            #=============== TO PREVENT EMULATOR FROM HANGING ================
-            
-            # Take a random action from the list of available actions        
+            # =============== TO PREVENT EMULATOR FROM HANGING ================
+
+            # Take a random action from the list of available actions
             chosen_action = random.choice(valid_actions)
-            env.step(chosen_action)        
-            
+            env.step(chosen_action)
+            if config.VERBOSITY > 1:
+                print('\t[DEFAULT POLICY]', chosen_action)
+            count += 1
+
+        if config.VERBOSITY > 1:
+            print('Original default policy took', count, ' iterations')
+
         return env.get_score()
 
     else:
-        
-        # Need to compute the score for this terminal action alone, not the cummulative score            
-        start_score = new_node.get_score()
-        parent_score = new_node.get_parent().get_score()
-        diff = start_score - parent_score    
 
-        if env.game_over() or env.victory():                    
-            if config.VERBOSITY > 1:
-                print('\t[DEFAULT POLICY]: At end of game')
-                print('\t[DEFAULT POLICY] Lost?', env.game_over())
-                print('\t[DEFAULT POLICY] Won?', env.victory())
-                print('\t[DEFAULT POLICY] our score', start_score)
-                print('\t[DEFAULT POLICY] parents score', parent_score)
-                print('\t[DEFAULT POLICY] returning a diff of', diff)
-            return diff
-
-        if config.VERBOSITY > 1:
-            print('\t[DEFAULT POLICY] initial score', diff)
+        #
+        # Uses a simulation length but no discounted rewards
+        #
 
         count = 0
-        scores = []
-        scores.append(new_node.get_parent().get_score())
-        scores.append(new_node.get_score())
 
         # While the game is not over and we have not run out of moves, keep exploring
-        while (not env.game_over()) and (not env.victory()) and count < max_depth:        
+        while (not env.game_over()) and (not env.victory()) and count < max_depth:
 
-            #Get the list of valid actions from this state
+            # Get the list of valid actions from this state
             actions = env.get_valid_actions()
 
-            #=============== TO PREVENT EMULATOR FROM HANGING ================
+            # =============== IN DETECTIVE, A CERTAIN GAME STATE HAS NO ASSOCIATED ACTIONS ================
+            if len(actions) == 0:
+                print('[DEFAULT POLICY] Actions list is empty')
+                print(
+                    '[DEFAULT POLICY] Adding actions: north, east, south, west, shoot gun, take gun')
+                actions.append('north')
+                actions.append('east')
+                actions.append('south')
+                actions.append('west')
+                actions.append('shoot gun')
+                actions.append('take gun')
+            # =============== IN DETECTIVE, A CERTAIN GAME STATE HAS NO ASSOCIATED ACTIONS ================
+
+            # =============== TO PREVENT EMULATOR FROM HANGING ================
             # The code is hanging on any action of the form: "put sack in"
             # See https://github.com/microsoft/jericho/issues/53
             # Right now, the best we can do is to just filter out these actions
             valid_actions = []
             for a in actions:
-                if "put sack in" not in a:
+                if "put sack in" not in a and "put all in" not in a:
                     valid_actions.append(a)
-                else: 
+                else:
                     print('Filtering action:', a)
-            #=============== TO PREVENT EMULATOR FROM HANGING ================
+            # =============== TO PREVENT EMULATOR FROM HANGING ================
 
-
-            # Take a random action from the list of available actions        
+            # Take a random action from the list of available actions
             chosen_action = random.choice(valid_actions)
-            env.step(chosen_action)        
-            
-            # Record the score        
-            scores.append(env.get_score())
-            count += 1   
+            env.step(chosen_action)
+
+            # Record the score
+            count += 1
             if config.VERBOSITY > 1:
-                print('\t[DEFAULT POLICY] chose action', chosen_action, 'with score', scores[-1])
-            
+                print('\t[DEFAULT POLICY] chose action', chosen_action)
 
-        discounted_score = 0
-        for (i, s) in enumerate(scores):
-            if i > 0:
-                diff = scores[i] - scores[i-1]
-                if diff != 0:
-                    discounted_score += diff *  pow(alpha, i-1)
+        final_score = env.get_score()
 
-        if count == 0:            
-            exit('\t[DEFAULT POLICY] Made it past initial check for end of game but still didnt go inside while loop')
+        if count == 0:
+            print(
+                '\t[DEFAULT POLICY] Started at a terminal node', new_node.get_prev_action())
 
         if config.VERBOSITY > 1:
-            print('\t[DEFAULT POLICY] Number of iterations until reached terminal node: ', count)
-            print('\t[DEFAULT POLICY] Final score', discounted_score)
+            print(
+                '\t[DEFAULT POLICY] Number of iterations until reached terminal node: ', count)
+            print(
+                '\t[DEFAULT POLICY] Returning final cummulative score', final_score)
 
-        return discounted_score
+        return final_score
+
 
 def backup(node, delta):
     """
@@ -282,8 +284,3 @@ def backup(node, delta):
         node.update_sim_value(delta)
         # Traverse up the tree
         node = node.get_parent()
-        
-
-
-
-
