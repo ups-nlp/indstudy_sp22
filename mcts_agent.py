@@ -60,14 +60,14 @@ def best_child(parent, env: Environment, reward_policy):
     For each child node (v) of the parent, we compute:
     Q(v)/N(v) + e * sqrt(2ln[N(parent)]/N(v))
 
-    where 
+    where
 
     Q(v)      = The sum of the backed up rewards for the child v
     N(v)      = The total visit count for the child v
     e         = A user-chosen constant that trades off btw. exploration and exploitation
-    N(parent) = The total visit count for the parent 
+    N(parent) = The total visit count for the parent
 
-    The child node with the highest value is returned. 
+    The child node with the highest value is returned.
 
     Keyword arguments:
     parent -- the parent node
@@ -135,7 +135,7 @@ def expand_node(parent, env, transposition_table):
     # Get possible unexplored actions
     actions = parent.get_new_actions()
 
-    #print(len(actions), rand_index)
+    # print(len(actions), rand_index)
     action = random.choice(actions)
 
     # Remove that action from the unexplored action list and update parent
@@ -176,8 +176,8 @@ def default_policy(new_node, env, max_depth, alpha, original=False):
     The default_policy represents a simulated exploration of the tree from
     the passed-in node to a terminal state.
 
-    original = True runs the original default policy 
-    original = False augments the original default policy with a max depth and discounted rewards    
+    original = True runs the original default policy
+    original = False augments the original default policy with a max depth and discounted rewards
     """
 
     if original:
@@ -231,7 +231,7 @@ def default_policy(new_node, env, max_depth, alpha, original=False):
             # =============== IN DETECTIVE, A CERTAIN GAME STATE HAS NO ASSOCIATED ACTIONS ================
             if len(actions) == 0:
                 print('[DEFAULT POLICY] Actions list is empty')
-                #next_obs, _, done, info = env.step('look')
+                # next_obs, _, done, info = env.step('look')
                 # print(next_obs)
                 print(
                     '[DEFAULT POLICY] Adding actions: north, east, south, west, shoot gun, take gun')
@@ -267,13 +267,12 @@ def default_policy(new_node, env, max_depth, alpha, original=False):
 
         final_score = env.get_score()
 
-        if count == 0:
-            print('\t[DEFAULT POLICY] Started at a terminal node',
-                  new_node.get_prev_action())
-            #curr = new_node
-            # while curr.get_parent() is not None:
-            #    curr = curr.get_parent()
-            #    print('\t\t', curr.get_prev_action())
+        # if count == 0:
+        #    print('\t[DEFAULT POLICY] Started at a terminal node', new_node.get_prev_action())
+        # curr = new_node
+        # while curr.get_parent() is not None:
+        #    curr = curr.get_parent()
+        #    print('\t\t', curr.get_prev_action())
 
         if config.VERBOSITY > 1:
             print(
