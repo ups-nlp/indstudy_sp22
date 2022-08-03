@@ -6,15 +6,16 @@ import numpy as np
 
 # TODO: Really need to make this a true abstract class using the abc module
 
+
 class Reward:
     """Abstract reward class"""
 
     def __init__(self, exploration_constant):
-        self.exploration = exploration_constant        
+        self.exploration = exploration_constant
 
     def calculate_child_value(self, env: Environment, child, parent):
         """ Calculates the child's reward value according to a particular algorithmic strategy
-        
+
             Args: 
             env (Environment): Environment interface between the learning agent and the game
             child (Node) : A child node
@@ -25,7 +26,7 @@ class Reward:
 
 class BaselineReward(Reward):
     """Implements the standard upper-confidence bound for trees equation
-    
+
         Browne et al., A survey of monte carlo tree search algorithms. IEEE Trans. on 
         Compt'l Intelligence and AI in Games, vol. 4, no. 10, March 2012.
 
@@ -48,6 +49,29 @@ class BaselineReward(Reward):
             return inf * -1
 
 
+class AdaptiveReward(Reward):
+    """Implements the standard upper-confidence bound for trees equation with an adaptive exploration constant        
+    """
+
+    def __init__(self, exploration_constant):
+        super().__init__(exploration_constant)
+
+    def calculate_child_value(self, env: Environment, child, parent):
+        parent_visited = parent.get_visited()
+        child_visited = child.get_visited()
+        child_sim_reward = child.get_sim_value()
+
+        if child_visited != 0:
+            first_term = child_sim_reward/child_visited
+            second_term = sqrt((2*log(parent_visited))/child_visited)
+            if self.exploration*second_term < first_term:
+                self.exploration = first_term/second_term + 1
+
+            return first_term + self.exploration*second_term
+        else:
+            return inf * -1
+
+
 class NormalizedReward(Reward):
     """Returns the normalized simulated reward value for the child
     """
@@ -56,22 +80,22 @@ class NormalizedReward(Reward):
         super().__init__(exploration_constant)
 
     def calculate_child_value(self, env: Environment, child, parent):
-        child_rewards = [child.get_sim_value() for child in parent.get_children()]
-        z = sum(child_rewards) # normalizing constant
-        
+        child_rewards = [child.get_sim_value()
+                         for child in parent.get_children()]
+        z = sum(child_rewards)  # normalizing constant
+
         if z == 0:
             raise ZeroDivisionError("Sum of children's simulated rewards is 0")
 
         return child.get_sim_value() / z
 
 
-
 # class SoftmaxReward(Reward):
-#     """Softmax reward returns values from 0 to .5 for the state. 
+#     """Softmax reward returns values from 0 to .5 for the state.
 #     This implementation assumes that every score between the loss state and the max score
 #     are possible.
 #     """
-        
+
 #     def upper_confidence_bounds(self, env: Environment, exploration, child_sim_value, child_visited, parent_visited):
 #         """ This method calculates and returns the upper confidence bounds for a given child node on the tree.
 
@@ -96,7 +120,7 @@ class NormalizedReward(Reward):
 #             num = np.log(sys.maxsize)
 #         else:
 #             num = child_sim_value
-        
+
 #         return (e**(num))/(child_visited*denom)+ exploration*sqrt((2*log(parent_visited))/child_visited)
 
 #     def select_action(self, env: Environment, child_sim_value, child_visited, parent_visited):
@@ -125,11 +149,11 @@ class NormalizedReward(Reward):
 #         return (e**(num))/(child_visited*denom)
 
 # class Generalized_Softmax_Reward(Reward):
-#     """Generalized Softmax reward returns values from 0 to 1 for the state. 
+#     """Generalized Softmax reward returns values from 0 to 1 for the state.
 #     This implementation assumes that every score between the loss state and the max score
 #     are possible.
 #     """
-   
+
 #     def upper_confidence_bounds(self, env: Environment, exploration, child_sim_value, child_visited, parent_visited):
 #         """ This method calculates and returns the upper confidence bounds for a given child node on the tree.
 
@@ -188,7 +212,7 @@ class NormalizedReward(Reward):
 #             print("max size = ",sys.maxsize," num = ",num," denom = ",denom)
 
 # class AdditiveReward(Reward):
-#     """ This Reward Policy returns values between 0 and 1 
+#     """ This Reward Policy returns values between 0 and 1
 #     for the state inputted state.
 #     """
 
@@ -239,7 +263,7 @@ class NormalizedReward(Reward):
 #         so a reward reached earlier in the game will have a higher score than the same state
 #          reached later."""
 
-        
+
 #     def upper_confidence_bounds(self, env: Environment, exploration, child_sim_value, child_visited, parent_visited) -> int:
 #         """ This method calculates and returns the upper confidence bounds for a given child node on the tree.
 
