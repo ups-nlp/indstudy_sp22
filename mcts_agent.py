@@ -255,9 +255,9 @@ def default_policy(new_node, env, max_depth, alpha, original=False):
 
         final_score = env.get_score()
 
-        if count == 0:
-            print(
-                '\t[DEFAULT POLICY] Started at a terminal node', new_node.get_prev_action())
+        # if count == 0:
+        #     print(
+        #         '\t[DEFAULT POLICY] Started at a terminal node', new_node.get_prev_action())
 
         if config.VERBOSITY > 1:
             print(
