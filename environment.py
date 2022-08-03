@@ -128,6 +128,8 @@ class ChamberEnvironment(Environment):
     All other actions have no effect. The reward is 1 divided by the number of moves
     it took to open the door. If the user has not won after the maximum number of
     (valid) moves allowed, the game automatically ends with a loss.
+
+    The rewards from this game are all in the range [0, 1]
     """
 
     # class-level variables
@@ -175,7 +177,7 @@ class ChamberEnvironment(Environment):
             self.is_game_over = True
             self.is_victory = False
             self.last_obs = ChamberEnvironment.losing_obs
-            self.reward = -1
+            self.reward = 0
             return (self.last_obs, self.reward, self.is_game_over, {'moves': len(self.moves), 'score': self.reward})
 
         # Otherwise, it's just a plain ole' turn of the game
