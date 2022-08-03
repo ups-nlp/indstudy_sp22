@@ -8,7 +8,7 @@ from os.path import basename
 from agent import RandomAgent
 from agent import HumanAgent
 from agent import MonteAgent
-from environment import JerichoEnvironment
+from environment import *
 from play import play_game
 
 if __name__ == "__main__":
