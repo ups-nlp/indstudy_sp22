@@ -154,8 +154,6 @@ def expand_node(parent, env, transposition_table):
     for a in new_actions:
         if "put sack in" not in a and "put all in" not in a:
             valid_actions.append(a)
-        else:
-            print('Filtering action:', a)
     # =============== TO PREVENT EMULATOR FROM HANGING ================
 
     # Create the child
@@ -198,8 +196,6 @@ def default_policy(new_node, env, max_depth, alpha, original=False):
             for a in actions:
                 if "put sack in" not in a and "put all in" not in a:
                     valid_actions.append(a)
-                else:
-                    print('Filtering action:', a)
             # =============== TO PREVENT EMULATOR FROM HANGING ================
 
             # Take a random action from the list of available actions
@@ -251,8 +247,6 @@ def default_policy(new_node, env, max_depth, alpha, original=False):
             for a in actions:
                 if "put sack in" not in a and "put all in" not in a:
                     valid_actions.append(a)
-                else:
-                    print('Filtering action:', a)
             # =============== TO PREVENT EMULATOR FROM HANGING ================
 
             # Take a random action from the list of available actions
@@ -266,14 +260,6 @@ def default_policy(new_node, env, max_depth, alpha, original=False):
                 print('\t[DEFAULT POLICY] chose action', chosen_action)
 
         final_score = env.get_score()
-
-        if count == 0:
-            print('\t[DEFAULT POLICY] Started at a terminal node',
-                  new_node.get_prev_action())
-            #curr = new_node
-            # while curr.get_parent() is not None:
-            #    curr = curr.get_parent()
-            #    print('\t\t', curr.get_prev_action())
 
         if config.VERBOSITY > 1:
             print(
