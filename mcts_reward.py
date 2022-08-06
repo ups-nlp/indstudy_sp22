@@ -66,6 +66,7 @@ class AdaptiveReward(Reward):
             second_term = sqrt((2*log(parent_visited))/child_visited)
             if self.exploration*second_term < first_term:
                 self.exploration = first_term/second_term + 1
+                print('ADAPTIVE REWARD: exploration constant is now ', self.exploration)
 
             return first_term + self.exploration*second_term
         else:
