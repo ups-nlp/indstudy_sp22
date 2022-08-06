@@ -9,7 +9,7 @@ from xml.etree.ElementTree import tostring
 from environment import *
 from mcts_agent import best_child, tree_policy, default_policy, backup
 from transposition_table import Transposition_Node, get_world_state_hash
-from mcts_reward import BaselineReward
+from mcts_reward import *
 import config
 
 class Agent:
@@ -55,7 +55,7 @@ class MonteAgent(Agent):
 
         # This constant balances tree exploration with exploitation of ideal nodes
         self.explore_const = explore_exploit
-        self.reward = BaselineReward(self.explore_const)
+        self.reward = AdaptiveReward(self.explore_const)
 
         self.time_limit = time_limit
         self.max_depth = max_depth

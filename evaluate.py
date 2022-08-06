@@ -34,9 +34,9 @@ if __name__ == "__main__":
     # Create file name for results file
     file_str = ''
     if args.agent == 'mcts':        
-        file_str = f'basicTesting/transposition_{game}_{args.agent}_{args.num_trials}t{args.num_moves}m{args.mcts_time}s{args.mcts_depth}d{args.explore_exploit}c.txt'
+        file_str = f'basicTesting/adaptive_{game}_{args.agent}_{args.num_trials}t{args.num_moves}m{args.mcts_time}s{args.mcts_depth}d{args.explore_exploit}c.txt'
     else:
-        file_str = f'basicTesting/transposition_{game}_{args.agent}_{args.num_trials}t{args.num_moves}m.txt'
+        file_str = f'basicTesting/adaptive_{game}_{args.agent}_{args.num_trials}t{args.num_moves}m.txt'
     
     # Open file
     if exists(file_str):
