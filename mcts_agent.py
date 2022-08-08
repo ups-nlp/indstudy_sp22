@@ -135,7 +135,7 @@ def expand_node(parent, env, transposition_table):
     # Get possible unexplored actions
     actions = parent.get_new_actions()
 
-    #print(len(actions), rand_index)
+    # Choose an action
     action = random.choice(actions)
 
     # Remove that action from the unexplored action list and update parent
@@ -146,6 +146,12 @@ def expand_node(parent, env, transposition_table):
     new_actions = env.get_valid_actions()
     score = env.get_score()
 
+    # Determine whether a score change happened
+    score_change = False
+    parent_score = parent.get_score()
+    if parent_score != score:
+        score_change = True
+
     # =============== TO PREVENT EMULATOR FROM HANGING ================
     # The code is hanging on any action of the form: "put sack in"
     # See https://github.com/microsoft/jericho/issues/53
@@ -154,12 +160,11 @@ def expand_node(parent, env, transposition_table):
     for a in new_actions:
         if "put sack in" not in a and "put all in" not in a:
             valid_actions.append(a)
-        else:
-            print('Filtering action:', a)
     # =============== TO PREVENT EMULATOR FROM HANGING ================
 
     # Create the child
-    state = get_world_state_hash(env.get_player_location(), valid_actions)
+    state = get_world_state_hash(
+        env.get_player_location(), valid_actions, score_change)
     new_node = Transposition_Node(
         state, parent, action, valid_actions, transposition_table, score)
 
@@ -198,8 +203,6 @@ def default_policy(new_node, env, max_depth, alpha, original=False):
             for a in actions:
                 if "put sack in" not in a and "put all in" not in a:
                     valid_actions.append(a)
-                else:
-                    print('Filtering action:', a)
             # =============== TO PREVENT EMULATOR FROM HANGING ================
 
             # Take a random action from the list of available actions
@@ -251,8 +254,6 @@ def default_policy(new_node, env, max_depth, alpha, original=False):
             for a in actions:
                 if "put sack in" not in a and "put all in" not in a:
                     valid_actions.append(a)
-                else:
-                    print('Filtering action:', a)
             # =============== TO PREVENT EMULATOR FROM HANGING ================
 
             # Take a random action from the list of available actions
@@ -266,14 +267,6 @@ def default_policy(new_node, env, max_depth, alpha, original=False):
                 print('\t[DEFAULT POLICY] chose action', chosen_action)
 
         final_score = env.get_score()
-
-        if count == 0:
-            print('\t[DEFAULT POLICY] Started at a terminal node',
-                  new_node.get_prev_action())
-            #curr = new_node
-            # while curr.get_parent() is not None:
-            #    curr = curr.get_parent()
-            #    print('\t\t', curr.get_prev_action())
 
         if config.VERBOSITY > 1:
             print(

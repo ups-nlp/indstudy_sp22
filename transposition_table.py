@@ -2,8 +2,10 @@
 This file contains the node and state classes for building the game tree with a transposition table.
 """
 
-def get_world_state_hash(location, valid_actions):
-    return str(location.name)+str(valid_actions)
+
+def get_world_state_hash(location, valid_actions, score_change):
+    return str(location.name)+str(valid_actions)+str(score_change)
+
 
 class Transposition_Node:
     """
@@ -27,39 +29,37 @@ class Transposition_Node:
         # it is never okay for new_actions to be None
         # If this happens, we replace it with an empty list
         if new_actions is None:
-            new_actions = [] 
+            new_actions = []
 
         self.parent = parent
         self.prev_act = prev_act
         self.score = score
         self.children = []
         self.max_children = len(new_actions)
-        self.new_actions = new_actions        
+        self.new_actions = new_actions
 
         if(transposition_table.get(state) is None):
             # Create a key-value pair for the new state
-            transposition_table[state] = State(state)        
+            transposition_table[state] = State(state)
         self.state = transposition_table.get(state)
         self.state.increment_usage()
 
-
     def toString(self):
         if(self.parent is not None):
-            return self.state.toString() #+" with parent: "+self.parent.state.toString()
+            return self.state.toString()  # +" with parent: "+self.parent.state.toString()
         else:
-            return self.state.toString() #+" with NONE parent!"
+            return self.state.toString()  # +" with NONE parent!"
 
     def __str__(self):
         child_node_str = "["
         for child in self.children:
-            child_node_str += child.prev_act + ", "            
+            child_node_str += child.prev_act + ", "
         child_node_str += "]"
-        
+
         if self.parent is None:
             return f'[Parent: Null, prev_act: {self.prev_act}, sim_value: {self.state.sim_value}, visited: {self.state.visited}, max_children: {self.max_children}, new_actions:{self.new_actions}, children: {child_node_str}]\n'
         else:
             return f'[Parent: {self.parent.prev_act}, prev_act: {self.prev_act}, sim_value: {self.state.sim_value}, visited: {self.state.visited}, max_children: {self.max_children}, new_actions:{self.new_actions}, children: {child_node_str}]\n'
-      
 
     def is_terminal(self):
         """ Returns true if the node is terminal
@@ -77,10 +77,9 @@ class Transposition_Node:
         Returns:
             boolean: true if the number of child is equal to the max number of children
         """
-        #return (len(self.children) >= self.max_children)
+        # return (len(self.children) >= self.max_children)
         return len(self.children) == self.max_children
 
-    
     def get_prev_action(self):
         return self.prev_act
 
@@ -89,7 +88,7 @@ class Transposition_Node:
 
     def get_score(self):
         return self.score
-    
+
     def get_max_children(self):
         return self.max_children
 
@@ -114,7 +113,6 @@ class Transposition_Node:
     def get_visited(self):
         return self.state.visited
 
-    
     # The below methods updates the fields from the Node's State
 
     def update_sim_value(self, delta):
@@ -135,11 +133,11 @@ class State:
     def __init__(self, state):
         # The simulated value for this state of the game
         self.sim_value = 0
-        
+
         # The number of times we have simulated this state of the game
         self.visited = 0
 
-        # QUESTION: Why is the state stored in the state? The state is a str that is a 
+        # QUESTION: Why is the state stored in the state? The state is a str that is a
         # key into the hashmap. When you use the state (i.e. the key) to index into the hashmap
         # what is returned is this state object. Is there a reason we need to keep the key
         # with the object (i.e. the value)?
@@ -149,12 +147,10 @@ class State:
         self.usage = 0
 
     def toString(self):
-        return str(self.state)+" has been explored "+ str(self.visited) + " times and has a score of "+ str(self.sim_value)
+        return str(self.state)+" has been explored " + str(self.visited) + " times and has a score of " + str(self.sim_value)
 
     def increment_usage(self):
         self.usage += 1
 
     def get_usage(self):
         return self.usage
-
- 
