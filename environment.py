@@ -139,6 +139,7 @@ class ChamberEnvironment(Environment):
     winning_obs = "You open the door. You have won!"
     location = "chamber"
     actions = ["n", "e", "s", "w", "open", "fight", "look"]
+    max_reward = 1.0
 
     def __init__(self, path: str):
         self.moves = []
@@ -169,7 +170,7 @@ class ChamberEnvironment(Environment):
             self.is_game_over = True
             self.is_victory = True
             self.last_obs = ChamberEnvironment.winning_obs
-            self.reward = 1.0 / len(self.moves)
+            self.reward = ChamberEnvironment.max_reward / len(self.moves)
             return (self.last_obs, self.reward, self.is_game_over, {'moves': len(self.moves), 'score': self.reward})
 
         # Did they just lose (i.e. this is their last move and they didn't win)
@@ -212,7 +213,7 @@ class ChamberEnvironment(Environment):
 
     def get_max_score(self):
         """Returns the integer maximum possible score for the game"""
-        return 1
+        return ChamberEnvironment.max_reward
 
     def reset(self):
         """Reset the environment"""
@@ -364,7 +365,11 @@ class Chambers4Environment(Environment):
 
     def get_valid_actions(self):
         """Attempts to generate a set of unique valid actions from the current game state"""
-        return deepcopy(Chambers4Environment.actions)
+        if self.key_taken:
+            return ["n", "e", "s", "w", "open", "fight", "look", "drop key"]
+        else:
+            return ["n", "e", "s", "w", "open", "fight", "look", "take key"]
+        # return deepcopy(Chambers4Environment.actions)
 
     def game_over(self):
         """Returns true if the game is over and the player has lost"""
