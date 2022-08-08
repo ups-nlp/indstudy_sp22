@@ -377,7 +377,11 @@ class Chambers4Environment(Environment):
 
     def get_valid_actions(self):
         """Attempts to generate a set of unique valid actions from the current game state"""
-        return deepcopy(Chambers4Environment.actions)
+        if self.key_taken:
+            return ["n", "e", "s", "w", "open", "fight", "look", "drop key"]
+        else:
+            return ["n", "e", "s", "w", "open", "fight", "look", "take key"]
+        # return deepcopy(Chambers4Environment.actions)
 
     def game_over(self):
         """Returns true if the game is over and the player has lost"""
@@ -437,6 +441,7 @@ class Chambers4Environment(Environment):
         # Play out the actions...this is necessary because the key's location is not part of
         # the state. So we need to simulate the moves taken by the user to ensure the key is
         # in the correct location/state
+        # TODO: Just store the player's location and the key's location so we don't take up time re-simulating the game
         for m in state['moves']:
             self.step(m)
 
